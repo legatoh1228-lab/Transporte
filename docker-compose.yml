@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=transport_db
+      - POSTGRES_USER=transport_user
+      - POSTGRES_PASSWORD=transport_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transport_user -d transport_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+      - ./BaseNico.sql:/app/BaseNico.sql
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - DB_NAME=transport_db
+      - DB_USER=transport_user
+      - DB_PASSWORD=transport_password
+      - DB_HOST=db
+      - DB_PORT=5432
+      # Required for GeoDjango to find GDAL libraries if they are in non-standard paths
+      # but in debian-slim they should be fine. Adding just in case.
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
