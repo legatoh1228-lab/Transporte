@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
+import ProtectedRoute from './ProtectedRoute';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
@@ -14,16 +15,19 @@ import Permisos from '../pages/Permisos';
 import Terminales from '../pages/Terminales';
 import Usuarios from '../pages/Usuarios';
 import Configuracion from '../pages/Configuracion';
+import Profile from '../pages/Profile';
 
 const AppRoutes = () => {
   return (
     <Routes>
+      {/* Redirección Inicial: Siempre al Login */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
       {/* Rutas Públicas */}
       <Route path="/login" element={<Login />} />
       
-      {/* Rutas con Dashboard Layout */}
-      <Route element={<DashboardLayout />}>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Rutas Protegidas con Dashboard Layout */}
+      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/vehiculos" element={<Vehicles />} />
         <Route path="/rutas" element={<Rutas />} />
@@ -36,6 +40,7 @@ const AppRoutes = () => {
         <Route path="/terminales" element={<Terminales />} />
         <Route path="/usuarios" element={<Usuarios />} />
         <Route path="/configuracion" element={<Configuracion />} />
+        <Route path="/perfil" element={<Profile />} />
         
         {/* Mantengo Home por compatibilidad si se desea usar la anterior */}
         <Route path="/old-home" element={<Home />} />

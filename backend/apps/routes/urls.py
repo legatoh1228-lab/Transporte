@@ -1,6 +1,11 @@
-from django.urls import path
-from .views import routes_status
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import VialidadRutaViewSet, GestionPermisoViewSet
+
+router = DefaultRouter()
+router.register(r'routes', VialidadRutaViewSet)
+router.register(r'permissions', GestionPermisoViewSet)
 
 urlpatterns = [
-    path('status/', routes_status, name='routes-status'),
+    path('', include(router.urls)),
 ]

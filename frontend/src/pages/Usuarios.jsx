@@ -1,15 +1,103 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../components/common/Modal';
-
-const DUMMY_USERS = [
-  { id: '1', initials: 'CM', name: 'Carlos Mendoza', email: 'cmendoza@transporte.aragua.gob.ve', role: 'Super Admin', status: 'Activo', lastAccess: 'Hoy, 08:30 AM' },
-  { id: '2', initials: 'AR', name: 'Ana Rodríguez', email: 'arodriguez@transporte.aragua.gob.ve', role: 'Consultor', status: 'Activo', lastAccess: 'Ayer, 16:45 PM' },
-  { id: '3', initials: 'LV', name: 'Luis Vargas', email: 'lvargas@transporte.aragua.gob.ve', role: 'Operador', status: 'Inactivo', lastAccess: '12/10/2023' },
-  { id: '4', initials: 'MP', name: 'María Pérez', email: 'mperez@transporte.aragua.gob.ve', role: 'Consultor', status: 'Activo', lastAccess: 'Hoy, 09:15 AM' },
-];
+import api from '../services/api';
 
 export default function Usuarios() {
+  const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null); // Para editar
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    first_name: '',
+    last_name: '',
+    rol: '',
+    org: '',
+    password: '',
+    is_active: true
+  });
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [usersRes, rolesRes, orgsRes] = await Promise.all([
+        api.get('users/users/'),
+        api.get('catalogs/roles/'),
+        api.get('organizations/organizations/')
+      ]);
+      setUsers(usersRes.data);
+      setRoles(rolesRes.data);
+      setOrganizations(orgsRes.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleOpenModal = (user = null) => {
+    if (user) {
+      setCurrentUser(user);
+      setFormData({
+        username: user.username,
+        email: user.email,
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        rol: user.rol || '',
+        org: user.org || '',
+        password: '', // No mostrar password
+        is_active: user.is_active
+      });
+    } else {
+      setCurrentUser(null);
+      setFormData({
+        username: '',
+        email: '',
+        first_name: '',
+        last_name: '',
+        rol: '',
+        org: '',
+        password: '',
+        is_active: true
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      if (currentUser) {
+        // Edit
+        await api.put(`users/users/${currentUser.id}/`, formData);
+      } else {
+        // Create
+        await api.post('users/users/', formData);
+      }
+      setIsModalOpen(false);
+      fetchData();
+    } catch (error) {
+      console.error("Error saving user:", error);
+      alert("Error al guardar usuario. Verifique los campos.");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("¿Está seguro de eliminar este usuario?")) {
+      try {
+        await api.delete(`users/users/${id}/`);
+        fetchData();
+      } catch (error) {
+        console.error("Error deleting user:", error);
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 font-public-sans">
@@ -19,7 +107,7 @@ export default function Usuarios() {
           <p className="text-sm text-on-surface-variant font-medium">Gestione las cuentas y roles de los funcionarios del sistema.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => handleOpenModal()}
           className="bg-primary hover:bg-primary-container text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm"
         >
           <span className="material-symbols-outlined mr-2 text-[18px]">person_add</span>
@@ -35,182 +123,181 @@ export default function Usuarios() {
             <input 
               type="text" 
               placeholder="Buscar por nombre o correo..." 
-              className="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg py-2 pl-9 pr-4 text-sm outline-none transition-all"
+              className="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary rounded-lg py-2 pl-9 pr-4 text-sm outline-none transition-all"
             />
-          </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <select className="bg-surface-container-lowest w-full sm:w-auto border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-4 py-2 text-sm outline-none transition-all cursor-pointer">
-              <option value="">Todos los Roles</option>
-              <option>Super Admin</option>
-              <option>Consultor</option>
-              <option>Operador</option>
-            </select>
-            <button className="bg-surface-container-lowest border border-outline-variant text-on-surface-variant hover:bg-surface-variant px-3 py-2 rounded-lg transition-colors flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">filter_list</span>
-            </button>
           </div>
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-on-surface">
-            <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold">
-              <tr>
-                <th className="px-6 py-4 whitespace-nowrap">Usuario</th>
-                <th className="px-6 py-4">Rol</th>
-                <th className="px-6 py-4">Estado</th>
-                <th className="px-6 py-4">Último Acceso</th>
-                <th className="px-6 py-4 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant">
-              {DUMMY_USERS.map((row) => (
-                <tr key={row.id} className="hover:bg-surface-container-low transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary-fixed-dim text-on-primary-fixed-variant flex items-center justify-center font-bold text-xs shrink-0">
-                        {row.initials}
-                      </div>
-                      <div>
-                        <div className="font-bold text-on-surface">{row.name}</div>
-                        <div className="text-xs text-on-surface-variant">{row.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <RoleBadge role={row.role} />
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={row.status} />
-                  </td>
-                  <td className="px-6 py-4 text-on-surface-variant">
-                    {row.lastAccess}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-on-surface-variant hover:text-primary p-1 rounded-full hover:bg-surface-container-high transition-colors opacity-0 group-hover:opacity-100" title="Editar">
-                      <span className="material-symbols-outlined text-[18px]">edit</span>
-                    </button>
-                  </td>
+          {loading ? (
+            <div className="p-20 text-center text-on-surface-variant">Cargando usuarios...</div>
+          ) : (
+            <table className="w-full text-left text-sm text-on-surface">
+              <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold">
+                <tr>
+                  <th className="px-6 py-4 whitespace-nowrap">Usuario</th>
+                  <th className="px-6 py-4">Rol</th>
+                  <th className="px-6 py-4">Organización</th>
+                  <th className="px-6 py-4">Estado</th>
+                  <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Pagination Dummy */}
-        <div className="p-4 border-t border-outline-variant flex items-center justify-between text-sm text-on-surface-variant bg-surface-container-lowest">
-          <span>Mostrando 1 - 4 de 24 usuarios</span>
-          <div className="flex gap-1">
-             <button className="px-3 py-1 border border-outline-variant rounded bg-surface-container-lowest text-on-surface disabled:opacity-50" disabled>Ant</button>
-             <button className="px-3 py-1 border border-primary bg-primary text-white rounded">1</button>
-             <button className="px-3 py-1 border border-outline-variant rounded bg-surface-container-lowest text-on-surface hover:bg-surface-container transition-colors">2</button>
-             <button className="px-3 py-1 border border-outline-variant rounded bg-surface-container-lowest text-on-surface hover:bg-surface-container transition-colors">3</button>
-             <button className="px-3 py-1 border border-outline-variant rounded bg-surface-container-lowest text-on-surface hover:bg-surface-container transition-colors">Sig</button>
-          </div>
+              </thead>
+              <tbody className="divide-y divide-outline-variant">
+                {users.map((row) => (
+                  <tr key={row.id} className="hover:bg-surface-container-low transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary-fixed-dim text-on-primary-fixed-variant flex items-center justify-center font-bold text-xs shrink-0">
+                          {row.username.substring(0,2).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-bold text-on-surface">{row.first_name} {row.last_name}</div>
+                          <div className="text-xs text-on-surface-variant">{row.email}</div>
+                          <div className="text-[10px] text-outline">@{row.username}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <RoleBadge role={row.rol_nombre || 'Sin Rol'} />
+                    </td>
+                    <td className="px-6 py-4 text-on-surface-variant">
+                      {row.org_nombre || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={row.is_active ? 'Activo' : 'Inactivo'} />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleOpenModal(row)}
+                          className="text-on-surface-variant hover:text-primary p-1 rounded-full hover:bg-surface-container-high transition-colors" title="Editar"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">edit</span>
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(row.id)}
+                          className="text-on-surface-variant hover:text-error p-1 rounded-full hover:bg-surface-container-high transition-colors" title="Eliminar"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
-      <CreateUserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      {/* Modal CRUD */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={currentUser ? "Editar Usuario" : "Crear Nuevo Usuario"}
+        subtitle="Complete los datos del funcionario para el acceso al sistema"
+        icon={currentUser ? "edit_square" : "person_add"}
+        maxWidthClass="max-w-2xl"
+        actions={
+          <>
+            <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 border border-outline text-on-surface font-medium rounded-lg hover:bg-surface-container transition-colors">Cancelar</button>
+            <button onClick={handleSave} className="bg-primary hover:bg-primary-container text-white px-5 py-2.5 font-medium rounded-lg transition-colors shadow-sm">Guardar Cambios</button>
+          </>
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-1.5 col-span-2">
+            <label className="text-sm font-bold text-on-surface">Nombre de Usuario <span className="text-error">*</span></label>
+            <input 
+              value={formData.username}
+              onChange={(e) => setFormData({...formData, username: e.target.value})}
+              className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none" placeholder="ej: jpererz" 
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-bold text-on-surface">Nombre</label>
+            <input 
+              value={formData.first_name}
+              onChange={(e) => setFormData({...formData, first_name: e.target.value})}
+              className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none" placeholder="Juan" 
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-bold text-on-surface">Apellido</label>
+            <input 
+              value={formData.last_name}
+              onChange={(e) => setFormData({...formData, last_name: e.target.value})}
+              className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none" placeholder="Pérez" 
+            />
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <label className="text-sm font-bold text-on-surface">Correo Electrónico</label>
+            <input 
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none" placeholder="correo@ejemplo.com" 
+            />
+          </div>
+          {!currentUser && (
+            <div className="space-y-1.5 col-span-2">
+              <label className="text-sm font-bold text-on-surface">Contraseña <span className="text-error">*</span></label>
+              <input 
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none" placeholder="••••••••" 
+              />
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <label className="text-sm font-bold text-on-surface">Rol <span className="text-error">*</span></label>
+            <select 
+              value={formData.rol}
+              onChange={(e) => setFormData({...formData, rol: e.target.value})}
+              className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none"
+            >
+              <option value="">Seleccione...</option>
+              {roles.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-bold text-on-surface">Organización</label>
+            <select 
+              value={formData.org}
+              onChange={(e) => setFormData({...formData, org: e.target.value})}
+              className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none"
+            >
+              <option value="">Ninguna (Ente Central)</option>
+              {organizations.map(o => <option key={o.rif} value={o.rif}>{o.razon_social}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <input 
+              type="checkbox"
+              checked={formData.is_active}
+              onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+              id="is_active"
+            />
+            <label htmlFor="is_active" className="text-sm font-bold text-on-surface">Usuario Activo</label>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
 
 function RoleBadge({ role }) {
-  let styles = "";
-  if (role === 'Super Admin') {
-    styles = "bg-primary-fixed text-on-primary-fixed";
-  } else if (role === 'Consultor') {
-    styles = "bg-secondary-fixed text-on-secondary-fixed";
-  } else if (role === 'Operador') {
-    styles = "bg-surface-variant text-on-surface-variant border border-outline-variant";
-  }
-
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${styles}`}>
-      {role}
-    </span>
-  )
+  let styles = "bg-surface-variant text-on-surface-variant border border-outline-variant";
+  if (role.toLowerCase().includes('admin')) styles = "bg-primary-fixed text-on-primary-fixed";
+  return <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${styles}`}>{role}</span>;
 }
 
 function StatusBadge({ status }) {
-  let styles = "";
-  if (status === 'Activo') {
-    styles = "bg-tertiary-fixed text-on-tertiary-fixed font-bold";
-  } else {
-    styles = "bg-error-container text-on-error-container font-bold";
-  }
-
+  const active = status === 'Activo';
   return (
-    <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs ${styles}`}>
+    <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${active ? 'bg-tertiary-fixed text-on-tertiary-fixed' : 'bg-error-container text-on-error-container'}`}>
       {status}
     </span>
-  )
-}
-
-function CreateUserModal({ isOpen, onClose }) {
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Crear Nuevo Usuario"
-      subtitle="Ingrese los datos para registrar un nuevo funcionario en el sistema"
-      icon="person_add"
-      maxWidthClass="max-w-2xl"
-      actions={
-        <>
-          <button 
-            onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 border border-outline text-on-surface font-medium rounded-lg hover:bg-surface-container transition-colors"
-          >
-            Cancelar
-          </button>
-          <button 
-            className="w-full sm:w-auto bg-primary hover:bg-primary-container text-white px-5 py-2.5 font-medium rounded-lg transition-colors shadow-sm"
-          >
-            Guardar Usuario
-          </button>
-        </>
-      }
-    >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        
-        <div className="space-y-1.5 md:col-span-2">
-          <label className="text-sm font-bold text-on-surface">Nombre Completo <span className="text-error">*</span></label>
-          <input type="text" className="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-3 py-2 text-sm outline-none transition-all" placeholder="Ej. Juan Pérez" />
-        </div>
-
-        <div className="space-y-1.5 md:col-span-2">
-          <label className="text-sm font-bold text-on-surface">Correo Electrónico <span className="text-error">*</span></label>
-          <input type="email" className="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-3 py-2 text-sm outline-none transition-all" placeholder="usuario@transporte.aragua.gob.ve" />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-on-surface">Rol del Sistema <span className="text-error">*</span></label>
-          <select className="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-3 py-2 text-sm outline-none transition-all appearance-none cursor-pointer">
-            <option value="">Seleccione rol...</option>
-            <option>Super Admin</option>
-            <option>Consultor</option>
-            <option>Operador</option>
-            <option>Auditor</option>
-          </select>
-        </div>
-        
-        <div className="space-y-1.5">
-          <label className="text-sm font-bold text-on-surface">Estado Inicial <span className="text-error">*</span></label>
-          <select className="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-3 py-2 text-sm outline-none transition-all appearance-none cursor-pointer">
-            <option>Activo</option>
-            <option>Inactivo</option>
-            <option>Bloqueado</option>
-          </select>
-        </div>
-        
-        <div className="md:col-span-2 mt-2 bg-primary-fixed/30 border border-primary-fixed text-on-surface-variant p-4 rounded-lg flex gap-3 text-sm">
-           <span className="material-symbols-outlined text-primary mt-0.5 shrink-0 text-[18px]">gpp_bad</span>
-           <p>
-             Una contraseña temporal será generada y enviada al correo electrónico proporcionado. El usuario deberá cambiarla en su primer inicio de sesión.
-           </p>
-        </div>
-      </div>
-    </Modal>
   );
 }

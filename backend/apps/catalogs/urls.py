@@ -1,6 +1,23 @@
-from django.urls import path
-from .views import catalogs_status
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    ModalidadViewSet, SubModalidadViewSet, TerritorioEjeViewSet,
+    TerritorioMunicipioViewSet, TipoCombustibleViewSet, TipoRutaViewSet,
+    TipoTransmisionViewSet, TipoViaViewSet, TipoOrganizacionViewSet, RolViewSet
+)
+
+router = DefaultRouter()
+router.register(r'modalidades', ModalidadViewSet)
+router.register(r'submodalidades', SubModalidadViewSet)
+router.register(r'ejes', TerritorioEjeViewSet)
+router.register(r'municipios', TerritorioMunicipioViewSet)
+router.register(r'combustibles', TipoCombustibleViewSet)
+router.register(r'tipos-ruta', TipoRutaViewSet)
+router.register(r'transmisiones', TipoTransmisionViewSet)
+router.register(r'vias', TipoViaViewSet)
+router.register(r'tipos-organizacion', TipoOrganizacionViewSet)
+router.register(r'roles', RolViewSet)
 
 urlpatterns = [
-    path('status/', catalogs_status, name='catalogs-status'),
+    path('', include(router.urls)),
 ]

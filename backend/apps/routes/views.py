@@ -1,4 +1,11 @@
-from django.http import JsonResponse
+from rest_framework import viewsets
+from .models import VialidadRuta, GestionPermiso
+from .serializers import VialidadRutaSerializer, GestionPermisoSerializer
 
-def routes_status(request):
-    return JsonResponse({"status": "ok", "app": "routes"})
+class VialidadRutaViewSet(viewsets.ModelViewSet):
+    queryset = VialidadRuta.objects.all()
+    serializer_class = VialidadRutaSerializer
+
+class GestionPermisoViewSet(viewsets.ModelViewSet):
+    queryset = GestionPermiso.objects.all()
+    serializer_class = GestionPermisoSerializer

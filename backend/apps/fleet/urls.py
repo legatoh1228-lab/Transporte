@@ -1,6 +1,11 @@
-from django.urls import path
-from .views import fleet_status
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import FlotaVehiculoViewSet, VehiculoOrganizacionViewSet
+
+router = DefaultRouter()
+router.register(r'vehicles', FlotaVehiculoViewSet)
+router.register(r'vehicle-organizations', VehiculoOrganizacionViewSet)
 
 urlpatterns = [
-    path('status/', fleet_status, name='fleet-status'),
+    path('', include(router.urls)),
 ]

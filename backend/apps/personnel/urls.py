@@ -1,6 +1,11 @@
-from django.urls import path
-from .views import personnel_status
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import PersonalOperadorViewSet, OperadorOrganizacionViewSet
+
+router = DefaultRouter()
+router.register(r'operators', PersonalOperadorViewSet)
+router.register(r'operator-organizations', OperadorOrganizacionViewSet)
 
 urlpatterns = [
-    path('status/', personnel_status, name='personnel-status'),
+    path('', include(router.urls)),
 ]

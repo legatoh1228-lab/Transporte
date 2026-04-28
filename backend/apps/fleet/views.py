@@ -1,4 +1,11 @@
-from django.http import JsonResponse
+from rest_framework import viewsets
+from .models import FlotaVehiculo, VehiculoOrganizacion
+from .serializers import FlotaVehiculoSerializer, VehiculoOrganizacionSerializer
 
-def fleet_status(request):
-    return JsonResponse({"status": "ok", "app": "fleet"})
+class FlotaVehiculoViewSet(viewsets.ModelViewSet):
+    queryset = FlotaVehiculo.objects.all()
+    serializer_class = FlotaVehiculoSerializer
+
+class VehiculoOrganizacionViewSet(viewsets.ModelViewSet):
+    queryset = VehiculoOrganizacion.objects.all()
+    serializer_class = VehiculoOrganizacionSerializer

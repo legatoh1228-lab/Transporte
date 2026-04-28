@@ -1,4 +1,7 @@
-from django.http import JsonResponse
+from rest_framework import viewsets
+from .models import EmpresaOrganizacion
+from .serializers import EmpresaOrganizacionSerializer
 
-def organizations_status(request):
-    return JsonResponse({"status": "ok", "app": "organizations"})
+class EmpresaOrganizacionViewSet(viewsets.ModelViewSet):
+    queryset = EmpresaOrganizacion.objects.all()
+    serializer_class = EmpresaOrganizacionSerializer

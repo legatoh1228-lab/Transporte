@@ -1,12 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 
 const Vehicles = () => {
-  const vehicles = [
-    { plate: 'AB123CD', modality: 'Transporte Urbano', organization: 'Coop. TransAragua', orgId: 'ORG-0014', brand: 'Encava', model: 'E-NT610 (2018)', status: 'Activo', icon: 'directions_bus' },
-    { plate: 'XY987ZT', modality: 'Interurbano', organization: 'Sindicato Central Rutas', orgId: 'ORG-0082', brand: 'Yutong', model: 'ZK6122H (2020)', status: 'Mantenimiento', icon: 'airport_shuttle' },
-    { plate: 'MN456OP', modality: 'Taxi', organization: 'Asoc. Conductores Unidos', orgId: 'ORG-0105', brand: 'Chevrolet', model: 'Optra (2011)', status: 'Registrado', icon: 'local_taxi' },
-    { plate: 'JK789LM', modality: 'Transporte Urbano', organization: 'Coop. TransAragua', orgId: 'ORG-0014', brand: 'Ford', model: 'F-350 Minibus (2015)', status: 'Activo', icon: 'directions_bus' },
-  ];
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('fleet/vehicles/');
+        setVehicles(response.data);
+      } catch (err) {
+        console.error('Error fetching vehicles:', err);
+        setError('No se pudo conectar con el servidor de flota.');
+        // Fallback data for development if API fails
+        setVehicles([
+          { placa: 'AB123CD', modalidad_nombre: 'Transporte Urbano', marca: 'Encava', modelo: 'E-NT610', anio: 2018, status: 'Activo' },
+          { placa: 'XY987ZT', modalidad_nombre: 'Interurbano', marca: 'Yutong', modelo: 'ZK6122H', anio: 2020, status: 'Mantenimiento' },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVehicles();
+  }, []);
 
   return (
     <div className="space-y-6 font-public-sans">
@@ -55,72 +75,76 @@ const Vehicles = () => {
       {/* Data Table Container */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden flex flex-col shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[900px]">
-            <thead className="bg-surface-container-low border-b border-outline-variant">
-              <tr>
-                <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant w-[140px]">Placa</th>
-                <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant w-[160px]">Modalidad</th>
-                <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant">Organización</th>
-                <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant">Marca / Modelo</th>
-                <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant w-[120px]">Estado</th>
-                <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant text-right w-[80px]">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/40 bg-surface-container-lowest">
-              {vehicles.map((v, i) => (
-                <tr key={v.plate} className={`hover:bg-surface-container-low/60 transition-colors group ${i % 2 !== 0 ? 'bg-surface-container/10' : ''}`}>
-                  <td className="p-table-cell-padding">
-                    <div className="font-title-sm text-title-sm text-primary font-bold tracking-wider bg-surface-container py-1 px-2 rounded inline-block border border-outline-variant/50">{v.plate}</div>
-                  </td>
-                  <td className="p-table-cell-padding font-body-sm text-body-sm text-on-surface flex items-center gap-2 mt-1">
-                    <span className="material-symbols-outlined text-[16px] text-outline">{v.icon}</span>
-                    {v.modality}
-                  </td>
-                  <td className="p-table-cell-padding">
-                    <div className="font-body-sm text-body-sm text-on-surface font-medium">{v.organization}</div>
-                    <div className="text-[11px] text-on-surface-variant mt-0.5">ID: {v.orgId}</div>
-                  </td>
-                  <td className="p-table-cell-padding">
-                    <div className="font-body-sm text-body-sm text-on-surface">{v.brand}</div>
-                    <div className="font-label-sm text-label-sm text-on-surface-variant mt-0.5">{v.model}</div>
-                  </td>
-                  <td className="p-table-cell-padding">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-sm font-label-bold text-label-bold text-[10px] uppercase tracking-wider border ${
-                      v.status === 'Activo' ? 'bg-tertiary-fixed text-on-tertiary-fixed border-tertiary-fixed-dim/50' : 
-                      v.status === 'Mantenimiento' ? 'bg-error-container text-on-error-container border-error/20' : 
-                      'bg-surface-container-highest text-on-surface border-outline-variant'
-                    }`}>
-                      {v.status}
-                    </span>
-                  </td>
-                  <td className="p-table-cell-padding text-right">
-                    <button className="p-1.5 text-outline hover:text-primary transition-colors rounded hover:bg-surface-container opacity-0 group-hover:opacity-100">
-                      <span className="material-symbols-outlined text-[20px]">more_vert</span>
-                    </button>
-                  </td>
+          {loading ? (
+            <div className="p-20 text-center text-on-surface-variant font-body-md">Cargando flota institucional...</div>
+          ) : (
+            <table className="w-full text-left border-collapse min-w-[900px]">
+              <thead className="bg-surface-container-low border-b border-outline-variant">
+                <tr>
+                  <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant w-[140px]">Placa</th>
+                  <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant w-[160px]">Modalidad</th>
+                  <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant">Marca / Modelo</th>
+                  <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant w-[120px]">Año</th>
+                  <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant w-[120px]">Estado</th>
+                  <th className="p-table-cell-padding font-label-bold text-label-bold text-on-surface-variant text-right w-[80px]">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/40 bg-surface-container-lowest">
+                {vehicles.length > 0 ? vehicles.map((v, i) => (
+                  <tr key={v.placa} className={`hover:bg-surface-container-low/60 transition-colors group ${i % 2 !== 0 ? 'bg-surface-container/10' : ''}`}>
+                    <td className="p-table-cell-padding">
+                      <div className="font-title-sm text-title-sm text-primary font-bold tracking-wider bg-surface-container py-1 px-2 rounded inline-block border border-outline-variant/50">{v.placa}</div>
+                    </td>
+                    <td className="p-table-cell-padding font-body-sm text-body-sm text-on-surface flex items-center gap-2 mt-1">
+                      <span className="material-symbols-outlined text-[16px] text-outline">directions_bus</span>
+                      {v.modalidad_nombre || 'No asignada'}
+                    </td>
+                    <td className="p-table-cell-padding">
+                      <div className="font-body-sm text-body-sm text-on-surface">{v.marca}</div>
+                      <div className="font-label-sm text-label-sm text-on-surface-variant mt-0.5">{v.modelo}</div>
+                    </td>
+                    <td className="p-table-cell-padding font-body-sm text-body-sm text-on-surface">
+                      {v.anio}
+                    </td>
+                    <td className="p-table-cell-padding">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-sm font-label-bold text-label-bold text-[10px] uppercase tracking-wider border ${
+                        v.status === 'Activo' ? 'bg-tertiary-fixed text-on-tertiary-fixed border-tertiary-fixed-dim/50' : 
+                        v.status === 'Mantenimiento' ? 'bg-error-container text-on-error-container border-error/20' : 
+                        'bg-surface-container-highest text-on-surface border-outline-variant'
+                      }`}>
+                        {v.status || 'Registrado'}
+                      </span>
+                    </td>
+                    <td className="p-table-cell-padding text-right">
+                      <button className="p-1.5 text-outline hover:text-primary transition-colors rounded hover:bg-surface-container opacity-0 group-hover:opacity-100">
+                        <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                      </button>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan="6" className="p-10 text-center text-on-surface-variant font-body-sm">No se encontraron vehículos registrados.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
         {/* Table Footer / Pagination */}
         <div className="p-4 border-t border-outline-variant bg-surface-container-low flex items-center justify-between">
-          <p className="font-body-sm text-body-sm text-on-surface-variant">Mostrando <span className="font-medium text-on-surface">1</span> a <span className="font-medium text-on-surface">4</span> de <span className="font-medium text-on-surface">1,248</span> vehículos</p>
+          <p className="font-body-sm text-body-sm text-on-surface-variant">Mostrando <span className="font-medium text-on-surface">{vehicles.length}</span> registros</p>
           <div className="flex items-center gap-1">
             <button className="w-8 h-8 flex items-center justify-center rounded text-outline hover:text-primary hover:bg-surface-container transition-colors disabled:opacity-30" disabled>
               <span className="material-symbols-outlined text-[20px]">chevron_left</span>
             </button>
             <button className="w-8 h-8 flex items-center justify-center rounded bg-primary text-on-primary font-label-bold text-label-bold shadow-sm">1</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-container transition-colors font-body-sm text-body-sm">2</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-container transition-colors font-body-sm text-body-sm">3</button>
-            <span className="px-2 text-on-surface-variant">...</span>
-            <button className="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-container transition-colors font-body-sm text-body-sm">12</button>
-            <button className="w-8 h-8 flex items-center justify-center rounded text-outline hover:text-primary hover:bg-surface-container transition-colors">
+            <button className="w-8 h-8 flex items-center justify-center rounded text-outline hover:text-primary hover:bg-surface-container transition-colors" disabled>
               <span className="material-symbols-outlined text-[20px]">chevron_right</span>
             </button>
           </div>
         </div>
       </div>
+      {error && <div className="text-error font-label-sm text-center">{error}</div>}
     </div>
   );
 };
