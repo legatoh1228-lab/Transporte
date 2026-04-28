@@ -1,0 +1,224 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===================================================================
+   SISTEMA DE DISEÑO - TRANSPORTE ARAGUA
+   Variables CSS que garantizan que los colores funcionen siempre,
+   independientemente del purge de Tailwind.
+   =================================================================== */
+
+:root {
+  /* Primarios */
+  --color-primary:                   #032448;
+  --color-on-primary:                #ffffff;
+  --color-primary-container:         #1f3a5f;
+  --color-on-primary-container:      #8ba4cf;
+  --color-primary-fixed:             #d5e3ff;
+  --color-primary-fixed-dim:         #aec8f4;
+  --color-on-primary-fixed:          #001c3b;
+  --color-on-primary-fixed-variant:  #2d476d;
+  --color-inverse-primary:           #aec8f4;
+
+  /* Secundarios */
+  --color-secondary:                  #2f628d;
+  --color-on-secondary:               #ffffff;
+  --color-secondary-container:        #9eceff;
+  --color-on-secondary-container:     #235882;
+  --color-secondary-fixed:            #cfe5ff;
+  --color-secondary-fixed-dim:        #9bcbfc;
+  --color-on-secondary-fixed:         #001d33;
+  --color-on-secondary-fixed-variant: #0f4a74;
+
+  /* Terciarios */
+  --color-tertiary:                   #082b00;
+  --color-on-tertiary:                #ffffff;
+  --color-tertiary-container:         #114300;
+  --color-on-tertiary-container:      #73b358;
+  --color-tertiary-fixed:             #b0f590;
+  --color-tertiary-fixed-dim:         #95d877;
+  --color-on-tertiary-fixed:          #052100;
+  --color-on-tertiary-fixed-variant:  #175200;
+
+  /* Error */
+  --color-error:                      #ba1a1a;
+  --color-on-error:                   #ffffff;
+  --color-error-container:            #ffdad6;
+  --color-on-error-container:         #93000a;
+
+  /* Fondo y superficie */
+  --color-background:                 #f8f9f9;
+  --color-on-background:              #191c1c;
+  --color-surface:                    #f8f9f9;
+  --color-on-surface:                 #191c1c;
+  --color-surface-variant:            #e1e3e3;
+  --color-on-surface-variant:         #43474e;
+  --color-surface-container-lowest:   #ffffff;
+  --color-surface-container-low:      #f3f4f4;
+  --color-surface-container:          #edeeee;
+  --color-surface-container-high:     #e7e8e8;
+  --color-surface-container-highest:  #e1e3e3;
+  --color-surface-dim:                #d9dada;
+  --color-surface-bright:             #f8f9f9;
+  --color-surface-tint:               #465f86;
+  --color-inverse-surface:            #2e3131;
+  --color-inverse-on-surface:         #f0f1f1;
+
+  /* Contornos */
+  --color-outline:                    #74777f;
+  --color-outline-variant:            #c4c6cf;
+}
+
+/* ===================================================================
+   BASE GLOBAL
+   =================================================================== */
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Public Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    background-color: var(--color-background);
+    color: var(--color-on-surface);
+  }
+
+  ::selection {
+    background-color: var(--color-primary-fixed);
+    color: var(--color-on-primary-fixed);
+  }
+
+  .material-symbols-outlined {
+    vertical-align: middle;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+}
+
+/* ===================================================================
+   UTILIDADES PERSONALIZADAS DEL SISTEMA
+   Estas clases complementan Tailwind para los tokens del diseño
+   =================================================================== */
+
+@layer utilities {
+  /* Padding de celdas de tabla (p-table-cell-padding en los diseños) */
+  .p-table-cell-padding {
+    padding: 12px 16px;
+  }
+
+  /* Fondo principal */
+  .bg-background                { background-color: var(--color-background); }
+  .bg-surface                   { background-color: var(--color-surface); }
+  .bg-surface-variant           { background-color: var(--color-surface-variant); }
+  .bg-surface-container-lowest  { background-color: var(--color-surface-container-lowest); }
+  .bg-surface-container-low     { background-color: var(--color-surface-container-low); }
+  .bg-surface-container         { background-color: var(--color-surface-container); }
+  .bg-surface-container-high    { background-color: var(--color-surface-container-high); }
+  .bg-surface-container-highest { background-color: var(--color-surface-container-highest); }
+  .bg-surface-dim               { background-color: var(--color-surface-dim); }
+  .bg-surface-bright            { background-color: var(--color-surface-bright); }
+  .bg-inverse-surface           { background-color: var(--color-inverse-surface); }
+
+  /* Primario */
+  .bg-primary                   { background-color: var(--color-primary); }
+  .bg-primary-container         { background-color: var(--color-primary-container); }
+  .bg-primary-fixed             { background-color: var(--color-primary-fixed); }
+  .bg-primary-fixed-dim         { background-color: var(--color-primary-fixed-dim); }
+
+  /* Secundario */
+  .bg-secondary                 { background-color: var(--color-secondary); }
+  .bg-secondary-container       { background-color: var(--color-secondary-container); }
+  .bg-secondary-fixed           { background-color: var(--color-secondary-fixed); }
+  .bg-secondary-fixed-dim       { background-color: var(--color-secondary-fixed-dim); }
+
+  /* Terciario */
+  .bg-tertiary                  { background-color: var(--color-tertiary); }
+  .bg-tertiary-container        { background-color: var(--color-tertiary-container); }
+  .bg-tertiary-fixed            { background-color: var(--color-tertiary-fixed); }
+  .bg-tertiary-fixed-dim        { background-color: var(--color-tertiary-fixed-dim); }
+
+  /* Error */
+  .bg-error                     { background-color: var(--color-error); }
+  .bg-error-container           { background-color: var(--color-error-container); }
+
+  /* === TEXTO === */
+  .text-on-background           { color: var(--color-on-background); }
+  .text-on-surface              { color: var(--color-on-surface); }
+  .text-on-surface-variant      { color: var(--color-on-surface-variant); }
+  .text-inverse-on-surface      { color: var(--color-inverse-on-surface); }
+  .text-primary                 { color: var(--color-primary); }
+  .text-on-primary              { color: var(--color-on-primary); }
+  .text-on-primary-container    { color: var(--color-on-primary-container); }
+  .text-on-primary-fixed        { color: var(--color-on-primary-fixed); }
+  .text-primary-fixed-dim       { color: var(--color-primary-fixed-dim); }
+  .text-secondary               { color: var(--color-secondary); }
+  .text-on-secondary            { color: var(--color-on-secondary); }
+  .text-on-secondary-container  { color: var(--color-on-secondary-container); }
+  .text-tertiary                { color: var(--color-tertiary); }
+  .text-on-tertiary             { color: var(--color-on-tertiary); }
+  .text-on-tertiary-container   { color: var(--color-on-tertiary-container); }
+  .text-tertiary-fixed-dim      { color: var(--color-tertiary-fixed-dim); }
+  .text-error                   { color: var(--color-error); }
+  .text-on-error                { color: var(--color-on-error); }
+  .text-on-error-container      { color: var(--color-on-error-container); }
+  .text-outline                 { color: var(--color-outline); }
+  .text-outline-variant         { color: var(--color-outline-variant); }
+
+  /* === BORDES === */
+  .border-outline               { border-color: var(--color-outline); }
+  .border-outline-variant       { border-color: var(--color-outline-variant); }
+  .border-primary               { border-color: var(--color-primary); }
+  .border-secondary             { border-color: var(--color-secondary); }
+  .border-error                 { border-color: var(--color-error); }
+  .border-error-container       { border-color: var(--color-error-container); }
+  .border-surface-container     { border-color: var(--color-surface-container); }
+  .border-tertiary-fixed-dim    { border-color: var(--color-tertiary-fixed-dim); }
+
+  /* === FOCUS RING === */
+  .focus\:border-primary:focus  { border-color: var(--color-primary); }
+  .focus\:ring-primary:focus    { --tw-ring-color: var(--color-primary); }
+
+  /* === HOVER BACKGROUNDS === */
+  .hover\:bg-primary\/90:hover          { background-color: #032448e6; }
+  .hover\:bg-surface-container-low:hover { background-color: var(--color-surface-container-low); }
+  .hover\:bg-surface-container:hover    { background-color: var(--color-surface-container); }
+  .hover\:bg-surface:hover              { background-color: var(--color-surface); }
+  .hover\:text-primary:hover            { color: var(--color-primary); }
+  .hover\:text-on-surface:hover         { color: var(--color-on-surface); }
+  .hover\:text-white:hover              { color: #ffffff; }
+
+  /* === TIPOGRAFÍA === */
+  .font-public-sans              { font-family: 'Public Sans', sans-serif; }
+  .text-display-lg               { font-size: 36px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+  .text-headline-md              { font-size: 24px; line-height: 1.3; letter-spacing: -0.01em; font-weight: 600; }
+  .text-title-sm                 { font-size: 18px; line-height: 1.4; font-weight: 600; }
+  .text-body-md                  { font-size: 16px; line-height: 1.6; font-weight: 400; }
+  .text-body-sm                  { font-size: 14px; line-height: 1.5; font-weight: 400; }
+  .text-label-bold               { font-size: 12px; line-height: 1.2; letter-spacing: 0.04em; font-weight: 700; }
+  .text-label-sm                 { font-size: 12px; line-height: 1.2; font-weight: 500; }
+
+  /* Clases de font-family que mapean a tipografía (heredan Public Sans) */
+  .font-display-lg, .font-headline-md, .font-title-sm,
+  .font-body-md, .font-body-sm, .font-label-bold, .font-label-sm {
+    font-family: 'Public Sans', sans-serif;
+  }
+
+  /* === ANTIALIAS === */
+  .antialiased {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
