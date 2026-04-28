@@ -5,6 +5,15 @@ import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import Vehicles from '../pages/Vehicles';
 import RouteMap from '../pages/RouteMap';
+import Operadores from '../pages/Operadores';
+import Organizaciones from '../pages/Organizaciones';
+import Rutas from '../pages/Rutas';
+import Auditoria from '../pages/Auditoria';
+import Catalogos from '../pages/Catalogos';
+import Permisos from '../pages/Permisos';
+import Terminales from '../pages/Terminales';
+import Usuarios from '../pages/Usuarios';
+import Configuracion from '../pages/Configuracion';
 
 const AppRoutes = () => {
   return (
@@ -17,8 +26,16 @@ const AppRoutes = () => {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/vehiculos" element={<Vehicles />} />
-        <Route path="/rutas" element={<RouteMap />} />
+        <Route path="/rutas" element={<Rutas />} />
         <Route path="/mapa-rutas" element={<RouteMap />} />
+        <Route path="/operadores" element={<Operadores />} />
+        <Route path="/organizaciones" element={<Organizaciones />} />
+        <Route path="/auditoria" element={<Auditoria />} />
+        <Route path="/catalogos" element={<Catalogos />} />
+        <Route path="/permisos" element={<Permisos />} />
+        <Route path="/terminales" element={<Terminales />} />
+        <Route path="/usuarios" element={<Usuarios />} />
+        <Route path="/configuracion" element={<Configuracion />} />
         
         {/* Mantengo Home por compatibilidad si se desea usar la anterior */}
         <Route path="/old-home" element={<Home />} />
