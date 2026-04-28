@@ -1,6 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 const Login = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await api.post('users/login/', {
+        username: username,
+        password: password
+      });
+
+      console.log('Login exitoso:', response.data);
+      
+      // Guardar información del usuario (y token si lo hubiera)
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Si el backend retornara un token, lo guardaríamos aquí:
+      // localStorage.setItem('access_token', response.data.token);
+      
+      // Redirigir al dashboard
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Error de login:', err);
+      setError(err.response?.data?.error || 'Error al conectar con el servidor');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="flex w-full min-h-screen font-public-sans">
       {/* Left Panel - Branding & Institutional Context (Hidden on Mobile) */}
@@ -63,10 +99,17 @@ const Login = () => {
             <p className="text-on-surface-variant font-body-sm text-body-sm">Ingrese sus credenciales de operador o administrador para acceder al panel principal.</p>
           </div>
           
-          <form className="flex flex-col gap-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+            {error && (
+              <div className="bg-error/10 border border-error/20 text-error p-3 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                <span className="material-symbols-outlined text-[20px]">error</span>
+                <span className="font-body-sm text-body-sm">{error}</span>
+              </div>
+            )}
+
             {/* Username Field */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-on-surface font-label-bold text-label-bold" htmlFor="cedula">Cédula o Usuario Institucional</label>
+              <label className="text-on-surface font-label-bold text-label-bold" htmlFor="username">Usuario Institucional</label>
               <div className="relative group">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-outline group-focus-within:text-primary transition-colors">
                   <span className="material-symbols-outlined text-[20px]">badge</span>
@@ -74,11 +117,13 @@ const Login = () => {
                 <input 
                   autoComplete="username" 
                   className="w-full pl-10 pr-3 py-2.5 bg-surface border border-outline-variant rounded-lg text-on-surface font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
-                  id="cedula" 
-                  name="cedula" 
-                  placeholder="Ej: V-12345678" 
+                  id="username" 
+                  name="username" 
+                  placeholder="Ej: admin" 
                   required 
                   type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
             </div>
@@ -101,35 +146,20 @@ const Login = () => {
                   placeholder="••••••••" 
                   required 
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
-                <button 
-                  aria-label="Mostrar contraseña" 
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-outline hover:text-on-surface focus:outline-none transition-colors" 
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[20px]">visibility</span>
-                </button>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between mt-2">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <div className="relative flex items-center">
-                  <input 
-                    className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-2 focus:ring-primary/20 bg-surface cursor-pointer appearance-none checked:bg-primary checked:border-primary transition-colors" 
-                    type="checkbox"
-                  />
-                  <span className="material-symbols-outlined absolute text-[12px] text-on-primary left-[2px] pointer-events-none opacity-0 peer-checked:opacity-100" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
-                </div>
-                <span className="text-on-surface-variant font-body-sm text-body-sm group-hover:text-on-surface transition-colors">Recordar mi sesión</span>
-              </label>
-            </div>
-
             {/* Submit Button */}
-            <button className="w-full mt-4 bg-primary text-on-primary font-label-bold text-label-bold py-3 px-4 rounded-lg hover:bg-on-primary-fixed-variant active:bg-on-primary-fixed transition-colors flex items-center justify-center gap-2 border border-transparent focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-surface" type="submit">
-              Ingresar al Sistema
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+            <button 
+              className={`w-full mt-4 ${loading ? 'bg-primary/70' : 'bg-primary'} text-on-primary font-label-bold text-label-bold py-3 px-4 rounded-lg hover:bg-on-primary-fixed-variant active:bg-on-primary-fixed transition-colors flex items-center justify-center gap-2 border border-transparent focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-surface`} 
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? 'Validando...' : 'Ingresar al Sistema'}
+              {!loading && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
             </button>
           </form>
         </div>

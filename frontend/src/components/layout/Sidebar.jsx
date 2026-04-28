@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const SIDEBAR_BG     = '#1f3a5f';
 const ACTIVE_BG      = '#2c5f8a';
@@ -28,6 +28,7 @@ const navItems = [
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [expandedItems, setExpandedItems] = useState({});
 
   useEffect(() => {
@@ -41,6 +42,18 @@ const Sidebar = () => {
 
   const toggleExpand = (label) => {
     setExpandedItems(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const handleLogout = () => {
+    // Limpiar localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('access_token');
+    
+    // Opcional: Podrías llamar a un endpoint de logout en el backend si fuera necesario
+    // api.post('/users/logout/');
+
+    // Redirigir al Login
+    navigate('/login');
   };
 
   return (
@@ -156,6 +169,7 @@ const Sidebar = () => {
       {/* Logout */}
       <div className="p-4 mt-auto" style={{ borderTop: '1px solid rgba(100,116,139,0.3)' }}>
         <button
+          onClick={handleLogout}
           className="w-full flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-white rounded text-sm font-medium transition-all duration-200"
           style={{ fontFamily: "'Public Sans', sans-serif" }}
           onMouseEnter={(e) => {
