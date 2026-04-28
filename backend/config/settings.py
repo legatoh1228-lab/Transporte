@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     
     # Third party apps
     'rest_framework',
+    'corsheaders',
     
     # Custom apps
     'catalogs.apps.CatalogsConfig',
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -126,3 +128,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
+
+# CORS configuration
+CORS_ALLOW_ALL_ORIGINS = True # Only for development

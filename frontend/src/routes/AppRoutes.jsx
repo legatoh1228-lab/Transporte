@@ -14,7 +14,7 @@ const AppRoutes = () => {
       
       {/* Rutas con Dashboard Layout */}
       <Route element={<DashboardLayout />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/vehiculos" element={<Vehicles />} />
         <Route path="/rutas" element={<RouteMap />} />
