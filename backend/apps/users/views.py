@@ -11,6 +11,10 @@ from fleet.models import FlotaVehiculo
 from routes.models import VialidadRuta
 from .models import UserActivity
 
+from django.db.models import Count
+from django.utils import timezone
+from datetime import timedelta
+
 User = get_user_model()
 
 def get_client_ip(request):
@@ -65,11 +69,84 @@ class DashboardStatsView(APIView):
     permission_classes = [AllowAny] # Change to IsAuthenticated in production
 
     def get(self, request):
+        today = timezone.now().date()
+        soon = today + timedelta(days=30)
+
+        # Basic Stats
+        total_orgs = EmpresaOrganizacion.objects.count()
+        total_vehicles = FlotaVehiculo.objects.count()
+        total_operators = PersonalOperador.objects.count()
+        total_routes = VialidadRuta.objects.count()
+
+        # Fleet Distribution
+        distribution_query = FlotaVehiculo.objects.values('modalidad__nombre').annotate(count=Count('placa'))
+        fleet_distribution = []
+        for item in distribution_query:
+            percentage = (item['count'] / total_vehicles * 100) if total_vehicles > 0 else 0
+            fleet_distribution.append({
+                "name": item['modalidad__nombre'],
+                "count": item['count'],
+                "percentage": round(percentage, 1)
+            })
+
+        # Alerts
+        alerts = []
+        
+        # Insurance Expiration
+        insurance_expiring = FlotaVehiculo.objects.filter(seguro_vence__lte=soon)
+        for v in insurance_expiring:
+            status = "vencido" if v.seguro_vence < today else "por vencer"
+            alerts.append({
+                "type": "error" if status == "vencido" else "warning",
+                "icon": "assignment_late",
+                "title": f"Seguro {status.capitalize()}",
+                "message": f"Vehículo {v.placa} ({v.marca}). Vence: {v.seguro_vence}",
+                "link": "/vehiculos"
+            })
+
+        # Technical Inspection
+        tech_expiring = FlotaVehiculo.objects.filter(revision_tecnica_vence__lte=soon)
+        for v in tech_expiring:
+            status = "vencida" if v.revision_tecnica_vence < today else "por vencer"
+            alerts.append({
+                "type": "error" if status == "vencida" else "warning",
+                "icon": "build_circle",
+                "title": f"Revisión Técnica {status.capitalize()}",
+                "message": f"Vehículo {v.placa} ({v.marca}). Vence: {v.revision_tecnica_vence}",
+                "link": "/vehiculos"
+            })
+
+        # Operator Licenses
+        license_expiring = PersonalOperador.objects.filter(vence_lic__lte=soon)
+        for o in license_expiring:
+            status = "vencida" if o.vence_lic < today else "por vencer"
+            alerts.append({
+                "type": "error" if status == "vencida" else "warning",
+                "icon": "badge",
+                "title": f"Licencia {status.capitalize()}",
+                "message": f"{o.nombres} {o.apellidos} ({o.cedula}). Vence: {o.vence_lic}",
+                "link": "/operadores"
+            })
+
+        # Medical Certificate
+        med_expiring = PersonalOperador.objects.filter(certificado_medico_vence__lte=soon)
+        for o in med_expiring:
+            status = "vencido" if o.certificado_medico_vence < today else "por vencer"
+            alerts.append({
+                "type": "error" if status == "vencido" else "warning",
+                "icon": "medical_services",
+                "title": f"Certificado Médico {status.capitalize()}",
+                "message": f"{o.nombres} {o.apellidos} ({o.cedula}). Vence: {o.certificado_medico_vence}",
+                "link": "/operadores"
+            })
+
         stats = {
-            "organizations": EmpresaOrganizacion.objects.count(),
-            "vehicles": FlotaVehiculo.objects.count(),
-            "operators": PersonalOperador.objects.count(),
-            "routes": VialidadRuta.objects.count(),
+            "organizations": total_orgs,
+            "vehicles": total_vehicles,
+            "operators": total_operators,
+            "routes": total_routes,
+            "fleet_distribution": fleet_distribution,
+            "alerts": alerts[:10] # Limit to top 10 alerts
         }
         return Response(stats)
 

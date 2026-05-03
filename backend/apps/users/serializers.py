@@ -13,11 +13,19 @@ class UserActivitySerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     rol_nombre = serializers.ReadOnlyField(source='rol.nombre')
     org_nombre = serializers.ReadOnlyField(source='org.razon_social')
+    permissions = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'rol', 'rol_nombre', 'org', 'org_nombre', 'avatar', 'password', 'is_active')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'rol', 'rol_nombre', 'org', 'org_nombre', 'avatar', 'password', 'is_active', 'permissions')
         extra_kwargs = {'password': {'write_only': True, 'required': False}}
+
+    def get_permissions(self, obj):
+        if not obj.rol:
+            return []
+        from catalogs.models import RolPermiso
+        perms = RolPermiso.objects.filter(rol=obj.rol, permitido=True)
+        return [f"{p.modulo}:{p.accion}" for p in perms]
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)

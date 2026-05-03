@@ -8,7 +8,9 @@ const Dashboard = () => {
     organizations: 0,
     vehicles: 0,
     operators: 0,
-    routes: 0
+    routes: 0,
+    fleet_distribution: [],
+    alerts: []
   });
 
   useEffect(() => {
@@ -22,6 +24,12 @@ const Dashboard = () => {
     };
     fetchStats();
   }, []);
+
+  // Helper to get bar color based on index
+  const getBarColor = (index) => {
+    const colors = ['bg-primary', 'bg-secondary', 'bg-tertiary-fixed-dim', 'bg-error', 'bg-primary-container'];
+    return colors[index % colors.length];
+  };
 
   return (
     <div className="space-y-8 font-public-sans">
@@ -133,37 +141,27 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="flex-1 flex flex-col justify-center gap-6">
-            <div className="space-y-4">
-              {/* Bar 1 */}
-              <div>
-                <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant mb-1">
-                  <span>Autobús Urbano</span>
-                  <span className="font-bold text-primary">60%</span>
+            <div className="space-y-6">
+              {stats.fleet_distribution.length > 0 ? (
+                stats.fleet_distribution.map((item, index) => (
+                  <div key={item.name}>
+                    <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant mb-1">
+                      <span className="font-medium">{item.name}</span>
+                      <span className="font-bold text-primary">{item.percentage}% ({item.count})</span>
+                    </div>
+                    <div className="h-3 w-full bg-surface-container-high rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${getBarColor(index)} rounded-full transition-all duration-1000`} 
+                        style={{ width: `${item.percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 text-on-surface-variant italic">
+                  No hay datos de flota registrados.
                 </div>
-                <div className="h-3 w-full bg-surface-container-high rounded-full overflow-hidden">
-                  <div className="h-full bg-primary rounded-full" style={{ width: '60%' }}></div>
-                </div>
-              </div>
-              {/* Bar 2 */}
-              <div>
-                <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant mb-1">
-                  <span>Taxi (Tráfico/Libre)</span>
-                  <span className="font-bold text-primary">25%</span>
-                </div>
-                <div className="h-3 w-full bg-surface-container-high rounded-full overflow-hidden">
-                  <div className="h-full bg-secondary rounded-full" style={{ width: '25%' }}></div>
-                </div>
-              </div>
-              {/* Bar 3 */}
-              <div>
-                <div className="flex justify-between font-label-sm text-label-sm text-on-surface-variant mb-1">
-                  <span>Mototaxi</span>
-                  <span className="font-bold text-primary">10%</span>
-                </div>
-                <div className="h-3 w-full bg-surface-container-high rounded-full overflow-hidden">
-                  <div className="h-full bg-tertiary-fixed-dim rounded-full" style={{ width: '10%' }}></div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -175,26 +173,43 @@ const Dashboard = () => {
               <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
               <h3 className="font-headline-md text-headline-md text-primary">Acciones Requeridas</h3>
             </div>
+            {stats.alerts.length > 0 && (
+              <span className="bg-error text-on-error text-[10px] font-bold px-2 py-0.5 rounded-full">
+                {stats.alerts.length}
+              </span>
+            )}
           </div>
-          <div className="flex flex-col gap-3 flex-1 overflow-y-auto">
-            {/* Alert Item 1 */}
-            <div className="p-4 bg-error-container/10 border border-error-container/30 rounded-lg flex items-start gap-3">
-              <span className="material-symbols-outlined text-error mt-0.5">assignment_late</span>
-              <div>
-                <h4 className="font-title-sm text-title-sm text-on-error-container text-[14px]">Seguros por Vencer</h4>
-                <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 text-[13px]">Coop. La Pastora vence en 48 horas.</p>
-                <button onClick={() => navigate('/vehiculos')} className="mt-2 text-primary font-label-bold text-label-bold text-[11px] uppercase tracking-wider hover:underline">Revisar Detalles</button>
+          <div className="flex flex-col gap-3 flex-1 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+            {stats.alerts.length > 0 ? (
+              stats.alerts.map((alert, index) => (
+                <div 
+                  key={index} 
+                  className={`p-4 ${alert.type === 'error' ? 'bg-error-container/10 border-error-container/30' : 'bg-surface-container border-outline-variant/50'} border rounded-lg flex items-start gap-3 hover:bg-surface-container-high transition-colors cursor-pointer group`}
+                  onClick={() => navigate(alert.link)}
+                >
+                  <span className={`material-symbols-outlined mt-0.5 ${alert.type === 'error' ? 'text-error' : 'text-secondary'}`}>
+                    {alert.icon}
+                  </span>
+                  <div className="flex-1">
+                    <h4 className={`font-title-sm text-title-sm text-[14px] ${alert.type === 'error' ? 'text-on-error-container' : 'text-primary'}`}>
+                      {alert.title}
+                    </h4>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 text-[13px] leading-relaxed">
+                      {alert.message}
+                    </p>
+                    <div className="mt-2 text-primary font-label-bold text-label-bold text-[11px] uppercase tracking-wider group-hover:underline flex items-center gap-1">
+                      Gestionar <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-surface-container-lowest rounded-xl border border-dashed border-outline-variant">
+                <span className="material-symbols-outlined text-[48px] text-tertiary/30 mb-2">check_circle</span>
+                <p className="font-body-md text-body-md text-on-surface-variant">Todo al día</p>
+                <p className="font-label-sm text-label-sm text-on-surface-variant/60">No se requieren acciones inmediatas.</p>
               </div>
-            </div>
-            {/* Alert Item 2 */}
-            <div className="p-4 bg-surface-container border border-outline-variant/50 rounded-lg flex items-start gap-3">
-              <span className="material-symbols-outlined text-secondary mt-0.5">badge</span>
-              <div>
-                <h4 className="font-title-sm text-title-sm text-primary text-[14px]">Licencias Vencidas</h4>
-                <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 text-[13px]">12 operadores con licencias vencidas.</p>
-                <button onClick={() => navigate('/operadores')} className="mt-2 text-primary font-label-bold text-label-bold text-[11px] uppercase tracking-wider hover:underline">Ver Operadores</button>
-              </div>
-            </div>
+            )}
           </div>
           <button onClick={() => navigate('/auditoria')} className="w-full mt-4 py-2 text-center text-secondary font-label-bold text-label-bold border border-outline-variant rounded hover:bg-surface-container-low transition-colors">
             Ver Registro Completo

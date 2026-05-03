@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ModalidadViewSet, SubModalidadViewSet, TerritorioEjeViewSet,
     TerritorioMunicipioViewSet, TipoCombustibleViewSet, TipoRutaViewSet,
-    TipoTransmisionViewSet, TipoViaViewSet, TipoOrganizacionViewSet, RolViewSet
+    TipoTransmisionViewSet, TipoViaViewSet, TipoOrganizacionViewSet, RolViewSet,
+    RolPermisoViewSet
 )
 
 router = DefaultRouter()
@@ -17,6 +18,7 @@ router.register(r'transmisiones', TipoTransmisionViewSet)
 router.register(r'vias', TipoViaViewSet)
 router.register(r'tipos-organizacion', TipoOrganizacionViewSet)
 router.register(r'roles', RolViewSet)
+router.register(r'permisos-rol', RolPermisoViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

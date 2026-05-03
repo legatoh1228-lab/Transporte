@@ -72,19 +72,34 @@ export default function Usuarios() {
   };
 
   const handleSave = async () => {
+    // Basic validation
+    if (!formData.username || (!currentUser && !formData.password) || !formData.rol) {
+      alert("Por favor complete los campos obligatorios (*)");
+      return;
+    }
+
     try {
+      const payload = {
+        ...formData,
+        rol: formData.rol || null,
+        org: formData.org || null,
+        // Si estamos editando y el password está vacío, lo quitamos del payload
+        ...(currentUser && !formData.password ? { password: undefined } : {})
+      };
+
       if (currentUser) {
         // Edit
-        await api.put(`users/users/${currentUser.id}/`, formData);
+        await api.put(`users/users/${currentUser.id}/`, payload);
       } else {
         // Create
-        await api.post('users/users/', formData);
+        await api.post('users/users/', payload);
       }
       setIsModalOpen(false);
       fetchData();
     } catch (error) {
-      console.error("Error saving user:", error);
-      alert("Error al guardar usuario. Verifique los campos.");
+      console.error("Error saving user:", error.response?.data || error);
+      const msg = error.response?.data ? JSON.stringify(error.response.data) : "Error desconocido";
+      alert(`Error al guardar usuario: ${msg}`);
     }
   };
 
@@ -239,17 +254,19 @@ export default function Usuarios() {
               className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none" placeholder="correo@ejemplo.com" 
             />
           </div>
-          {!currentUser && (
-            <div className="space-y-1.5 col-span-2">
-              <label className="text-sm font-bold text-on-surface">Contraseña <span className="text-error">*</span></label>
-              <input 
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none" placeholder="••••••••" 
-              />
-            </div>
-          )}
+          <div className="space-y-1.5 col-span-2">
+            <label className="text-sm font-bold text-on-surface">
+              {currentUser ? "Nueva Contraseña" : "Contraseña"} 
+              {!currentUser && <span className="text-error"> *</span>}
+              {currentUser && <span className="text-xs font-normal text-on-surface-variant ml-2">(Deje en blanco para mantener la actual)</span>}
+            </label>
+            <input 
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none" placeholder="••••••••" 
+            />
+          </div>
           <div className="space-y-1.5">
             <label className="text-sm font-bold text-on-surface">Rol <span className="text-error">*</span></label>
             <select 

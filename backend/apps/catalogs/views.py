@@ -8,6 +8,8 @@ from .serializers import (
     TerritorioMunicipioSerializer, TipoCombustibleSerializer, TipoRutaSerializer,
     TipoTransmisionSerializer, TipoViaSerializer, TipoOrganizacionSerializer, RolSerializer
 )
+from .models import RolPermiso
+from .serializers_perms import RolPermisoSerializer
 
 class ModalidadViewSet(viewsets.ModelViewSet):
     queryset = Modalidad.objects.all()
@@ -48,3 +50,14 @@ class TipoOrganizacionViewSet(viewsets.ModelViewSet):
 class RolViewSet(viewsets.ModelViewSet):
     queryset = Rol.objects.all()
     serializer_class = RolSerializer
+
+class RolPermisoViewSet(viewsets.ModelViewSet):
+    queryset = RolPermiso.objects.all()
+    serializer_class = RolPermisoSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        rol_id = self.request.query_params.get('rol', None)
+        if rol_id is not None:
+            queryset = queryset.filter(rol_id=rol_id)
+        return queryset

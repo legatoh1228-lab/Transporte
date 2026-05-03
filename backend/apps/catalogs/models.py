@@ -73,3 +73,17 @@ class Rol(models.Model):
     class Meta:
         verbose_name_plural = "Roles"
         db_table = 'rol'
+
+class RolPermiso(models.Model):
+    rol = models.ForeignKey(Rol, on_delete=models.CASCADE, related_name='permisos')
+    modulo = models.CharField(max_length=50)
+    accion = models.CharField(max_length=20)
+    permitido = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.rol} - {self.modulo} - {self.accion}: {'Sí' if self.permitido else 'No'}"
+
+    class Meta:
+        verbose_name_plural = "Permisos de Rol"
+        db_table = 'rol_permiso'
+        unique_together = ('rol', 'modulo', 'accion')
