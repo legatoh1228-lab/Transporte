@@ -12,10 +12,14 @@ export default function Operadores() {
 
   const [formData, setFormData] = useState({
     cedula: '',
+    tipo_identificacion: 'V',
+    numero_cedula: '',
     codigo_op: '',
     nombres: '',
     apellidos: '',
     telefono: '',
+    prefijo_telefono: '0414',
+    numero_telefono: '',
     direccion: '',
     fecha_nacimiento: '',
     licencia_grado: 5,
@@ -49,10 +53,14 @@ export default function Operadores() {
   const resetForm = () => {
     setFormData({
       cedula: '',
+      tipo_identificacion: 'V',
+      numero_cedula: '',
       codigo_op: '',
       nombres: '',
       apellidos: '',
       telefono: '',
+      prefijo_telefono: '0414',
+      numero_telefono: '',
       direccion: '',
       fecha_nacimiento: '',
       licencia_grado: 5,
@@ -70,25 +78,72 @@ export default function Operadores() {
   };
 
   const handleEdit = (operator) => {
-    setFormData(operator);
+    let tipo_identificacion = 'V';
+    let numero_cedula = operator.cedula;
+    if (operator.cedula && operator.cedula.includes('-')) {
+      [tipo_identificacion, numero_cedula] = operator.cedula.split('-');
+    } else if (operator.cedula && /^[A-Z]/i.test(operator.cedula[0])) {
+      tipo_identificacion = operator.cedula[0].toUpperCase();
+      numero_cedula = operator.cedula.substring(1).replace(/^-/, '');
+    }
+
+    let prefijo_telefono = '0414';
+    let numero_telefono = operator.telefono || '';
+    if (operator.telefono && operator.telefono.includes('-')) {
+      [prefijo_telefono, numero_telefono] = operator.telefono.split('-');
+    } else if (operator.telefono && operator.telefono.length > 4) {
+      prefijo_telefono = operator.telefono.substring(0, 4);
+      numero_telefono = operator.telefono.substring(4);
+    }
+
+    setFormData({
+      ...operator,
+      tipo_identificacion,
+      numero_cedula,
+      prefijo_telefono,
+      numero_telefono
+    });
     setIsEditing(true);
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Format data before sending
+    const payload = { ...formData };
+    
+    // Reconstruct cedula and telefono
+    payload.cedula = `${payload.tipo_identificacion}-${payload.numero_cedula}`;
+    if (payload.numero_telefono) {
+      payload.telefono = `${payload.prefijo_telefono}-${payload.numero_telefono}`;
+    } else {
+      payload.telefono = null;
+    }
+
+    if (!payload.fecha_nacimiento) payload.fecha_nacimiento = null;
+    if (!payload.certificado_medico_vence) payload.certificado_medico_vence = null;
+    if (!payload.vence_lic) payload.vence_lic = null;
+
     try {
       if (isEditing) {
-        await api.put(`personnel/operators/${formData.cedula}/`, formData);
+        await api.put(`personnel/operators/${payload.cedula}/`, payload);
       } else {
-        await api.post('personnel/operators/', formData);
+        await api.post('personnel/operators/', payload);
       }
       setIsModalOpen(false);
       fetchOperators();
       resetForm();
     } catch (err) {
       console.error("Error saving operator:", err);
-      setError("Error al guardar los datos. Verifique los campos.");
+      if (err.response && err.response.data) {
+        const errorMsgs = Object.entries(err.response.data)
+          .map(([key, msgs]) => `${key}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+          .join(" | ");
+        setError(`Error: ${errorMsgs}`);
+      } else {
+        setError("Error al guardar los datos. Verifique los campos.");
+      }
     }
   };
 
@@ -213,69 +268,176 @@ export default function Operadores() {
           </>
         }
       >
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1 md:col-span-1">
-            <label className="text-xs font-bold text-on-surface-variant ml-1">Cédula</label>
-            <input 
-              name="cedula" value={formData.cedula} onChange={handleInputChange} disabled={isEditing}
-              placeholder="Ej: V-12345678" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none"
-            />
+        <form className="flex flex-col gap-6">
+          {error && (
+            <div className="text-error text-sm font-bold bg-error-container/10 p-3 rounded-lg border border-error/20 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">error</span>
+              {error}
+            </div>
+          )}
+
+          {/* Datos Personales */}
+          <div>
+            <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2 border-b border-outline-variant pb-2">
+              <span className="material-symbols-outlined text-[18px]">person</span>
+              Datos Personales
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Documento de Identidad <span className="text-error">*</span></label>
+                <div className="flex">
+                  <select 
+                    name="tipo_identificacion" value={formData.tipo_identificacion || 'V'} onChange={handleInputChange} disabled={isEditing}
+                    className="bg-surface-container border border-r-0 border-outline-variant rounded-l-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors w-[70px] text-center font-bold text-on-surface"
+                  >
+                    <option value="V">V</option>
+                    <option value="E">E</option>
+                    <option value="J">J</option>
+                    <option value="G">G</option>
+                    <option value="P">P</option>
+                  </select>
+                  <input 
+                    name="numero_cedula" value={formData.numero_cedula || ''} onChange={handleInputChange} disabled={isEditing}
+                    placeholder="12345678" className="w-full bg-surface-container border border-outline-variant rounded-r-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Código Operador <span className="text-error">*</span></label>
+                <input 
+                  name="codigo_op" value={formData.codigo_op || ''} onChange={handleInputChange}
+                  placeholder="Ej: OP-001" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Nombres <span className="text-error">*</span></label>
+                <input 
+                  name="nombres" value={formData.nombres || ''} onChange={handleInputChange}
+                  placeholder="Ej: Juan Carlos" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Apellidos <span className="text-error">*</span></label>
+                <input 
+                  name="apellidos" value={formData.apellidos || ''} onChange={handleInputChange}
+                  placeholder="Ej: Pérez Gómez" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Fecha de Nacimiento</label>
+                <input 
+                  type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento || ''} onChange={handleInputChange}
+                  className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Tipo de Sangre</label>
+                <select 
+                  name="tipo_sangre" value={formData.tipo_sangre || ''} onChange={handleInputChange}
+                  className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
+                >
+                  <option value="">Seleccione...</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div className="space-y-1 md:col-span-1">
-            <label className="text-xs font-bold text-on-surface-variant ml-1">Código Operador</label>
-            <input 
-              name="codigo_op" value={formData.codigo_op} onChange={handleInputChange}
-              placeholder="Ej: OP-001" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none"
-            />
+
+          {/* Datos de Contacto */}
+          <div>
+            <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2 border-b border-outline-variant pb-2">
+              <span className="material-symbols-outlined text-[18px]">contact_phone</span>
+              Datos de Contacto
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Teléfono Móvil</label>
+                <div className="flex">
+                  <select 
+                    name="prefijo_telefono" value={formData.prefijo_telefono || '0414'} onChange={handleInputChange}
+                    className="bg-surface-container border border-r-0 border-outline-variant rounded-l-lg py-2.5 px-2 text-sm focus:border-primary outline-none transition-colors w-[85px] font-bold text-on-surface"
+                  >
+                    <optgroup label="Movistar">
+                      <option value="0414">0414</option>
+                      <option value="0424">0424</option>
+                    </optgroup>
+                    <optgroup label="Digitel">
+                      <option value="0412">0412</option>
+                      <option value="0422">0422</option>
+                    </optgroup>
+                    <optgroup label="Movilnet">
+                      <option value="0416">0416</option>
+                      <option value="0426">0426</option>
+                    </optgroup>
+                    <optgroup label="Fijo">
+                      <option value="0212">0212</option>
+                      <option value="0243">0243</option>
+                    </optgroup>
+                  </select>
+                  <input 
+                    name="numero_telefono" value={formData.numero_telefono || ''} onChange={handleInputChange}
+                    placeholder="1234567" className="w-full bg-surface-container border border-outline-variant rounded-r-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors tracking-wide"
+                    maxLength={7}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Dirección</label>
+                <textarea 
+                  name="direccion" value={formData.direccion || ''} onChange={handleInputChange} rows="2"
+                  placeholder="Dirección de habitación..." className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors resize-none"
+                ></textarea>
+              </div>
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-on-surface-variant ml-1">Nombres</label>
-            <input 
-              name="nombres" value={formData.nombres} onChange={handleInputChange}
-              placeholder="Nombres" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none"
-            />
+
+          {/* Credenciales y Licencia */}
+          <div>
+            <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2 border-b border-outline-variant pb-2">
+              <span className="material-symbols-outlined text-[18px]">id_card</span>
+              Credenciales
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Grado de Licencia</label>
+                <select 
+                  name="licencia_grado" value={formData.licencia_grado || 5} onChange={handleInputChange}
+                  className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
+                >
+                  <option value={2}>2do Grado</option>
+                  <option value={3}>3er Grado</option>
+                  <option value={4}>4to Grado</option>
+                  <option value={5}>5to Grado</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Vencimiento de Licencia <span className="text-error">*</span></label>
+                <input 
+                  type="date" name="vence_lic" value={formData.vence_lic || ''} onChange={handleInputChange}
+                  className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-on-surface-variant ml-1">Vencimiento Certificado Médico</label>
+                <input 
+                  type="date" name="certificado_medico_vence" value={formData.certificado_medico_vence || ''} onChange={handleInputChange}
+                  className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
+                />
+              </div>
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-on-surface-variant ml-1">Apellidos</label>
-            <input 
-              name="apellidos" value={formData.apellidos} onChange={handleInputChange}
-              placeholder="Apellidos" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-on-surface-variant ml-1">Grado Licencia</label>
-            <select 
-              name="licencia_grado" value={formData.licencia_grado} onChange={handleInputChange}
-              className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none"
-            >
-              <option value={2}>2do Grado</option>
-              <option value={3}>3er Grado</option>
-              <option value={4}>4to Grado</option>
-              <option value={5}>5to Grado</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-on-surface-variant ml-1">Vencimiento Licencia</label>
-            <input 
-              type="date" name="vence_lic" value={formData.vence_lic} onChange={handleInputChange}
-              className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-on-surface-variant ml-1">Vence Certificado Médico</label>
-            <input 
-              type="date" name="certificado_medico_vence" value={formData.certificado_medico_vence} onChange={handleInputChange}
-              className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-on-surface-variant ml-1">Teléfono</label>
-            <input 
-              name="telefono" value={formData.telefono} onChange={handleInputChange}
-              placeholder="Ej: 0412-1234567" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none"
-            />
-          </div>
-          {error && <div className="md:col-span-2 text-error text-xs font-bold bg-error-container/10 p-2 rounded border border-error/20">{error}</div>}
         </form>
       </Modal>
     </div>
