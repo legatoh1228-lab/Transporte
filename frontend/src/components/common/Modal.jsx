@@ -4,7 +4,7 @@ export function Modal({ isOpen, onClose, title, subtitle, icon, children, action
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-inverse-surface/60 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-6 bg-inverse-surface/60 backdrop-blur-sm" role="dialog" aria-modal="true">
       <div className={`bg-surface w-full ${maxWidthClass} rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] flex flex-col max-h-[90vh] overflow-hidden border border-outline-variant transform transition-all font-public-sans`}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant bg-surface-container-lowest shrink-0">

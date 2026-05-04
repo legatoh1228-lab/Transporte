@@ -1,6 +1,98 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import wellknown from 'wellknown';
+import 'leaflet/dist/leaflet.css';
 import { Modal } from '../components/common/Modal';
 import api from '../services/api';
+
+// Fix for default Leaflet icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+// Helper: Calculate distance between two coordinates in km
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// Helper component to center map
+const ChangeView = ({ center, zoom }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (center && Array.isArray(center) && center.length === 2) {
+      map.setView(center, zoom);
+    }
+  }, [center, zoom, map]);
+  return null;
+};
+
+// Map component for drawing in the modal
+const RouteDesigner = ({ points, setPoints, onDistanceUpdate }) => {
+  useMapEvents({
+    click(e) {
+      const newPoint = [e.latlng.lat, e.latlng.lng];
+      const newPoints = [...points, newPoint];
+      setPoints(newPoints);
+      
+      let totalDist = 0;
+      for (let i = 1; i < newPoints.length; i++) {
+        totalDist += calculateDistance(
+          newPoints[i-1][0], newPoints[i-1][1],
+          newPoints[i][0], newPoints[i][1]
+        );
+      }
+      onDistanceUpdate(totalDist.toFixed(2), newPoints.length);
+    },
+  });
+
+  return (
+    <>
+      <Polyline positions={points} pathOptions={{ color: '#032448', weight: 4 }} />
+      {points.map((point, idx) => (
+        <Marker key={idx} position={point}>
+          <Popup>
+            <div className="text-center">
+              <p className="font-bold mb-1">
+                {idx === 0 ? "Origen" : idx === points.length - 1 ? "Destino" : `Parada #${idx}`}
+              </p>
+              <button 
+                className="bg-error text-white text-[10px] px-2 py-1 rounded font-bold"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const updatedPoints = points.filter((_, i) => i !== idx);
+                  setPoints(updatedPoints);
+                  let totalDist = 0;
+                  for (let i = 1; i < updatedPoints.length; i++) {
+                    totalDist += calculateDistance(
+                      updatedPoints[i-1][0], updatedPoints[i-1][1],
+                      updatedPoints[i][0], updatedPoints[i][1]
+                    );
+                  }
+                  onDistanceUpdate(totalDist.toFixed(2), updatedPoints.length);
+                }}
+              >
+                Eliminar
+              </button>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+    </>
+  );
+};
 
 export default function Rutas() {
   const [routes, setRoutes] = useState([]);
@@ -10,10 +102,9 @@ export default function Rutas() {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState(null);
+  const [selectedRouteId, setSelectedRouteId] = useState(null);
 
   const [formData, setFormData] = useState({
     id: null,
@@ -26,8 +117,11 @@ export default function Rutas() {
     tiempo_estimado_min: '',
     numero_paradas: 0,
     tipo_via: '',
-    observaciones: ''
+    observaciones: '',
+    geom: null
   });
+
+  const [routePoints, setRoutePoints] = useState([]);
 
   const fetchData = async () => {
     try {
@@ -38,17 +132,31 @@ export default function Rutas() {
         api.get('catalogs/vias/'),
         api.get('catalogs/municipios/')
       ]);
-      setRoutes(resRoutes.data);
+      
+      const processedRoutes = resRoutes.data.map(route => {
+        let coordinates = [];
+        if (route.geom) {
+          try {
+            const geojson = wellknown.parse(route.geom);
+            if (geojson && geojson.type === 'LineString') {
+              coordinates = geojson.coordinates.map(coord => [coord[1], coord[0]]);
+            }
+          } catch (e) { console.error("Error parsing geom", e); }
+        }
+        return { ...route, coordinates };
+      });
+
+      setRoutes(processedRoutes);
       setTiposRuta(resTipos.data);
       setVias(resVias.data);
       setMunicipios(resMun.data);
       
-      if (resRoutes.data.length > 0) {
-        setSelectedRoute(resRoutes.data[0]);
+      if (processedRoutes.length > 0 && !selectedRouteId) {
+        setSelectedRouteId(processedRoutes[0].id);
       }
     } catch (err) {
-      console.error("Error fetching rutas data:", err);
-      setError("Error al cargar los datos. Verifique la conexión.");
+      console.error("Error fetching data:", err);
+      setError("Error al cargar los datos.");
     } finally {
       setLoading(false);
     }
@@ -57,6 +165,11 @@ export default function Rutas() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const selectedRoute = useMemo(() => 
+    routes.find(r => r.id === selectedRouteId), 
+    [routes, selectedRouteId]
+  );
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -78,8 +191,10 @@ export default function Rutas() {
       tiempo_estimado_min: '',
       numero_paradas: 0,
       tipo_via: '',
-      observaciones: ''
+      observaciones: '',
+      geom: null
     });
+    setRoutePoints([]);
     setIsEditing(false);
     setError(null);
   };
@@ -102,17 +217,30 @@ export default function Rutas() {
       tiempo_estimado_min: route.tiempo_estimado_min || '',
       numero_paradas: route.numero_paradas || 0,
       tipo_via: route.tipo_via || '',
-      observaciones: route.observaciones || ''
+      observaciones: route.observaciones || '',
+      geom: route.geom
     });
+    setRoutePoints(route.coordinates || []);
     setIsEditing(true);
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const payload = { ...formData };
+    if (e) e.preventDefault();
     
-    // Convert empty numbers to null
+    let wkt = null;
+    if (routePoints.length > 1) {
+      wkt = wellknown.stringify({
+        type: 'LineString',
+        coordinates: routePoints.map(p => [p[1], p[0]])
+      });
+    }
+
+    const payload = { 
+      ...formData,
+      geom: wkt
+    };
+    
     if (payload.distancia_km === '') payload.distancia_km = null;
     if (payload.tiempo_estimado_min === '') payload.tiempo_estimado_min = null;
 
@@ -126,14 +254,7 @@ export default function Rutas() {
       fetchData();
     } catch (err) {
       console.error("Error saving route:", err);
-      if (err.response && err.response.data) {
-        const errorMsgs = Object.entries(err.response.data)
-          .map(([key, msgs]) => `${key}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
-          .join(" | ");
-        setError(`Error: ${errorMsgs}`);
-      } else {
-        setError("Error al guardar los datos.");
-      }
+      setError("Error al guardar los datos.");
     }
   };
 
@@ -142,65 +263,59 @@ export default function Rutas() {
     if (window.confirm("¿Está seguro de eliminar esta ruta?")) {
       try {
         await api.delete(`routes/routes/${id}/`);
-        // If the deleted route was selected, unselect it
-        if (selectedRoute && selectedRoute.id === id) {
-           setSelectedRoute(null);
-        }
+        if (selectedRouteId === id) setSelectedRouteId(null);
         fetchData();
       } catch (err) {
         console.error("Error deleting route:", err);
-        alert("No se pudo eliminar la ruta.");
       }
     }
   };
 
-  // Helper for names
   const getTipoName = (id) => tiposRuta.find(t => t.id === id)?.nombre || 'Desconocido';
   const getMunicipioName = (id) => municipios.find(m => m.id === id)?.nombre || 'Desconocido';
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] font-public-sans">
+      {/* Header */}
       <div className="flex justify-between items-center mb-4 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestión de Rutas</h1>
           <p className="text-sm text-on-surface-variant font-medium mt-1">Configuración y trazado de las líneas de servicio</p>
         </div>
-        <div className="flex gap-2">
-           <button 
-             onClick={handleOpenCreate}
-             className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center shadow-md hover:shadow-lg active:scale-95"
-           >
-             <span className="material-symbols-outlined mr-2 text-[18px]">add_road</span>
-             Nueva Ruta
-           </button>
-        </div>
+        <button 
+          onClick={handleOpenCreate}
+          className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center shadow-md active:scale-95"
+        >
+          <span className="material-symbols-outlined mr-2 text-[18px]">add_road</span>
+          Nueva Ruta
+        </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
-        {/* Left List */}
-        <div className="w-full lg:w-1/3 flex flex-col bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden shrink-0 lg:shrink">
+      <div className={`flex flex-col lg:flex-row gap-6 flex-1 min-h-0 transition-all duration-300 ${isModalOpen ? 'blur-sm grayscale-[0.2] opacity-50 pointer-events-none' : ''}`}>
+        {/* List */}
+        <div className="w-full lg:w-1/3 flex flex-col bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden">
           <div className="p-4 border-b border-outline-variant bg-surface-container-low shrink-0 flex items-center justify-between">
             <h3 className="font-bold text-on-surface text-sm uppercase tracking-wide">Rutas Activas</h3>
-            <span className="bg-tertiary-container/20 text-tertiary-container text-xs font-bold px-2 py-1 rounded-md">{routes.length} Totales</span>
+            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-md">{routes.length} Totales</span>
           </div>
           
           <div className="overflow-y-auto flex-1 p-2 space-y-1">
              {loading ? (
-                <div className="p-10 text-center text-on-surface-variant animate-pulse font-medium">Cargando rutas...</div>
+                <div className="p-10 text-center text-on-surface-variant animate-pulse">Cargando rutas...</div>
              ) : routes.length === 0 ? (
-                <div className="p-10 text-center text-on-surface-variant font-medium">No hay rutas configuradas.</div>
+                <div className="p-10 text-center text-on-surface-variant">No hay rutas configuradas.</div>
              ) : (
                 routes.map((route) => {
-                  const isSelected = selectedRoute && selectedRoute.id === route.id;
+                  const isSelected = selectedRouteId === route.id;
                   return (
                     <div 
                       key={route.id} 
-                      onClick={() => setSelectedRoute(route)}
-                      className={`p-4 rounded-lg cursor-pointer transition-all border group ${isSelected ? 'bg-primary-fixed border-primary-fixed-dim/50 shadow-sm' : 'bg-surface hover:bg-surface-container border-transparent'}`}
+                      onClick={() => setSelectedRouteId(route.id)}
+                      className={`p-4 rounded-lg cursor-pointer transition-all border ${isSelected ? 'bg-primary-fixed border-primary-fixed-dim/50' : 'bg-surface hover:bg-surface-container border-transparent'}`}
                     >
-                      <div className="flex justify-between items-start mb-2">
-                         <h4 className={`font-bold ${isSelected ? 'text-on-primary-fixed' : 'text-on-surface'}`}>{route.nombre}</h4>
-                         <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex justify-between items-start">
+                         <h4 className="font-bold text-on-surface">{route.nombre}</h4>
+                         <div className="flex">
                             <button onClick={(e) => handleEdit(route, e)} className="text-on-surface-variant hover:text-primary p-1">
                               <span className="material-symbols-outlined text-[18px]">edit</span>
                             </button>
@@ -209,17 +324,12 @@ export default function Rutas() {
                             </button>
                          </div>
                       </div>
-                      <div className="flex items-center flex-wrap gap-2 text-xs">
-                         <span className={`px-2 py-0.5 rounded border font-semibold ${isSelected ? 'bg-white/40 border-primary-fixed-variant text-on-primary-fixed-variant' : 'bg-surface-container border-outline-variant text-on-surface-variant'}`}>
-                           {route.tipo_nombre || getTipoName(route.tipo)}
+                      <div className="flex items-center gap-2 text-xs mt-1">
+                         <span className="bg-surface-container border border-outline-variant px-2 py-0.5 rounded text-on-surface-variant font-semibold">
+                           {getTipoName(route.tipo)}
                          </span>
-                         {route.distancia_km && (
-                           <span className="flex items-center text-on-surface-variant">
-                             <span className="material-symbols-outlined mr-1 text-[14px]">route</span> {route.distancia_km} km
-                           </span>
-                         )}
-                         <span className="flex items-center text-on-surface-variant">
-                           <span className="material-symbols-outlined mr-1 text-[14px]">signpost</span> {route.numero_paradas} Paradas
+                         <span className="text-on-surface-variant flex items-center">
+                           <span className="material-symbols-outlined mr-1 text-[14px]">route</span> {route.distancia_km || '--'} km
                          </span>
                       </div>
                     </div>
@@ -229,243 +339,124 @@ export default function Rutas() {
           </div>
         </div>
 
-        {/* Right Details / Map Panel */}
-        <div className="w-full lg:w-2/3 bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden relative min-h-[400px] flex flex-col">
+        {/* View Map */}
+        <div className="w-full lg:w-2/3 bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden relative min-h-[400px]">
            {selectedRoute ? (
-             <>
-               {/* Selected Route Info Overlay */}
-               <div className="absolute top-4 left-4 z-10 bg-surface-container-lowest/90 backdrop-blur border border-outline-variant shadow-lg rounded-xl p-5 max-w-sm">
-                 <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold uppercase">{selectedRoute.tipo_nombre || getTipoName(selectedRoute.tipo)}</span>
-                    {selectedRoute.es_anillado && <span className="px-2 py-0.5 rounded bg-secondary/10 text-secondary text-[10px] font-bold uppercase">Ruta Anillada</span>}
-                 </div>
-                 <h2 className="text-xl font-bold text-on-surface mb-4 leading-tight">{selectedRoute.nombre}</h2>
-                 
-                 <div className="space-y-4">
-                   <div className="flex gap-3">
-                     <div className="flex flex-col items-center mt-1">
-                        <div className="w-3 h-3 rounded-full bg-primary border-2 border-white shadow-sm z-10"></div>
-                        <div className="w-0.5 h-8 bg-outline-variant"></div>
-                        <div className="w-3 h-3 rounded-full bg-error border-2 border-white shadow-sm z-10"></div>
-                     </div>
-                     <div className="flex flex-col justify-between">
-                        <div>
-                           <p className="text-[10px] font-bold text-on-surface-variant uppercase">Origen</p>
-                           <p className="text-sm font-semibold text-on-surface">{selectedRoute.municipio_or_nombre || getMunicipioName(selectedRoute.municipio_or)}</p>
-                        </div>
-                        <div className="mt-2">
-                           <p className="text-[10px] font-bold text-on-surface-variant uppercase">Destino</p>
-                           <p className="text-sm font-semibold text-on-surface">{selectedRoute.municipio_des_nombre || getMunicipioName(selectedRoute.municipio_des)}</p>
-                        </div>
-                     </div>
-                   </div>
-
-                   <div className="grid grid-cols-2 gap-3 p-3 bg-surface-container-low rounded-lg border border-outline-variant/50">
-                     <div>
-                       <p className="text-[10px] font-bold text-on-surface-variant uppercase flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">route</span> Distancia</p>
-                       <p className="text-sm font-bold text-on-surface">{selectedRoute.distancia_km || '--'} km</p>
-                     </div>
-                     <div>
-                       <p className="text-[10px] font-bold text-on-surface-variant uppercase flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">schedule</span> Tiempo Est.</p>
-                       <p className="text-sm font-bold text-on-surface">{selectedRoute.tiempo_estimado_min || '--'} min</p>
-                     </div>
-                     <div>
-                       <p className="text-[10px] font-bold text-on-surface-variant uppercase flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">signpost</span> Paradas</p>
-                       <p className="text-sm font-bold text-on-surface">{selectedRoute.numero_paradas}</p>
-                     </div>
-                   </div>
-                   
-                   {selectedRoute.observaciones && (
-                     <div>
-                       <p className="text-[10px] font-bold text-on-surface-variant uppercase">Observaciones</p>
-                       <p className="text-xs text-on-surface mt-1">{selectedRoute.observaciones}</p>
-                     </div>
-                   )}
-                 </div>
-               </div>
-
-               {/* Map Background */}
-               <div className="absolute inset-0 bg-[#e8eae6] overflow-hidden flex items-center justify-center">
-                 <span className="material-symbols-outlined text-[120px] text-surface-container-high opacity-50">map</span>
-                 {/* Decorative mock map */}
-                 <svg className="absolute inset-0 w-full h-full opacity-40 pointer-events-none" preserveAspectRatio="none">
-                   <path d="M-100,50 Q400,200 800,100 T1200,400" fill="none" stroke="#ffffff" strokeWidth="8" />
-                   <path d="M200,0 L300,800" fill="none" stroke="#ffffff" strokeWidth="12" />
-                   {/* The active route line representation */}
-                   <path d="M300,300 C400,300 450,150 600,150 S750,300 800,250" fill="none" stroke="#032448" strokeWidth="5" strokeLinecap="round" />
-                   <path d="M300,300 C400,300 450,150 600,150 S750,300 800,250" fill="none" stroke="#aec8f4" strokeWidth="2" strokeDasharray="5,5" />
-                   <circle cx="300" cy="300" r="8" fill="#032448" className="animate-pulse" />
-                   <circle cx="800" cy="250" r="8" fill="#ba1a1a" />
-                 </svg>
-                 <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/80 to-transparent pointer-events-none"></div>
-               </div>
-             </>
+             <MapContainer 
+               center={selectedRoute?.coordinates?.[0] || [10.2469, -67.5958]} 
+               zoom={13} 
+               style={{ height: '100%', width: '100%' }}
+               zoomControl={false}
+             >
+               <ChangeView center={selectedRoute?.coordinates?.[0]} zoom={13} />
+               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+               {selectedRoute.coordinates && (
+                 <Polyline positions={selectedRoute.coordinates} pathOptions={{ color: '#032448', weight: 6 }} />
+               )}
+               {selectedRoute.coordinates?.[0] && <Marker position={selectedRoute.coordinates[0]} />}
+               {selectedRoute.coordinates?.length > 1 && <Marker position={selectedRoute.coordinates[selectedRoute.coordinates.length - 1]} />}
+             </MapContainer>
            ) : (
-             <div className="flex-1 flex flex-col items-center justify-center text-on-surface-variant/50 p-10 text-center">
-                <span className="material-symbols-outlined text-6xl mb-4 opacity-50">alt_route</span>
-                <p className="text-lg font-medium">Seleccione una ruta de la lista</p>
-                <p className="text-sm mt-1">O configure una nueva para comenzar.</p>
-             </div>
+             <div className="flex items-center justify-center h-full text-on-surface-variant">Seleccione una ruta de la lista</div>
            )}
         </div>
       </div>
 
-      {/* Modal Nueva/Editar Ruta */}
+      {/* Advanced Modal Designer */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={isEditing ? "Editar Ruta" : "Configurar Nueva Ruta"}
-        subtitle="Complete los detalles de la ruta operativa"
+        subtitle="Haz clic en el mapa para trazar el recorrido"
         icon="alt_route"
+        maxWidthClass="max-w-6xl"
         actions={
           <>
-            <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-variant rounded-lg transition-colors">Cancelar</button>
-            <button type="button" onClick={handleSubmit} className="px-6 py-2 text-sm font-bold text-on-primary bg-primary hover:bg-primary/90 rounded-lg shadow-sm transition-all">
+            <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-variant rounded-lg">Cancelar</button>
+            <button onClick={handleSubmit} className="px-6 py-2 text-sm font-bold text-on-primary bg-primary hover:bg-primary/90 rounded-lg shadow-sm">
               {isEditing ? "Actualizar" : "Guardar Ruta"}
             </button>
           </>
         }
       >
-        <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="text-error text-sm font-bold bg-error-container/10 p-3 rounded-lg border border-error/20 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">error</span>
-              {error}
-            </div>
-          )}
-
-          {/* Información General */}
-          <div>
-            <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2 border-b border-outline-variant pb-2">
-              <span className="material-symbols-outlined text-[18px]">info</span>
-              Información General
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-xs font-bold text-on-surface-variant ml-1">Nombre de la Ruta <span className="text-error">*</span></label>
-                <input 
-                  name="nombre" value={formData.nombre} onChange={handleInputChange}
-                  placeholder="Ej: Ruta 14 - Terminal / El Castaño" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
-                  required
-                />
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {error && <div className="text-error text-xs bg-error-container/10 p-3 rounded-lg border border-error/20">{error}</div>}
+            
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-primary uppercase tracking-wider border-b border-outline-variant pb-2">Datos Básicos</h3>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant ml-1">Tipo de Ruta <span className="text-error">*</span></label>
-                <select 
-                  name="tipo" value={formData.tipo} onChange={handleInputChange}
-                  className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
-                  required
-                >
-                  <option value="">Seleccione...</option>
-                  {tiposRuta.map(t => (
-                    <option key={t.id} value={t.id}>{t.nombre}</option>
-                  ))}
-                </select>
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Nombre</label>
+                <input name="nombre" value={formData.nombre} onChange={handleInputChange} className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none" required />
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant ml-1">Tipo de Vía Principal <span className="text-error">*</span></label>
-                <select 
-                  name="tipo_via" value={formData.tipo_via} onChange={handleInputChange}
-                  className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
-                  required
-                >
-                  <option value="">Seleccione...</option>
-                  {vias.map(v => (
-                    <option key={v.id} value={v.id}>{v.nombre}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Tipo</label>
+                  <select name="tipo" value={formData.tipo} onChange={handleInputChange} className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm outline-none">
+                    <option value="">Seleccione...</option>
+                    {tiposRuta.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Vía</label>
+                  <select name="tipo_via" value={formData.tipo_via} onChange={handleInputChange} className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm outline-none">
+                    <option value="">Seleccione...</option>
+                    {vias.map(v => <option key={v.id} value={v.id}>{v.nombre}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Recorrido */}
-          <div>
-            <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2 border-b border-outline-variant pb-2">
-              <span className="material-symbols-outlined text-[18px]">share_location</span>
-              Recorrido Geográfico
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant ml-1">Municipio Origen <span className="text-error">*</span></label>
-                <select 
-                  name="municipio_or" value={formData.municipio_or} onChange={handleInputChange}
-                  className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
-                  required
-                >
-                  <option value="">Seleccione...</option>
-                  {municipios.map(m => (
-                    <option key={m.id} value={m.id}>{m.nombre}</option>
-                  ))}
-                </select>
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-primary uppercase tracking-wider border-b border-outline-variant pb-2">Municipios</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Origen</label>
+                  <select name="municipio_or" value={formData.municipio_or} onChange={handleInputChange} className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm outline-none">
+                    <option value="">Seleccione...</option>
+                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Destino</label>
+                  <select name="municipio_des" value={formData.municipio_des} onChange={handleInputChange} className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm outline-none">
+                    <option value="">Seleccione...</option>
+                    {municipios.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                  </select>
+                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant ml-1">Municipio Destino <span className="text-error">*</span></label>
-                <select 
-                  name="municipio_des" value={formData.municipio_des} onChange={handleInputChange}
-                  className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
-                  required
-                >
-                  <option value="">Seleccione...</option>
-                  {municipios.map(m => (
-                    <option key={m.id} value={m.id}>{m.nombre}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="md:col-span-2 mt-1">
-                <label className="flex items-center gap-2 cursor-pointer p-3 bg-surface-container rounded-lg border border-outline-variant hover:border-primary/50 transition-colors">
-                  <input 
-                    type="checkbox" name="es_anillado" checked={formData.es_anillado} onChange={handleInputChange}
-                    className="w-4 h-4 text-primary accent-primary"
-                  />
+            </div>
+
+            <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
+               <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-[10px] font-bold text-primary uppercase">Cálculo Automático</h4>
+                  <button type="button" onClick={() => { setRoutePoints([]); setFormData(p => ({...p, distancia_km: 0, numero_paradas: 0})) }} className="text-[9px] font-bold text-error uppercase">Reset Mapa</button>
+               </div>
+               <div className="flex gap-6">
                   <div>
-                    <span className="text-sm font-bold text-on-surface block">Ruta Anillada / Circular</span>
-                    <span className="text-xs text-on-surface-variant">El origen y el destino representan el mismo punto para un recorrido cerrado.</span>
+                    <p className="text-[10px] text-on-surface-variant uppercase">Distancia</p>
+                    <p className="text-lg font-bold text-primary">{formData.distancia_km || '0.00'} <span className="text-xs">km</span></p>
                   </div>
-                </label>
-              </div>
+                  <div>
+                    <p className="text-[10px] text-on-surface-variant uppercase">Paradas</p>
+                    <p className="text-lg font-bold text-primary">{formData.numero_paradas}</p>
+                  </div>
+               </div>
             </div>
-          </div>
+          </form>
 
-          {/* Detalles Operativos */}
-          <div>
-            <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2 border-b border-outline-variant pb-2">
-              <span className="material-symbols-outlined text-[18px]">speed</span>
-              Detalles Operativos
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant ml-1">Distancia (km)</label>
-                <input 
-                  type="number" step="0.01" name="distancia_km" value={formData.distancia_km} onChange={handleInputChange}
-                  placeholder="Ej: 12.5" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant ml-1">Tiempo (min)</label>
-                <input 
-                  type="number" name="tiempo_estimado_min" value={formData.tiempo_estimado_min} onChange={handleInputChange}
-                  placeholder="Ej: 45" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-on-surface-variant ml-1">N° de Paradas</label>
-                <input 
-                  type="number" name="numero_paradas" value={formData.numero_paradas} onChange={handleInputChange} min="0"
-                  className="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors"
-                />
-              </div>
-            </div>
+          <div className="h-[400px] lg:h-full min-h-[400px] rounded-xl overflow-hidden border border-outline-variant relative">
+            <MapContainer center={[10.2469, -67.5958]} zoom={13} style={{ height: '100%', width: '100%' }}>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <RouteDesigner 
+                points={routePoints} 
+                setPoints={setRoutePoints} 
+                onDistanceUpdate={(dist, stops) => setFormData(p => ({...p, distancia_km: dist, numero_paradas: stops}))} 
+              />
+              {routePoints.length > 0 && <ChangeView center={routePoints[routePoints.length - 1]} zoom={13} />}
+            </MapContainer>
           </div>
-
-          {/* Observaciones */}
-          <div>
-            <label className="text-xs font-bold text-on-surface-variant ml-1">Observaciones / Notas</label>
-            <textarea 
-              name="observaciones" value={formData.observaciones} onChange={handleInputChange} rows="2"
-              placeholder="Cualquier nota adicional sobre la ruta..." className="mt-1 w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 px-3 text-sm focus:border-primary outline-none transition-colors resize-none"
-            ></textarea>
-          </div>
-        </form>
+        </div>
       </Modal>
     </div>
   );
