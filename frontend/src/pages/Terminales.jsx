@@ -1,15 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import Map, { Marker, NavigationControl } from 'react-map-gl/mapbox';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import wellknown from 'wellknown';
 import { Modal } from '../components/common/Modal';
 import api from '../services/api';
-import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
+import { GOOGLE_MAPS_API_KEY } from '../config';
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibGVnYXRvaCIsImEiOiJjbW9zbzA4OXcwMHgwMnFyM3J1dHc1a2IyIn0.XQgEj2Clkl9A46opIMUklA';
-const geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%'
+};
+
+const center = {
+  lat: 10.2469,
+  lng: -67.5958
+};
 
 export default function Terminales() {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: ['places']
+  });
+
   const [terminales, setTerminales] = useState([]);
   const [municipios, setMunicipios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +33,7 @@ export default function Terminales() {
   
   const [geocoderQuery, setGeocoderQuery] = useState('');
   const [geocoderResults, setGeocoderResults] = useState([]);
+  const [map, setMap] = useState(null);
 
   const [formData, setFormData] = useState({
     id: null,
@@ -32,12 +45,7 @@ export default function Terminales() {
     location: null
   });
 
-  const [mapPoint, setMapPoint] = useState(null); // [lat, lng]
-  const [viewState, setViewState] = useState({
-    latitude: 10.2469,
-    longitude: -67.5958,
-    zoom: 11
-  });
+  const [mapPoint, setMapPoint] = useState(null); // {lat, lng}
 
   const fetchData = async () => {
     try {
@@ -73,8 +81,9 @@ export default function Terminales() {
   };
 
   const handleMapClick = (e) => {
-    const { lng, lat } = e.lngLat;
-    setMapPoint([lat, lng]);
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    setMapPoint({ lat, lng });
     
     // Convert to WKT Point
     const wkt = wellknown.stringify({
@@ -86,42 +95,48 @@ export default function Terminales() {
 
   const handleGeocoderSearch = async (query) => {
     setGeocoderQuery(query);
-    if (query.length > 2) {
-      try {
-        const response = await geocodingClient.forwardGeocode({
-          query,
-          autocomplete: true,
-          limit: 5,
-          countries: ['VE'],
-          proximity: [viewState.longitude, viewState.latitude] // Search near current view
-        }).send();
-        setGeocoderResults(response.body.features);
-      } catch (err) {
-        console.error("Geocoding error:", err);
-      }
+    if (query.length > 2 && window.google) {
+      const service = new window.google.maps.places.AutocompleteService();
+      service.getPlacePredictions({ 
+        input: query, 
+        componentRestrictions: { country: 've' } 
+      }, (predictions, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setGeocoderResults(predictions);
+        } else {
+          setGeocoderResults([]);
+        }
+      });
     } else {
       setGeocoderResults([]);
     }
   };
 
-  const handleSelectLocation = (feature) => {
-    const [lng, lat] = feature.center;
-    setViewState(prev => ({
-      ...prev,
-      longitude: lng,
-      latitude: lat,
-      zoom: 16
-    }));
-    setMapPoint([lat, lng]);
-    
-    const wkt = wellknown.stringify({
-      type: 'Point',
-      coordinates: [lng, lat]
+  const handleSelectLocation = (place) => {
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ placeId: place.place_id }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const loc = results[0].geometry.location;
+        const lat = loc.lat();
+        const lng = loc.lng();
+        
+        if (map) {
+          map.panTo(loc);
+          map.setZoom(16);
+        }
+        
+        setMapPoint({ lat, lng });
+        
+        const wkt = wellknown.stringify({
+          type: 'Point',
+          coordinates: [lng, lat]
+        });
+        setFormData(prev => ({ ...prev, location: wkt }));
+        
+        setGeocoderQuery('');
+        setGeocoderResults([]);
+      }
     });
-    setFormData(prev => ({ ...prev, location: wkt }));
-    
-    setGeocoderQuery('');
-    setGeocoderResults([]);
   };
 
   const resetForm = () => {
@@ -161,8 +176,11 @@ export default function Terminales() {
       const geojson = wellknown.parse(terminal.location);
       if (geojson && geojson.type === 'Point') {
         const [lng, lat] = geojson.coordinates;
-        setMapPoint([lat, lng]);
-        setViewState(prev => ({ ...prev, latitude: lat, longitude: lng, zoom: 14 }));
+        setMapPoint({ lat, lng });
+        if (map) {
+          map.panTo({ lat, lng });
+          map.setZoom(16);
+        }
       }
     } else {
       setMapPoint(null);
@@ -192,6 +210,14 @@ export default function Terminales() {
       setError("Error al guardar el terminal.");
     }
   };
+
+  const onLoad = useCallback(function callback(mapInstance) {
+    setMap(mapInstance);
+  }, []);
+
+  const onUnmount = useCallback(function callback(mapInstance) {
+    setMap(null);
+  }, []);
 
   return (
     <div className="flex flex-col gap-6 font-public-sans">
@@ -280,7 +306,7 @@ export default function Terminales() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={isEditing ? "Editar Terminal" : "Registrar Nuevo Terminal"}
-        subtitle="Ubicación y configuración de infraestructura"
+        subtitle="Ubicación y configuración de infraestructura (Google Maps)"
         icon="store"
         maxWidthClass="max-w-4xl"
         actions={
@@ -373,8 +399,8 @@ export default function Terminales() {
               <h4 className="text-[10px] font-bold text-primary uppercase mb-2">Coordenadas del Terminal</h4>
               {mapPoint ? (
                 <div className="flex gap-4 text-xs font-mono">
-                  <div><span className="text-on-surface-variant">LAT:</span> {mapPoint[0].toFixed(6)}</div>
-                  <div><span className="text-on-surface-variant">LNG:</span> {mapPoint[1].toFixed(6)}</div>
+                  <div><span className="text-on-surface-variant">LAT:</span> {mapPoint.lat.toFixed(6)}</div>
+                  <div><span className="text-on-surface-variant">LNG:</span> {mapPoint.lng.toFixed(6)}</div>
                 </div>
               ) : (
                 <p className="text-[11px] text-on-surface-variant italic">Haz clic en el mapa para ubicar el terminal</p>
@@ -383,47 +409,57 @@ export default function Terminales() {
           </div>
 
           <div className="h-full rounded-xl overflow-hidden border border-outline-variant relative">
-            {/* Geocoder in Modal */}
-            <div className="absolute top-4 left-4 z-[20] w-64">
-              <div className="relative">
-                <input 
-                  className="w-full bg-surface-container-highest/90 backdrop-blur-md border border-outline-variant rounded-lg py-2 px-3 pl-9 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-lg" 
-                  placeholder="Buscar ubicación..." 
-                  value={geocoderQuery}
-                  onChange={(e) => handleGeocoderSearch(e.target.value)}
-                />
-                <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
-                {geocoderResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-surface-container-highest rounded-lg shadow-xl border border-outline-variant overflow-hidden max-h-48 overflow-y-auto">
-                    {geocoderResults.map(res => (
-                      <div 
-                        key={res.id} 
-                        onClick={() => handleSelectLocation(res)}
-                        className="px-3 py-2 text-xs hover:bg-primary/10 cursor-pointer border-b border-outline-variant last:border-0"
-                      >
-                        {res.place_name}
+            {!isLoaded ? (
+              <div className="w-full h-full flex items-center justify-center bg-surface-container-low">Cargando Mapa...</div>
+            ) : (
+              <>
+                {/* Geocoder in Modal */}
+                <div className="absolute top-4 left-4 z-[20] w-64">
+                  <div className="relative">
+                    <input 
+                      className="w-full bg-surface-container-highest/90 backdrop-blur-md border border-outline-variant rounded-lg py-2 px-3 pl-9 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-lg" 
+                      placeholder="Buscar ubicación..." 
+                      value={geocoderQuery}
+                      onChange={(e) => handleGeocoderSearch(e.target.value)}
+                    />
+                    <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+                    {geocoderResults.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-surface-container-highest rounded-lg shadow-xl border border-outline-variant overflow-hidden max-h-48 overflow-y-auto">
+                        {geocoderResults.map(res => (
+                          <div 
+                            key={res.place_id} 
+                            onClick={() => handleSelectLocation(res)}
+                            className="px-3 py-2 text-xs hover:bg-primary/10 cursor-pointer border-b border-outline-variant last:border-0"
+                          >
+                            {res.description}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
 
-            <Map
-              {...viewState}
-              onMove={evt => setViewState(evt.viewState)}
-              onClick={handleMapClick}
-              mapStyle="mapbox://styles/mapbox/streets-v12"
-              mapboxAccessToken={MAPBOX_TOKEN}
-              style={{ width: '100%', height: '100%' }}
-            >
-              <NavigationControl position="bottom-right" />
-              {mapPoint && (
-                <Marker latitude={mapPoint[0]} longitude={mapPoint[1]}>
-                  <span className="material-symbols-outlined text-primary text-3xl drop-shadow-md">location_on</span>
-                </Marker>
-              )}
-            </Map>
+                <GoogleMap
+                  mapContainerStyle={mapContainerStyle}
+                  center={center}
+                  zoom={12}
+                  onClick={handleMapClick}
+                  onLoad={onLoad}
+                  onUnmount={onUnmount}
+                  options={{
+                    disableDefaultUI: false,
+                    zoomControl: true,
+                    streetViewControl: false,
+                    mapTypeControl: false,
+                    fullscreenControl: false
+                  }}
+                >
+                  {mapPoint && (
+                    <Marker position={mapPoint} />
+                  )}
+                </GoogleMap>
+              </>
+            )}
           </div>
         </div>
       </Modal>

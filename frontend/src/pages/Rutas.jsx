@@ -1,68 +1,98 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import Map, { Source, Layer, Marker, NavigationControl } from 'react-map-gl/mapbox';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import { GoogleMap, useJsApiLoader, Polyline, Marker, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 import wellknown from 'wellknown';
 import axios from 'axios';
 import { Modal } from '../components/common/Modal';
 import api from '../services/api';
-import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
+import { GOOGLE_MAPS_API_KEY } from '../config';
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibGVnYXRvaCIsImEiOiJjbW9zbzA4OXcwMHgwMnFyM3J1dHc1a2IyIn0.XQgEj2Clkl9A46opIMUklA';
-const geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%'
+};
 
-const OSRM_URL = 'https://router.project-osrm.org/route/v1/driving/';
+const center = {
+  lat: 10.2469,
+  lng: -67.5958
+};
 
-// Map component for drawing in the modal
+// RouteDesigner component using Google Maps
 const RouteDesigner = ({ points, setPoints, onDistanceUpdate, setGeom, municipios, onMunicipalityDetect, externalViewState, terminales }) => {
-  const [viewState, setViewState] = useState({
-    latitude: 10.2469,
-    longitude: -67.5958,
-    zoom: 12
-  });
+  const [map, setMap] = useState(null);
+  const [directions, setDirections] = useState(null);
   const [geocoderResults, setGeocoderResults] = useState([]);
   const [geocoderQuery, setGeocoderQuery] = useState('');
-  const [routeData, setRouteData] = useState(null);
-  const mapRef = useRef();
 
-  // Sync with external view state (from parent municipality selection)
+  const onLoad = useCallback(mapInstance => setMap(mapInstance), []);
+  const onUnmount = useCallback(() => setMap(null), []);
+
+  // Sync with external view state
   useEffect(() => {
-    if (externalViewState) {
-      setViewState(prev => ({ ...prev, ...externalViewState }));
+    if (externalViewState && map) {
+      map.panTo({ lat: externalViewState.latitude, lng: externalViewState.longitude });
+      map.setZoom(externalViewState.zoom);
     }
-  }, [externalViewState]);
+  }, [externalViewState, map]);
 
-  // Update route and detect municipalities when points change
+  // Update directions when points change
   useEffect(() => {
     if (points.length > 1) {
-      fetchOSRMRoute(points);
+      const directionsService = new window.google.maps.DirectionsService();
+      
+      const origin = { lat: points[0][0], lng: points[0][1] };
+      const destination = { lat: points[points.length - 1][0], lng: points[points.length - 1][1] };
+      const waypoints = points.slice(1, -1).map(p => ({
+        location: { lat: p[0], lng: p[1] },
+        stopover: true
+      }));
+
+      directionsService.route(
+        {
+          origin,
+          destination,
+          waypoints,
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === window.google.maps.DirectionsStatus.OK) {
+            setDirections(result);
+            
+            // Calculate total distance
+            let totalDist = 0;
+            result.routes[0].legs.forEach(leg => {
+              totalDist += leg.distance.value;
+            });
+            onDistanceUpdate((totalDist / 1000).toFixed(2), points.length);
+
+            // Convert overview_path to WKT
+            const path = result.routes[0].overview_path.map(p => [p.lng(), p.lat()]);
+            const wkt = wellknown.stringify({
+              type: 'LineString',
+              coordinates: path
+            });
+            setGeom(wkt);
+          }
+        }
+      );
     } else {
-      setRouteData(null);
+      setDirections(null);
       onDistanceUpdate(0, points.length);
     }
 
     if (points.length > 0) {
-      detectMunicipality(points[0], 'origen');
+      detectMunicipality({ lat: points[0][0], lng: points[0][1] }, 'origen');
       if (points.length > 1) {
-        detectMunicipality(points[points.length - 1], 'destino');
+        detectMunicipality({ lat: points[points.length - 1][0], lng: points[points.length - 1][1] }, 'destino');
       }
     }
   }, [points]);
 
-  const detectMunicipality = async (point, type) => {
-    try {
-      const response = await geocodingClient.reverseGeocode({
-        query: [point[1], point[0]],
-        types: ['place', 'locality', 'district', 'neighborhood'],
-        limit: 1
-      }).send();
-
-      if (response.body.features && response.body.features.length > 0) {
-        const feature = response.body.features[0];
-        
-        const searchNames = [
-          feature.text.toLowerCase(),
-          ...(feature.context || []).map(c => c.text.toLowerCase())
-        ];
+  const detectMunicipality = (location, type) => {
+    if (!window.google) return;
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ location }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const searchNames = results[0].address_components.map(c => c.long_name.toLowerCase());
         
         const match = municipios.find(m => {
           const mName = m.nombre.toLowerCase();
@@ -73,39 +103,16 @@ const RouteDesigner = ({ points, setPoints, onDistanceUpdate, setGeom, municipio
           onMunicipalityDetect(type, match.id);
         }
       }
-    } catch (err) {
-      console.error("Error detecting municipality:", err);
-    }
-  };
-
-  const fetchOSRMRoute = async (pts) => {
-    try {
-      const coords = pts.map(p => `${p[1]},${p[0]}`).join(';');
-      const response = await axios.get(`${OSRM_URL}${coords}?overview=full&geometries=geojson`);
-      
-      if (response.data.routes && response.data.routes.length > 0) {
-        const route = response.data.routes[0];
-        setRouteData(route.geometry);
-        onDistanceUpdate((route.distance / 1000).toFixed(2), pts.length);
-        
-        const wkt = wellknown.stringify({
-          type: 'LineString',
-          coordinates: route.geometry.coordinates
-        });
-        setGeom(wkt);
-      }
-    } catch (err) {
-      console.error("OSRM Routing error:", err);
-    }
+    });
   };
 
   const handleMapClick = (e) => {
-    const { lng, lat } = e.lngLat;
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
     setPoints(prev => [...prev, [lat, lng]]);
   };
 
-  const handleTerminalClick = (terminal, e) => {
-    e.stopPropagation();
+  const handleTerminalClick = (terminal) => {
     const geojson = wellknown.parse(terminal.location);
     if (geojson && geojson.type === 'Point') {
       const [lng, lat] = geojson.coordinates;
@@ -115,38 +122,43 @@ const RouteDesigner = ({ points, setPoints, onDistanceUpdate, setGeom, municipio
 
   const handleGeocoderSearch = async (query) => {
     setGeocoderQuery(query);
-    if (query.length > 2) {
-      try {
-        const response = await geocodingClient.forwardGeocode({
-          query,
-          autocomplete: true,
-          limit: 5,
-          countries: ['VE']
-        }).send();
-        setGeocoderResults(response.body.features);
-      } catch (err) {
-        console.error("Geocoding error:", err);
-      }
+    if (query.length > 2 && window.google) {
+      const service = new window.google.maps.places.AutocompleteService();
+      service.getPlacePredictions({ 
+        input: query, 
+        componentRestrictions: { country: 've' } 
+      }, (predictions, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setGeocoderResults(predictions);
+        } else {
+          setGeocoderResults([]);
+        }
+      });
     } else {
       setGeocoderResults([]);
     }
   };
 
-  const handleSelectLocation = (feature) => {
-    const [lng, lat] = feature.center;
-    setViewState(prev => ({
-      ...prev,
-      longitude: lng,
-      latitude: lat,
-      zoom: 14
-    }));
-    setPoints(prev => [...prev, [lat, lng]]);
-    setGeocoderQuery('');
-    setGeocoderResults([]);
+  const handleSelectLocation = (place) => {
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ placeId: place.place_id }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const loc = results[0].geometry.location;
+        const lat = loc.lat();
+        const lng = loc.lng();
+        
+        if (map) {
+          map.panTo(loc);
+          map.setZoom(15);
+        }
+        setPoints(prev => [...prev, [lat, lng]]);
+        setGeocoderQuery('');
+        setGeocoderResults([]);
+      }
+    });
   };
 
-  const removePoint = (idx, e) => {
-    e.stopPropagation();
+  const removePoint = (idx) => {
     setPoints(prev => prev.filter((_, i) => i !== idx));
   };
 
@@ -155,7 +167,7 @@ const RouteDesigner = ({ points, setPoints, onDistanceUpdate, setGeom, municipio
       <div className="absolute top-4 left-4 z-[20] w-64">
         <div className="relative">
           <input 
-            className="w-full bg-surface-container-highest/90 backdrop-blur-md border border-outline-variant rounded-lg py-2 px-3 pl-9 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50" 
+            className="w-full bg-surface-container-highest/90 backdrop-blur-md border border-outline-variant rounded-lg py-2 px-3 pl-9 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-lg" 
             placeholder="Buscar y añadir punto..." 
             value={geocoderQuery}
             onChange={(e) => handleGeocoderSearch(e.target.value)}
@@ -165,11 +177,11 @@ const RouteDesigner = ({ points, setPoints, onDistanceUpdate, setGeom, municipio
             <div className="absolute top-full left-0 right-0 mt-1 bg-surface-container-highest rounded-lg shadow-xl border border-outline-variant overflow-hidden max-h-48 overflow-y-auto">
               {geocoderResults.map(res => (
                 <div 
-                  key={res.id} 
+                  key={res.place_id} 
                   onClick={() => handleSelectLocation(res)}
                   className="px-3 py-2 text-xs hover:bg-primary/10 cursor-pointer border-b border-outline-variant last:border-0"
                 >
-                  {res.place_name}
+                  {res.description}
                 </div>
               ))}
             </div>
@@ -177,69 +189,76 @@ const RouteDesigner = ({ points, setPoints, onDistanceUpdate, setGeom, municipio
         </div>
       </div>
 
-      <Map
-        {...viewState}
-        onMove={evt => setViewState(evt.viewState)}
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={center}
+        zoom={12}
+        onLoad={onLoad}
+        onUnmount={onUnmount}
         onClick={handleMapClick}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
-        mapboxAccessToken={MAPBOX_TOKEN}
-        style={{ width: '100%', height: '100%' }}
-        ref={mapRef}
+        options={{
+          disableDefaultUI: false,
+          zoomControl: true,
+          streetViewControl: false,
+          mapTypeControl: false,
+        }}
       >
-        <NavigationControl position="bottom-right" />
-        
-        {routeData && (
-          <Source type="geojson" data={{ type: 'Feature', geometry: routeData }}>
-            <Layer 
-              id="route-line"
-              type="line"
-              paint={{
-                'line-color': '#032448',
-                'line-width': 4,
-                'line-opacity': 0.8
-              }}
-            />
-          </Source>
+        {directions && (
+          <DirectionsRenderer 
+            directions={directions} 
+            options={{ 
+              suppressMarkers: true,
+              polylineOptions: {
+                strokeColor: '#032448',
+                strokeWeight: 5,
+                strokeOpacity: 0.8
+              }
+            }} 
+          />
         )}
 
-        {/* Terminals as potential points */}
+        {/* Terminals */}
         {terminales.map(terminal => {
           const geojson = terminal.location ? wellknown.parse(terminal.location) : null;
           if (!geojson) return null;
           return (
-            <Marker key={terminal.id} longitude={geojson.coordinates[0]} latitude={geojson.coordinates[1]}>
-              <div 
-                className="flex flex-col items-center group cursor-pointer text-primary/60 hover:text-primary transition-colors"
-                onClick={(e) => handleTerminalClick(terminal, e)}
-              >
-                <span className="material-symbols-outlined text-xl drop-shadow-sm">store</span>
-                <div className="hidden group-hover:block absolute bottom-full mb-1 bg-surface-container-highest text-[9px] px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
-                  {terminal.nombre} (Clic para usar como punto)
-                </div>
-              </div>
-            </Marker>
+            <Marker 
+              key={`term-${terminal.id}`} 
+              position={{ lat: geojson.coordinates[1], lng: geojson.coordinates[0] }}
+              icon={{
+                url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+              }}
+              onClick={() => handleTerminalClick(terminal)}
+              title={terminal.nombre}
+            />
           );
         })}
 
+        {/* Route Points */}
         {points.map((point, idx) => (
-          <Marker key={idx} longitude={point[1]} latitude={point[0]}>
-            <div 
-              className={`flex flex-col items-center group cursor-pointer ${idx === 0 ? 'text-primary' : idx === points.length - 1 ? 'text-error' : 'text-secondary'}`}
-              onClick={(e) => removePoint(idx, e)}
-            >
-              <span className="material-symbols-outlined text-2xl drop-shadow-md">location_on</span>
-              <div className="hidden group-hover:block absolute bottom-full mb-1 bg-surface-container-highest text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap">
-                {idx === 0 ? "Origen" : idx === points.length - 1 ? "Destino" : `Parada #${idx}`} (Clic para eliminar)
-              </div>
-            </div>
-          </Marker>
+          <Marker 
+            key={`point-${idx}`} 
+            position={{ lat: point[0], lng: point[1] }}
+            label={{
+              text: idx === 0 ? "O" : idx === points.length - 1 ? "D" : `${idx}`,
+              color: "white",
+              fontWeight: "bold"
+            }}
+            onClick={() => removePoint(idx)}
+          />
         ))}
-      </Map>
+      </GoogleMap>
     </div>
   );
 };
 
 export default function Rutas() {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: ['places']
+  });
+
   const [routes, setRoutes] = useState([]);
   const [tiposRuta, setTiposRuta] = useState([]);
   const [vias, setVias] = useState([]);
@@ -269,11 +288,7 @@ export default function Rutas() {
 
   const [routePoints, setRoutePoints] = useState([]);
   const [designerViewState, setDesignerViewState] = useState(null);
-  const [viewStateMain, setViewStateMain] = useState({
-    latitude: 10.2469,
-    longitude: -67.5958,
-    zoom: 12
-  });
+  const [mapMain, setMapMain] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -287,13 +302,16 @@ export default function Rutas() {
       ]);
       
       const processedRoutes = resRoutes.data.map(route => {
-        let geojson = null;
+        let path = [];
         if (route.geom) {
           try {
-            geojson = wellknown.parse(route.geom);
+            const geojson = wellknown.parse(route.geom);
+            if (geojson.type === 'LineString') {
+              path = geojson.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
+            }
           } catch (e) { console.error("Error parsing geom", e); }
         }
-        return { ...route, geojson };
+        return { ...route, path };
       });
 
       setRoutes(processedRoutes);
@@ -323,16 +341,12 @@ export default function Rutas() {
   );
 
   useEffect(() => {
-    if (selectedRoute && selectedRoute.geojson && selectedRoute.geojson.coordinates.length > 0) {
-      setViewStateMain(prev => ({
-        ...prev,
-        latitude: selectedRoute.geojson.coordinates[0][1],
-        longitude: selectedRoute.geojson.coordinates[0][0],
-        zoom: 13,
-        transitionDuration: 1000
-      }));
+    if (selectedRoute && selectedRoute.path.length > 0 && mapMain) {
+      const bounds = new window.google.maps.LatLngBounds();
+      selectedRoute.path.forEach(p => bounds.extend(p));
+      mapMain.fitBounds(bounds);
     }
-  }, [selectedRouteId]);
+  }, [selectedRouteId, mapMain]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -341,16 +355,14 @@ export default function Rutas() {
       [name]: type === 'checkbox' ? checked : value 
     }));
 
-    if (name === 'municipio_or' || name === 'municipio_des') {
+    if ((name === 'municipio_or' || name === 'municipio_des') && window.google) {
       const mun = municipios.find(m => m.id === parseInt(value));
       if (mun) {
-        geocodingClient.forwardGeocode({
-          query: `${mun.nombre}, Aragua, Venezuela`,
-          limit: 1
-        }).send().then(response => {
-          if (response.body.features.length > 0) {
-            const [lng, lat] = response.body.features[0].center;
-            setDesignerViewState({ latitude: lat, longitude: lng, zoom: 12 });
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ address: `${mun.nombre}, Aragua, Venezuela` }, (results, status) => {
+          if (status === 'OK' && results[0]) {
+            const loc = results[0].geometry.location;
+            setDesignerViewState({ latitude: loc.lat(), longitude: loc.lng(), zoom: 12 });
           }
         });
       }
@@ -401,9 +413,10 @@ export default function Rutas() {
     });
     
     let pts = [];
-    if (route.geojson) {
-      if (route.geojson.type === 'LineString') {
-        pts = route.geojson.coordinates.map(c => [c[1], c[0]]);
+    if (route.geom) {
+      const geojson = wellknown.parse(route.geom);
+      if (geojson.type === 'LineString') {
+        pts = geojson.coordinates.map(c => [c[1], c[0]]);
       }
     }
     setRoutePoints(pts);
@@ -438,7 +451,7 @@ export default function Rutas() {
       fetchData();
     } catch (err) {
       console.error("Error saving route:", err);
-      setError("Error al guardar los datos. Verifique los campos obligatorios.");
+      setError("Error al guardar los datos.");
     }
   };
 
@@ -456,14 +469,15 @@ export default function Rutas() {
   };
 
   const getTipoName = (id) => tiposRuta.find(t => t.id === id)?.nombre || 'Desconocido';
-  const getMunicipioName = (id) => municipios.find(m => m.id === id)?.nombre || 'Desconocido';
+
+  if (!isLoaded) return <div className="h-full flex items-center justify-center">Cargando Google Maps...</div>;
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] font-public-sans">
       <div className="flex justify-between items-center mb-4 shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestión de Rutas</h1>
-          <p className="text-sm text-on-surface-variant font-medium mt-1">Configuración y trazado de las líneas de servicio con OSRM & MapBox</p>
+          <p className="text-sm text-on-surface-variant font-medium mt-1">Trazado inteligente con Google Directions API</p>
         </div>
         <button 
           onClick={handleOpenCreate}
@@ -478,89 +492,77 @@ export default function Rutas() {
         <div className="w-full lg:w-1/3 flex flex-col bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden">
           <div className="p-4 border-b border-outline-variant bg-surface-container-low shrink-0 flex items-center justify-between">
             <h3 className="font-bold text-on-surface text-sm uppercase tracking-wide">Rutas Activas</h3>
-            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-md">{routes.length} Totales</span>
+            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-md">{routes.length}</span>
           </div>
           
           <div className="overflow-y-auto flex-1 p-2 space-y-1">
              {loading ? (
-                <div className="p-10 text-center text-on-surface-variant animate-pulse">Cargando rutas...</div>
+                <div className="p-10 text-center text-on-surface-variant animate-pulse">Cargando...</div>
              ) : routes.length === 0 ? (
-                <div className="p-10 text-center text-on-surface-variant">No hay rutas configuradas.</div>
+                <div className="p-10 text-center text-on-surface-variant">No hay rutas.</div>
              ) : (
-                routes.map((route) => {
-                  const isSelected = selectedRouteId === route.id;
-                  return (
-                    <div 
-                      key={route.id} 
-                      onClick={() => setSelectedRouteId(route.id)}
-                      className={`p-4 rounded-lg cursor-pointer transition-all border ${isSelected ? 'bg-primary/10 border-primary/30' : 'bg-surface hover:bg-surface-container border-transparent'}`}
-                    >
-                      <div className="flex justify-between items-start">
-                         <h4 className="font-bold text-on-surface">{route.nombre}</h4>
-                         <div className="flex">
-                            <button onClick={(e) => handleEdit(route, e)} className="text-on-surface-variant hover:text-primary p-1">
-                              <span className="material-symbols-outlined text-[18px]">edit</span>
-                            </button>
-                            <button onClick={(e) => handleDelete(route.id, e)} className="text-on-surface-variant hover:text-error p-1">
-                              <span className="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
-                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs mt-1">
-                         <span className="bg-surface-container border border-outline-variant px-2 py-0.5 rounded text-on-surface-variant font-semibold">
-                           {getTipoName(route.tipo)}
-                         </span>
-                         <span className="text-on-surface-variant flex items-center">
-                           <span className="material-symbols-outlined mr-1 text-[14px]">route</span> {route.distancia_km || '--'} km
-                         </span>
-                      </div>
+                routes.map((route) => (
+                  <div 
+                    key={route.id} 
+                    onClick={() => setSelectedRouteId(route.id)}
+                    className={`p-4 rounded-lg cursor-pointer transition-all border ${selectedRouteId === route.id ? 'bg-primary/10 border-primary/30' : 'bg-surface hover:bg-surface-container border-transparent'}`}
+                  >
+                    <div className="flex justify-between items-start">
+                       <h4 className="font-bold text-on-surface">{route.nombre}</h4>
+                       <div className="flex">
+                          <button onClick={(e) => handleEdit(route, e)} className="text-on-surface-variant hover:text-primary p-1">
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                          </button>
+                          <button onClick={(e) => handleDelete(route.id, e)} className="text-on-surface-variant hover:text-error p-1">
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                       </div>
                     </div>
-                  );
-                })
+                    <div className="flex items-center gap-2 text-xs mt-1">
+                       <span className="bg-surface-container border border-outline-variant px-2 py-0.5 rounded text-on-surface-variant font-semibold">
+                         {getTipoName(route.tipo)}
+                       </span>
+                       <span className="text-on-surface-variant flex items-center">
+                         <span className="material-symbols-outlined mr-1 text-[14px]">route</span> {route.distancia_km || '--'} km
+                       </span>
+                    </div>
+                  </div>
+                ))
              )}
           </div>
         </div>
 
         <div className="w-full lg:w-2/3 bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden relative min-h-[400px]">
-           {selectedRoute ? (
-             <Map
-               {...viewStateMain}
-               onMove={evt => setViewStateMain(evt.viewState)}
-               mapStyle="mapbox://styles/mapbox/streets-v12"
-               mapboxAccessToken={MAPBOX_TOKEN}
-               style={{ width: '100%', height: '100%' }}
-             >
-               <NavigationControl position="bottom-right" />
-               {selectedRoute.geojson && (
-                 <Source type="geojson" data={{ type: 'Feature', geometry: selectedRoute.geojson }}>
-                   <Layer 
-                    id="main-route-line"
-                    type="line"
-                    paint={{
-                      'line-color': '#032448',
-                      'line-width': 6,
-                      'line-opacity': 0.9
-                    }}
-                   />
-                 </Source>
-               )}
-               {selectedRoute.geojson?.coordinates?.[0] && (
-                 <Marker longitude={selectedRoute.geojson.coordinates[0][0]} latitude={selectedRoute.geojson.coordinates[0][1]}>
-                    <span className="material-symbols-outlined text-primary text-3xl">location_on</span>
-                 </Marker>
-               )}
-             </Map>
-           ) : (
-             <div className="flex items-center justify-center h-full text-on-surface-variant">Seleccione una ruta de la lista</div>
-           )}
+           <GoogleMap
+             mapContainerStyle={mapContainerStyle}
+             center={center}
+             zoom={12}
+             onLoad={setMapMain}
+             onUnmount={() => setMapMain(null)}
+             options={{
+               disableDefaultUI: false,
+               zoomControl: true,
+               mapTypeControl: false,
+             }}
+           >
+             {selectedRoute && selectedRoute.path.length > 0 && (
+               <>
+                 <Polyline 
+                   path={selectedRoute.path} 
+                   options={{ strokeColor: '#3B82F6', strokeWeight: 6, strokeOpacity: 0.9 }} 
+                 />
+                 <Marker position={selectedRoute.path[0]} />
+               </>
+             )}
+           </GoogleMap>
         </div>
       </div>
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={isEditing ? "Editar Ruta" : "Configurar Nueva Ruta"}
-        subtitle="Haz clic en el mapa para trazar el recorrido (Rutas por carretera vía OSRM)"
+        title={isEditing ? "Editar Ruta" : "Nueva Ruta"}
+        subtitle="Traza el recorrido usando puntos en el mapa (Rutas optimizadas por Google)"
         icon="alt_route"
         maxWidthClass="max-w-6xl"
         actions={
@@ -574,24 +576,22 @@ export default function Rutas() {
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[500px]">
           <form className="space-y-4 overflow-y-auto pr-2" onSubmit={handleSubmit}>
-            {error && <div className="text-error text-xs bg-error-container/10 p-3 rounded-lg border border-error/20">{error}</div>}
-            
             <div className="space-y-4">
               <h3 className="text-xs font-bold text-primary uppercase tracking-wider border-b border-outline-variant pb-2">Datos Básicos</h3>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Nombre de la Ruta</label>
-                <input name="nombre" value={formData.nombre} onChange={handleInputChange} className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none" placeholder="Ej. Ruta Troncal 1" required />
+                <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Nombre</label>
+                <input name="nombre" value={formData.nombre} onChange={handleInputChange} className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm outline-none focus:border-primary" required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Tipo de Servicio</label>
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Tipo</label>
                   <select name="tipo" value={formData.tipo} onChange={handleInputChange} className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm outline-none" required>
                     <option value="">Seleccione...</option>
                     {tiposRuta.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Vía Principal</label>
+                  <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Vía</label>
                   <select name="tipo_via" value={formData.tipo_via} onChange={handleInputChange} className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm outline-none">
                     <option value="">Seleccione...</option>
                     {vias.map(v => <option key={v.id} value={v.id}>{v.nombre}</option>)}
@@ -601,7 +601,7 @@ export default function Rutas() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-xs font-bold text-primary uppercase tracking-wider border-b border-outline-variant pb-2">Municipios (Cobertura)</h3>
+              <h3 className="text-xs font-bold text-primary uppercase tracking-wider border-b border-outline-variant pb-2">Cobertura</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Municipio Origen</label>
@@ -622,20 +622,19 @@ export default function Rutas() {
 
             <div className="bg-primary/5 p-4 rounded-xl border border-primary/10">
                <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-[10px] font-bold text-primary uppercase">Métricas de Recorrido</h4>
-                  <button type="button" onClick={() => { setRoutePoints([]); setFormData(p => ({...p, distancia_km: 0, numero_paradas: 0, geom: null})) }} className="text-[9px] font-bold text-error uppercase hover:underline">Resetear Trazo</button>
+                  <h4 className="text-[10px] font-bold text-primary uppercase">Métricas (Google)</h4>
+                  <button type="button" onClick={() => setRoutePoints([])} className="text-[9px] font-bold text-error uppercase hover:underline">Resetear</button>
                </div>
                <div className="flex gap-10">
                   <div>
-                    <p className="text-[10px] text-on-surface-variant uppercase">Distancia Total</p>
-                    <p className="text-2xl font-bold text-primary">{formData.distancia_km || '0.00'} <span className="text-xs font-medium">km</span></p>
+                    <p className="text-[10px] text-on-surface-variant uppercase">Distancia</p>
+                    <p className="text-2xl font-bold text-primary">{formData.distancia_km || '0.00'} km</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-on-surface-variant uppercase">Nodos de Ruta</p>
+                    <p className="text-[10px] text-on-surface-variant uppercase">Nodos</p>
                     <p className="text-2xl font-bold text-primary">{routePoints.length}</p>
                   </div>
                </div>
-               <p className="text-[9px] text-on-surface-variant mt-3 italic">* La distancia se calcula automáticamente siguiendo las vías principales.</p>
             </div>
           </form>
  

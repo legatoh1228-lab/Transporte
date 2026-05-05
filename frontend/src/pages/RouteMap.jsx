@@ -1,287 +1,298 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import Map, { Source, Layer, Marker, Popup, NavigationControl } from 'react-map-gl/mapbox';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, Polyline, Marker } from '@react-google-maps/api';
 import wellknown from 'wellknown';
 import api from '../services/api';
-import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
+import { GOOGLE_MAPS_API_KEY } from '../config';
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibGVnYXRvaCIsImEiOiJjbW9zbzA4OXcwMHgwMnFyM3J1dHc1a2IyIn0.XQgEj2Clkl9A46opIMUklA';
-const geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%'
+};
 
-const RouteMap = () => {
-  const [routes, setRoutes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRouteId, setSelectedRouteId] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewState, setViewState] = useState({
-    latitude: 10.2469,
-    longitude: -67.5958,
-    zoom: 13
+const center = {
+  lat: 10.2469,
+  lng: -67.5958
+};
+
+// Dark theme for Google Maps
+const darkTheme = [
+  { "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
+  { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+  { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+  { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
+  { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
+  { "featureType": "administrative.country", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] },
+  { "featureType": "administrative.land_parcel", "stylers": [{ "visibility": "off" }] },
+  { "featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{ "color": "#bdbdbd" }] },
+  { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+  { "featureType": "poi.park", "elementType": "geometry", "stylers": [{ "color": "#181818" }] },
+  { "featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
+  { "featureType": "poi.park", "elementType": "labels.text.stroke", "stylers": [{ "color": "#1b1b1b" }] },
+  { "featureType": "road", "elementType": "geometry.fill", "stylers": [{ "color": "#2c2c2c" }] },
+  { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#8a8a8a" }] },
+  { "featureType": "road.arterial", "elementType": "geometry", "stylers": [{ "color": "#373737" }] },
+  { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#3c3c3c" }] },
+  { "featureType": "road.highway.controlled_access", "elementType": "geometry", "stylers": [{ "color": "#4e4e4e" }] },
+  { "featureType": "road.local", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
+  { "featureType": "transit", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+  { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] },
+  { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#3d3d3d" }] }
+];
+
+export default function RouteMap() {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: ['places']
   });
-  const [popupInfo, setPopupInfo] = useState(null);
-  const [geocoderResults, setGeocoderResults] = useState([]);
-  const [geocoderQuery, setGeocoderQuery] = useState('');
-  const mapRef = useRef();
 
-  useEffect(() => {
-    fetchRoutes();
-  }, []);
+  const [routes, setRoutes] = useState([]);
+  const [selectedRouteId, setSelectedRouteId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [map, setMap] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
 
   const fetchRoutes = async () => {
     try {
       setLoading(true);
       const response = await api.get('routes/routes/');
-      
       const processedRoutes = response.data.map(route => {
-        let geojson = null;
+        let path = [];
         if (route.geom) {
           try {
-            geojson = wellknown.parse(route.geom);
-          } catch (e) {
-            console.error("Error parsing geom for route", route.id, e);
-          }
+            const geojson = wellknown.parse(route.geom);
+            if (geojson.type === 'LineString') {
+              path = geojson.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
+            }
+          } catch (e) { console.error("Error parsing geom", e); }
         }
-        return { ...route, geojson };
-      }).filter(r => r.geojson);
-      
+        return { ...route, path };
+      });
       setRoutes(processedRoutes);
-    } catch (error) {
-      console.error("Error fetching routes:", error);
+      if (processedRoutes.length > 0 && !selectedRouteId) {
+        setSelectedRouteId(processedRoutes[0].id);
+      }
+    } catch (err) {
+      console.error("Error fetching routes:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredRoutes = useMemo(() => {
-    return routes.filter(r => 
-      r.nombre.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [routes, searchQuery]);
+  useEffect(() => {
+    fetchRoutes();
+  }, []);
 
   const selectedRoute = useMemo(() => 
     routes.find(r => r.id === selectedRouteId), 
     [routes, selectedRouteId]
   );
 
-  const handleSelectRoute = (route) => {
-    setSelectedRouteId(route.id);
-    if (route.geojson && route.geojson.coordinates.length > 0) {
-      const firstCoord = route.geojson.coordinates[0];
-      setViewState(prev => ({
-        ...prev,
-        latitude: firstCoord[1],
-        longitude: firstCoord[0],
-        zoom: 14,
-        transitionDuration: 1000
-      }));
-    }
-  };
+  const filteredRoutes = useMemo(() => 
+    routes.filter(r => r.nombre.toLowerCase().includes(searchTerm.toLowerCase())),
+    [routes, searchTerm]
+  );
 
-  const handleGeocoderSearch = async (query) => {
-    setGeocoderQuery(query);
-    if (query.length > 2) {
-      try {
-        const response = await geocodingClient.forwardGeocode({
-          query,
-          autocomplete: true,
-          limit: 5,
-          countries: ['VE'] // Focus on Venezuela
-        }).send();
-        setGeocoderResults(response.body.features);
-      } catch (err) {
-        console.error("Geocoding error:", err);
+  useEffect(() => {
+    if (selectedRoute && selectedRoute.path.length > 0 && map) {
+      const bounds = new window.google.maps.LatLngBounds();
+      selectedRoute.path.forEach(p => bounds.extend(p));
+      map.fitBounds(bounds);
+    }
+  }, [selectedRouteId, map]);
+
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    if (!query || query.length < 3 || !window.google) {
+      setSearchResults([]);
+      return;
+    }
+
+    const service = new window.google.maps.places.AutocompleteService();
+    service.getPlacePredictions({ 
+      input: query, 
+      componentRestrictions: { country: 've' } 
+    }, (predictions, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+        setSearchResults(predictions);
+      } else {
+        setSearchResults([]);
       }
-    } else {
-      setGeocoderResults([]);
-    }
+    });
   };
 
-  const handleSelectLocation = (feature) => {
-    const [lng, lat] = feature.center;
-    setViewState(prev => ({
-      ...prev,
-      longitude: lng,
-      latitude: lat,
-      zoom: 15,
-      transitionDuration: 1000
-    }));
-    setGeocoderQuery(feature.place_name);
-    setGeocoderResults([]);
+  const selectPlace = (place) => {
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ placeId: place.place_id }, (results, status) => {
+      if (status === 'OK' && results[0] && map) {
+        const loc = results[0].geometry.location;
+        map.panTo(loc);
+        map.setZoom(15);
+        setSearchQuery('');
+        setSearchResults([]);
+      }
+    });
   };
 
-  // GeoJSON data for all routes
-  const routesGeoJSON = useMemo(() => ({
-    type: 'FeatureCollection',
-    features: routes.map(route => ({
-      type: 'Feature',
-      properties: { 
-        id: route.id, 
-        name: route.nombre,
-        color: selectedRouteId === route.id ? '#00E5FF' : '#94A3B8'
-      },
-      geometry: route.geojson
-    }))
-  }), [routes, selectedRouteId]);
+  const onLoad = useCallback(function callback(mapInstance) {
+    setMap(mapInstance);
+  }, []);
+
+  const onUnmount = useCallback(function callback(mapInstance) {
+    setMap(null);
+  }, []);
+
+  if (!isLoaded) return <div className="h-full flex items-center justify-center bg-surface-container-low text-on-surface">Cargando Google Maps...</div>;
 
   return (
-    <div className="-m-container-margin md:-m-8 flex h-[calc(100vh-64px)] overflow-hidden font-public-sans bg-surface-container">
-      {/* Sidebar */}
-      <aside className="w-[380px] bg-surface-container-lowest border-r border-outline-variant flex flex-col z-[10] shadow-[4px_0_24px_rgba(0,0,0,0.03)] shrink-0">
-        <div className="p-6 border-b border-outline-variant shrink-0 bg-surface-container-lowest">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="font-title-sm text-title-sm text-on-surface">Explorador de Rutas</h2>
-              <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Gestión de trayectos geoespaciales</p>
-            </div>
-            <button aria-label="Refresh Routes" onClick={fetchRoutes} className="bg-primary hover:bg-primary-fixed-variant text-on-primary rounded flex items-center justify-center p-2 transition-colors shadow-sm">
-              <span className="material-symbols-outlined text-[20px]">{loading ? 'sync' : 'refresh'}</span>
-            </button>
-          </div>
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
-            <input 
-              className="w-full bg-surface-container-low border border-outline-variant rounded py-2.5 pl-9 pr-3 font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
-              placeholder="Buscar por nombre..." 
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+    <div className="flex flex-col h-[calc(100vh-8rem)] font-public-sans overflow-hidden">
+      <div className="flex justify-between items-center mb-4 shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Explorador de Rutas</h1>
+          <p className="text-sm text-on-surface-variant font-medium mt-1">Monitoreo y visualización de líneas de transporte público</p>
         </div>
+      </div>
 
-        <div className="flex-1 overflow-y-auto bg-surface p-4 flex flex-col gap-3">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-10 opacity-50">
-              <span className="material-symbols-outlined animate-spin text-4xl mb-2">sync</span>
-              <p className="text-sm font-medium">Cargando rutas...</p>
+      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+        <div className="w-full lg:w-1/3 flex flex-col bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-outline-variant bg-surface-container-low shrink-0">
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+              <input 
+                type="text" 
+                placeholder="Buscar ruta..." 
+                className="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg py-2.5 pl-10 pr-4 text-sm outline-none transition-all font-medium"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          ) : filteredRoutes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 opacity-50 text-center">
-              <span className="material-symbols-outlined text-4xl mb-2">map_off</span>
-              <p className="text-sm font-medium">No se encontraron rutas</p>
-            </div>
-          ) : (
-            filteredRoutes.map(route => (
-              <div 
-                key={route.id}
-                onClick={() => handleSelectRoute(route)}
-                className={`bg-surface-container-lowest rounded-lg border p-4 cursor-pointer relative overflow-hidden transition-all hover:shadow-md ${selectedRouteId === route.id ? 'border-primary' : 'border-outline-variant hover:border-outline'}`}
-              >
-                {selectedRouteId === route.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>}
-                <div className="flex justify-between items-start mb-2">
-                  <span className="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">ID: {route.id}</span>
-                  <span className="bg-primary-container text-on-primary-container px-2 py-0.5 rounded font-label-sm text-label-sm">{route.tipo_nombre || 'Ruta'}</span>
-                </div>
-                <h3 className="font-title-sm text-title-sm text-on-surface mb-1">{route.nombre}</h3>
-                <p className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">route</span> {route.distancia_km || '0'} km
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-      </aside>
-
-      {/* Map Area */}
-      <section className="flex-1 relative bg-surface-dim overflow-hidden">
-        {/* Geocoder UI */}
-        <div className="absolute top-6 left-6 z-[20] w-72">
-          <div className="relative shadow-2xl">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-primary text-[20px]">location_on</span>
-            <input 
-              className="w-full bg-surface-container-highest/90 backdrop-blur-md border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
-              placeholder="Buscar ubicación..." 
-              type="text"
-              value={geocoderQuery}
-              onChange={(e) => handleGeocoderSearch(e.target.value)}
-            />
-            {geocoderResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-surface-container-highest/95 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden shadow-2xl">
-                {geocoderResults.map(result => (
-                  <div 
-                    key={result.id}
-                    onClick={() => handleSelectLocation(result)}
-                    className="px-4 py-3 text-xs text-on-surface hover:bg-primary/20 cursor-pointer border-b border-white/5 last:border-0 transition-colors"
-                  >
-                    {result.place_name}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
-        </div>
-
-        <Map
-          {...viewState}
-          onMove={evt => setViewState(evt.viewState)}
-          mapStyle="mapbox://styles/mapbox/navigation-night-v1"
-          mapboxAccessToken={MAPBOX_TOKEN}
-          ref={mapRef}
-          style={{ width: '100%', height: '100%' }}
-        >
-          <NavigationControl position="bottom-right" />
           
-          <Source type="geojson" data={routesGeoJSON}>
-            <Layer
-              id="routes-layer"
-              type="line"
-              paint={{
-                'line-color': ['get', 'color'],
-                'line-width': ['case', ['==', ['get', 'id'], selectedRouteId], 6, 3],
-                'line-opacity': ['case', ['==', ['get', 'id'], selectedRouteId], 1, 0.5]
-              }}
-              layout={{
-                'line-join': 'round',
-                'line-cap': 'round'
-              }}
-            />
-          </Source>
-
-          {selectedRoute && selectedRoute.geojson && selectedRoute.geojson.coordinates.length > 0 && (
-            <Marker 
-              longitude={selectedRoute.geojson.coordinates[0][0]} 
-              latitude={selectedRoute.geojson.coordinates[0][1]}
-              onClick={e => {
-                e.originalEvent.stopPropagation();
-                setPopupInfo(selectedRoute);
-              }}
-            >
-              <div className="text-primary animate-bounce">
-                <span className="material-symbols-outlined text-3xl">location_on</span>
-              </div>
-            </Marker>
-          )}
-
-          {popupInfo && (
-            <Popup
-              anchor="top"
-              longitude={popupInfo.geojson.coordinates[0][0]}
-              latitude={popupInfo.geojson.coordinates[0][1]}
-              onClose={() => setPopupInfo(null)}
-              className="z-[20]"
-            >
-              <div className="p-2 min-w-[150px]">
-                <h4 className="font-bold text-sm mb-1">{popupInfo.nombre}</h4>
-                <p className="text-[10px] text-on-surface-variant">{popupInfo.distancia_km} km • {popupInfo.tipo_nombre || 'Ruta'}</p>
-              </div>
-            </Popup>
-          )}
-        </Map>
-
-        {/* Status Badge */}
-        <div className="absolute top-6 right-6 z-[10] pointer-events-none">
-          <div className="bg-primary/20 backdrop-blur-md border border-primary/30 px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-primary relative">
-              <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75"></span>
-            </span>
-            <span className="font-bold text-xs text-primary uppercase tracking-widest">
-              {routes.length} Rutas Geoespaciales
-            </span>
+          <div className="overflow-y-auto flex-1 p-2 space-y-1 custom-scrollbar">
+            {loading ? (
+              <div className="flex items-center justify-center p-8 text-on-surface-variant animate-pulse">Cargando...</div>
+            ) : filteredRoutes.map(route => {
+              const isSelected = selectedRouteId === route.id;
+              return (
+                <div 
+                  key={route.id}
+                  onClick={() => setSelectedRouteId(route.id)}
+                  className={`group p-4 rounded-lg cursor-pointer transition-all border ${isSelected ? 'bg-primary/10 border-primary/30 shadow-sm' : 'bg-surface hover:bg-surface-container-low border-transparent'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${isSelected ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                        <span className="material-symbols-outlined text-[20px]">route</span>
+                      </div>
+                      <div>
+                        <h4 className={`font-bold text-sm ${isSelected ? 'text-primary' : 'text-on-surface'}`}>{route.nombre}</h4>
+                        <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider mt-0.5">{route.tipo_nombre || 'General'}</p>
+                      </div>
+                    </div>
+                    {isSelected && <span className="material-symbols-outlined text-primary text-[18px] animate-bounce-x">chevron_right</span>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </section>
+
+        <div className="w-full lg:w-2/3 bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden relative">
+          <div className="absolute top-4 left-4 z-[20] w-72">
+            <div className="relative group">
+              <input 
+                type="text" 
+                placeholder="Buscar lugar o dirección..." 
+                className="w-full bg-surface-container-highest/90 backdrop-blur-md border border-outline-variant rounded-lg py-3 px-4 pl-11 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-xl transition-all"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+              />
+              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">location_on</span>
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-surface-container-highest rounded-xl shadow-2xl border border-outline-variant overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  {searchResults.map(res => (
+                    <div 
+                      key={res.place_id} 
+                      onClick={() => selectPlace(res)}
+                      className="px-4 py-3 text-xs hover:bg-primary/10 cursor-pointer border-b border-outline-variant last:border-0 transition-colors flex items-center gap-3"
+                    >
+                      <span className="material-symbols-outlined text-on-surface-variant text-[16px]">place</span>
+                      <span className="flex-1 truncate">{res.description}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={center}
+            zoom={12}
+            onLoad={onLoad}
+            onUnmount={onUnmount}
+            options={{
+              styles: darkTheme,
+              disableDefaultUI: false,
+              zoomControl: true,
+              mapTypeControl: false,
+              streetViewControl: false,
+              fullscreenControl: true
+            }}
+          >
+            {selectedRoute && selectedRoute.path.length > 0 && (
+              <>
+                <Polyline
+                  path={selectedRoute.path}
+                  options={{
+                    strokeColor: '#3B82F6',
+                    strokeOpacity: 0.9,
+                    strokeWeight: 6,
+                  }}
+                />
+                <Marker 
+                  position={selectedRoute.path[0]} 
+                  label={{ text: "A", color: "white", fontWeight: "bold" }}
+                />
+                <Marker 
+                  position={selectedRoute.path[selectedRoute.path.length - 1]} 
+                  label={{ text: "B", color: "white", fontWeight: "bold" }}
+                />
+              </>
+            )}
+          </GoogleMap>
+
+          {selectedRoute && (
+            <div className="absolute bottom-6 left-6 right-6 lg:left-auto lg:w-80 p-5 bg-surface-container-highest/95 backdrop-blur-xl border border-outline-variant rounded-2xl shadow-2xl z-10 animate-in slide-in-from-bottom-4 duration-300">
+               <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <span className="material-symbols-outlined text-primary text-[20px]">analytics</span>
+                    </div>
+                    <h4 className="font-bold text-sm text-on-surface">Detalles de Ruta</h4>
+                  </div>
+                  <span className="px-2 py-1 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded uppercase">{selectedRoute.tipo_nombre}</span>
+               </div>
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-surface-container-low p-3 rounded-xl border border-outline-variant">
+                    <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-1">Distancia</p>
+                    <p className="text-xl font-black text-primary">{selectedRoute.distancia_km || '0.00'}<small className="ml-1 text-[10px] font-bold">KM</small></p>
+                  </div>
+                  <div className="bg-surface-container-low p-3 rounded-xl border border-outline-variant">
+                    <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-1">Paradas</p>
+                    <p className="text-xl font-black text-primary">{selectedRoute.numero_paradas || 0}</p>
+                  </div>
+               </div>
+               <div className="mt-4 flex items-center gap-2 text-[10px] font-medium text-on-surface-variant bg-surface-container-low p-2 rounded-lg">
+                  <span className="material-symbols-outlined text-[14px]">info</span>
+                  <span>Datos actualizados en tiempo real por el sistema.</span>
+               </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
-};
-
-export default RouteMap;
+}
