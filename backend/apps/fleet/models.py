@@ -1,6 +1,27 @@
-from django.db import models
-from catalogs.models import Modalidad, SubModalidad, TipoTransmision, TipoCombustible
+from django.contrib.gis.db import models
+from catalogs.models import Modalidad, SubModalidad, TipoTransmision, TipoCombustible, TerritorioMunicipio
 from organizations.models import EmpresaOrganizacion
+
+class Terminal(models.Model):
+    nombre = models.CharField(max_length=150, unique=True)
+    municipio = models.ForeignKey(TerritorioMunicipio, on_delete=models.PROTECT, related_name='terminales')
+    tipo = models.CharField(max_length=50, choices=[
+        ('Principal', 'Principal'),
+        ('Secundario', 'Secundario'),
+        ('Parada', 'Parada de Transferencia'),
+    ], default='Principal')
+    capacidad_andenes = models.SmallIntegerField(default=0)
+    estatus = models.CharField(max_length=20, default='Activo', choices=[
+        ('Activo', 'Activo'),
+        ('Mantenimiento', 'En Mantenimiento'),
+        ('Inactivo', 'Inactivo'),
+    ])
+    location = models.PointField(srid=4326, blank=True, null=True)
+
+    def __str__(self): return self.nombre
+    class Meta:
+        verbose_name_plural = "Terminales"
+        db_table = 'terminal'
 
 class FlotaVehiculo(models.Model):
     placa = models.CharField(max_length=15, primary_key=True)

@@ -1,35 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import Map, { Source, Layer, Marker, Popup, NavigationControl } from 'react-map-gl/mapbox';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import wellknown from 'wellknown';
-import 'leaflet/dist/leaflet.css';
 import api from '../services/api';
+import mbxGeocoding from '@mapbox/mapbox-sdk/services/geocoding';
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
-
-// Helper component to center map when selected route changes
-const ChangeView = ({ center, zoom }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (center) {
-      map.setView(center, zoom);
-    }
-  }, [center, zoom, map]);
-  return null;
-};
+const MAPBOX_TOKEN = 'pk.eyJ1IjoibGVnYXRvaCIsImEiOiJjbW9zbzA4OXcwMHgwMnFyM3J1dHc1a2IyIn0.XQgEj2Clkl9A46opIMUklA';
+const geocodingClient = mbxGeocoding({ accessToken: MAPBOX_TOKEN });
 
 const RouteMap = () => {
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRouteId, setSelectedRouteId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [mapCenter, setMapCenter] = useState([10.2469, -67.5958]); // Default Maracay
-  const [mapZoom, setMapZoom] = useState(13);
+  const [viewState, setViewState] = useState({
+    latitude: 10.2469,
+    longitude: -67.5958,
+    zoom: 13
+  });
+  const [popupInfo, setPopupInfo] = useState(null);
+  const [geocoderResults, setGeocoderResults] = useState([]);
+  const [geocoderQuery, setGeocoderQuery] = useState('');
+  const mapRef = useRef();
 
   useEffect(() => {
     fetchRoutes();
@@ -41,19 +33,16 @@ const RouteMap = () => {
       const response = await api.get('routes/routes/');
       
       const processedRoutes = response.data.map(route => {
-        let coordinates = [];
+        let geojson = null;
         if (route.geom) {
           try {
-            const geojson = wellknown.parse(route.geom);
-            if (geojson && geojson.type === 'LineString') {
-              coordinates = geojson.coordinates.map(coord => [coord[1], coord[0]]);
-            }
+            geojson = wellknown.parse(route.geom);
           } catch (e) {
             console.error("Error parsing geom for route", route.id, e);
           }
         }
-        return { ...route, coordinates };
-      }).filter(r => r.coordinates.length > 0);
+        return { ...route, geojson };
+      }).filter(r => r.geojson);
       
       setRoutes(processedRoutes);
     } catch (error) {
@@ -76,16 +65,68 @@ const RouteMap = () => {
 
   const handleSelectRoute = (route) => {
     setSelectedRouteId(route.id);
-    if (route.coordinates.length > 0) {
-      setMapCenter(route.coordinates[0]);
-      setMapZoom(14);
+    if (route.geojson && route.geojson.coordinates.length > 0) {
+      const firstCoord = route.geojson.coordinates[0];
+      setViewState(prev => ({
+        ...prev,
+        latitude: firstCoord[1],
+        longitude: firstCoord[0],
+        zoom: 14,
+        transitionDuration: 1000
+      }));
     }
   };
+
+  const handleGeocoderSearch = async (query) => {
+    setGeocoderQuery(query);
+    if (query.length > 2) {
+      try {
+        const response = await geocodingClient.forwardGeocode({
+          query,
+          autocomplete: true,
+          limit: 5,
+          countries: ['VE'] // Focus on Venezuela
+        }).send();
+        setGeocoderResults(response.body.features);
+      } catch (err) {
+        console.error("Geocoding error:", err);
+      }
+    } else {
+      setGeocoderResults([]);
+    }
+  };
+
+  const handleSelectLocation = (feature) => {
+    const [lng, lat] = feature.center;
+    setViewState(prev => ({
+      ...prev,
+      longitude: lng,
+      latitude: lat,
+      zoom: 15,
+      transitionDuration: 1000
+    }));
+    setGeocoderQuery(feature.place_name);
+    setGeocoderResults([]);
+  };
+
+  // GeoJSON data for all routes
+  const routesGeoJSON = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: routes.map(route => ({
+      type: 'Feature',
+      properties: { 
+        id: route.id, 
+        name: route.nombre,
+        color: selectedRouteId === route.id ? '#00E5FF' : '#94A3B8'
+      },
+      geometry: route.geojson
+    }))
+  }), [routes, selectedRouteId]);
 
   return (
     <div className="-m-container-margin md:-m-8 flex h-[calc(100vh-64px)] overflow-hidden font-public-sans bg-surface-container">
       {/* Sidebar */}
-      <aside className="w-[380px] bg-surface-container-lowest border-r border-outline-variant flex flex-col z-[1001] shadow-[4px_0_24px_rgba(0,0,0,0.03)] shrink-0">
+      <aside className="w-[380px] bg-surface-container-lowest border-r border-outline-variant flex flex-col z-[10] shadow-[4px_0_24px_rgba(0,0,0,0.03)] shrink-0">
         <div className="p-6 border-b border-outline-variant shrink-0 bg-surface-container-lowest">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -143,48 +184,98 @@ const RouteMap = () => {
 
       {/* Map Area */}
       <section className="flex-1 relative bg-surface-dim overflow-hidden">
-        <MapContainer 
-          center={mapCenter} 
-          zoom={mapZoom} 
-          style={{ height: '100%', width: '100%' }}
-          zoomControl={false}
+        {/* Geocoder UI */}
+        <div className="absolute top-6 left-6 z-[20] w-72">
+          <div className="relative shadow-2xl">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-primary text-[20px]">location_on</span>
+            <input 
+              className="w-full bg-surface-container-highest/90 backdrop-blur-md border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
+              placeholder="Buscar ubicación..." 
+              type="text"
+              value={geocoderQuery}
+              onChange={(e) => handleGeocoderSearch(e.target.value)}
+            />
+            {geocoderResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-surface-container-highest/95 backdrop-blur-lg border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+                {geocoderResults.map(result => (
+                  <div 
+                    key={result.id}
+                    onClick={() => handleSelectLocation(result)}
+                    className="px-4 py-3 text-xs text-on-surface hover:bg-primary/20 cursor-pointer border-b border-white/5 last:border-0 transition-colors"
+                  >
+                    {result.place_name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <Map
+          {...viewState}
+          onMove={evt => setViewState(evt.viewState)}
+          mapStyle="mapbox://styles/mapbox/navigation-night-v1"
+          mapboxAccessToken={MAPBOX_TOKEN}
+          ref={mapRef}
+          style={{ width: '100%', height: '100%' }}
         >
-          <ChangeView center={mapCenter} zoom={mapZoom} />
-          <TileLayer
-            attribution='&copy; OpenStreetMap contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <NavigationControl position="bottom-right" />
           
-          {routes.map(route => (
-            <Polyline
-              key={route.id}
-              positions={route.coordinates}
-              pathOptions={{
-                color: selectedRouteId === route.id ? '#032448' : '#74777f',
-                weight: selectedRouteId === route.id ? 6 : 3,
-                opacity: selectedRouteId === route.id ? 1 : 0.4
+          <Source type="geojson" data={routesGeoJSON}>
+            <Layer
+              id="routes-layer"
+              type="line"
+              paint={{
+                'line-color': ['get', 'color'],
+                'line-width': ['case', ['==', ['get', 'id'], selectedRouteId], 6, 3],
+                'line-opacity': ['case', ['==', ['get', 'id'], selectedRouteId], 1, 0.5]
               }}
-              eventHandlers={{
-                click: () => handleSelectRoute(route)
+              layout={{
+                'line-join': 'round',
+                'line-cap': 'round'
               }}
             />
-          ))}
+          </Source>
 
-          {selectedRoute && selectedRoute.coordinates.length > 0 && (
-            <Marker position={selectedRoute.coordinates[0]}>
-              <Popup>{selectedRoute.nombre}</Popup>
+          {selectedRoute && selectedRoute.geojson && selectedRoute.geojson.coordinates.length > 0 && (
+            <Marker 
+              longitude={selectedRoute.geojson.coordinates[0][0]} 
+              latitude={selectedRoute.geojson.coordinates[0][1]}
+              onClick={e => {
+                e.originalEvent.stopPropagation();
+                setPopupInfo(selectedRoute);
+              }}
+            >
+              <div className="text-primary animate-bounce">
+                <span className="material-symbols-outlined text-3xl">location_on</span>
+              </div>
             </Marker>
           )}
-        </MapContainer>
+
+          {popupInfo && (
+            <Popup
+              anchor="top"
+              longitude={popupInfo.geojson.coordinates[0][0]}
+              latitude={popupInfo.geojson.coordinates[0][1]}
+              onClose={() => setPopupInfo(null)}
+              className="z-[20]"
+            >
+              <div className="p-2 min-w-[150px]">
+                <h4 className="font-bold text-sm mb-1">{popupInfo.nombre}</h4>
+                <p className="text-[10px] text-on-surface-variant">{popupInfo.distancia_km} km • {popupInfo.tipo_nombre || 'Ruta'}</p>
+              </div>
+            </Popup>
+          )}
+        </Map>
 
         {/* Status Badge */}
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
-          <div className="bg-surface-container-highest/80 backdrop-blur border border-outline-variant px-4 py-2 rounded-full shadow-sm flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-tertiary-fixed-dim relative">
-              <span className="absolute inset-0 rounded-full bg-tertiary-fixed-dim animate-ping opacity-75"></span>
+        <div className="absolute top-6 right-6 z-[10] pointer-events-none">
+          <div className="bg-primary/20 backdrop-blur-md border border-primary/30 px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full bg-primary relative">
+              <span className="absolute inset-0 rounded-full bg-primary animate-ping opacity-75"></span>
             </span>
-            <span className="font-label-bold text-label-bold text-on-surface uppercase tracking-wider">
-              {routes.length} Rutas Cargadas
+            <span className="font-bold text-xs text-primary uppercase tracking-widest">
+              {routes.length} Rutas Geoespaciales
             </span>
           </div>
         </div>

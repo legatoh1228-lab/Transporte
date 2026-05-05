@@ -1,5 +1,12 @@
 from rest_framework import serializers
-from .models import FlotaVehiculo, VehiculoOrganizacion
+from .models import FlotaVehiculo, VehiculoOrganizacion, Terminal
+
+class TerminalSerializer(serializers.ModelSerializer):
+    municipio_nombre = serializers.ReadOnlyField(source='municipio.nombre')
+    
+    class Meta:
+        model = Terminal
+        fields = '__all__'
 
 class FlotaVehiculoSerializer(serializers.ModelSerializer):
     modalidad_nombre = serializers.ReadOnlyField(source='modalidad.nombre')
