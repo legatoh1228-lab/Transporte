@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import logoBlanco from '../assets/images/logo gob blanco.jpg';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -38,88 +39,46 @@ const Login = () => {
   };
 
   return (
-    <main className="flex w-full min-h-screen font-public-sans">
-      {/* Left Panel - Branding & Institutional Context (Hidden on Mobile) */}
-      <section className="hidden lg:flex w-1/2 relative bg-primary flex-col justify-between p-12 overflow-hidden border-r border-outline-variant">
-        {/* Background Image overlaying primary color for depth */}
-        <div className="absolute inset-0 z-0">
-          <img 
-            className="w-full h-full object-cover opacity-15 mix-blend-luminosity" 
-            alt="high angle view of complex multi-lane highway interchange" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCh7wQLh_hqoACo56yr0OOYZ46sgBd7qod8gs1jvKtDy1XXutUycA-uZH-Zpr3nMfVie5kO-l9dDNS24caRI78ZqmTwObD9228jK4pUSyfqQ8XgaFnAQ2M6v62XuQhxno20Owi_i5HPTwyvWxh4Az7KBgG29LdIA3qse0W5fCt0zRYlZG7NO-z_PlCG_JBP0ZgLZeS0Sq6AFUvlRbfF9KQq08lCGVq_t13qpRevZJAjVViraEEUZV2NHCaIxN60OHWmjZfjtxnZnMg" 
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/80 to-primary/95"></div>
-        </div>
+    <main className="flex w-full min-h-screen font-public-sans bg-surface">
+      {/* Login Section - Now full width and centered */}
+      <section className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 relative">
         
-        {/* Header */}
-        <header className="relative z-10 flex items-center gap-4">
-          <div className="w-12 h-12 bg-surface-container-lowest rounded-lg flex items-center justify-center shadow-sm">
-            <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance</span>
+        <header className="flex flex-col items-center mb-6 text-center w-full max-w-[400px] animate-in fade-in slide-in-from-top-4 duration-700">
+          <div className="w-22 h-22 bg-white rounded-xl flex items-center justify-center mb-3 shadow-sm overflow-hidden">
+            <img src={logoBlanco} alt="Logo Gobernación" className="w-full h-full object-contain" />
           </div>
-          <div>
-            <h1 className="text-on-primary font-title-sm text-title-sm uppercase tracking-wider">Gobernación del Estado Aragua</h1>
-            <p className="text-primary-fixed-dim font-label-sm text-label-sm">Despacho de Infraestructura y Transporte</p>
-          </div>
+          <h1 className="text-primary font-title-sm text-title-sm uppercase tracking-[0.1em] font-bold">Secretaría de Transporte</h1>
+
         </header>
 
-        {/* Main Context */}
-        <article className="relative z-10 max-w-lg mt-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-surface/10 border border-surface/20 rounded-full mb-6">
-            <span className="material-symbols-outlined text-primary-fixed-dim text-[16px]">verified</span>
-            <span className="text-primary-fixed-dim font-label-bold text-label-bold">SISTEMA OFICIAL</span>
-          </div>
-          <h2 className="text-on-primary font-display-lg text-display-lg mb-6">Plataforma de Gestión y Registro de Transporte</h2>
-          <p className="text-primary-fixed-dim font-body-md text-body-md leading-relaxed">
-            Sistema centralizado e interconectado para el control operativo, auditoría de rutas y administración integral de la flota de transporte público e institucional del estado. El acceso a este portal está estrictamente reservado para personal autorizado.
-          </p>
-        </article>
-
-        {/* Footer Info */}
-        <footer className="relative z-10 text-primary-fixed-dim font-label-sm text-label-sm flex items-center gap-2 mt-12 opacity-80">
-          <span className="material-symbols-outlined text-[16px]">lock</span>
-          Conexión segura 256-bit cifrada
-        </footer>
-      </section>
-
-      {/* Right Panel - Login Form */}
-      <section className="flex-1 flex flex-col justify-center items-center p-6 sm:p-12 bg-surface relative">
-        {/* Mobile Header (Visible only on small screens) */}
-        <header className="lg:hidden flex flex-col items-center mb-8 text-center w-full max-w-[400px]">
-          <div className="w-14 h-14 bg-primary rounded-xl flex items-center justify-center shadow-sm mb-4">
-            <span className="material-symbols-outlined text-on-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance</span>
-          </div>
-          <h1 className="text-primary font-title-sm text-title-sm uppercase tracking-wider">Gobernación del Estado Aragua</h1>
-          <h2 className="text-on-surface font-headline-md text-headline-md mt-2">Gestión de Transporte</h2>
-        </header>
-
-        {/* Login Card Container */}
-        <div className="w-full max-w-[400px] bg-surface-container-lowest border border-outline-variant rounded-xl p-8 shadow-sm">
-          <div className="mb-8 border-b border-outline-variant pb-6">
-            <h3 className="text-on-surface font-headline-md text-headline-md mb-2">Iniciar Sesión</h3>
-            <p className="text-on-surface-variant font-body-sm text-body-sm">Ingrese sus credenciales de operador o administrador para acceder al panel principal.</p>
+        {/* Login Card Container - More compact */}
+        <div className="w-full max-w-[400px] bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-xl shadow-primary/5 relative z-10 animate-in fade-in zoom-in-95 duration-500">
+          <div className="mb-6 border-b border-outline-variant pb-4">
+            <h3 className="text-on-surface font-headline-small text-headline-small mb-1">Iniciar Sesión</h3>
+            <p className="text-on-surface-variant font-body-sm text-body-sm">Ingrese sus credenciales para acceder.</p>
           </div>
           
-          <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-error/10 border border-error/20 text-error p-3 rounded-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-                <span className="material-symbols-outlined text-[20px]">error</span>
+              <div className="bg-error/10 border border-error/20 text-error p-3 rounded-lg flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px]">error</span>
                 <span className="font-body-sm text-body-sm">{error}</span>
               </div>
             )}
 
             {/* Username Field */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-on-surface font-label-bold text-label-bold" htmlFor="username">Usuario Institucional</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-on-surface font-label-bold text-label-bold" htmlFor="username">Usuario</label>
               <div className="relative group">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-outline group-focus-within:text-primary transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">badge</span>
+                  <span className="material-symbols-outlined text-[18px]">badge</span>
                 </span>
                 <input 
                   autoComplete="username" 
-                  className="w-full pl-10 pr-3 py-2.5 bg-surface border border-outline-variant rounded-lg text-on-surface font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
+                  className="w-full pl-10 pr-3 py-2 bg-surface border border-outline-variant rounded-lg text-on-surface font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
                   id="username" 
                   name="username" 
-                  placeholder="Ej: admin" 
+                  placeholder="Usuario" 
                   required 
                   type="text"
                   value={username}
@@ -129,18 +88,15 @@ const Login = () => {
             </div>
 
             {/* Password Field */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between items-center">
-                <label className="text-on-surface font-label-bold text-label-bold" htmlFor="password">Contraseña de Acceso</label>
-                <a className="text-secondary font-label-bold text-label-bold hover:text-primary transition-colors hover:underline" href="#">¿Olvidó su clave?</a>
-              </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-on-surface font-label-bold text-label-bold" htmlFor="password">Contraseña</label>
               <div className="relative group">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-outline group-focus-within:text-primary transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">lock</span>
+                  <span className="material-symbols-outlined text-[18px]">lock</span>
                 </span>
                 <input 
                   autoComplete="current-password" 
-                  className="w-full pl-10 pr-10 py-2.5 bg-surface border border-outline-variant rounded-lg text-on-surface font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
+                  className="w-full pl-10 pr-10 py-2 bg-surface border border-outline-variant rounded-lg text-on-surface font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" 
                   id="password" 
                   name="password" 
                   placeholder="••••••••" 
@@ -154,25 +110,18 @@ const Login = () => {
 
             {/* Submit Button */}
             <button 
-              className={`w-full mt-4 ${loading ? 'bg-primary/70' : 'bg-primary'} text-on-primary font-label-bold text-label-bold py-3 px-4 rounded-lg hover:bg-on-primary-fixed-variant active:bg-on-primary-fixed transition-colors flex items-center justify-center gap-2 border border-transparent focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-surface`} 
+              className={`w-full mt-2 ${loading ? 'bg-primary/70' : 'bg-primary'} text-on-primary font-label-bold text-label-bold py-2.5 px-4 rounded-lg hover:bg-on-primary-fixed-variant transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-primary/50`} 
               type="submit"
               disabled={loading}
             >
-              {loading ? 'Validando...' : 'Ingresar al Sistema'}
+              {loading ? 'Validando...' : 'Ingresar'}
               {!loading && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
             </button>
           </form>
         </div>
-
-        {/* Footer Help Link */}
-        <div className="mt-8 text-center absolute bottom-8">
-          <a className="text-outline hover:text-on-surface font-body-sm text-body-sm flex items-center justify-center gap-1.5 transition-colors" href="#">
-            <span className="material-symbols-outlined text-[16px]">help</span>
-            Soporte Técnico Institucional
-          </a>
-        </div>
       </section>
     </main>
+
   );
 };
 
