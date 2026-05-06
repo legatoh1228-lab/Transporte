@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
+
 
 const FLOTA_ASIGNACION = { id: 'flota', name: 'Vehículos Activos', icon: 'directions_car' };
 
@@ -16,7 +18,13 @@ const SYSTEM_CATALOGS = [
 ];
 
 export default function Catalogos() {
+  const { hasPermission } = usePermissions();
+  const canUpdate = hasPermission('Configuración', 'Actualizar');
+  const canCreate = hasPermission('Configuración', 'Crear');
+  const canDelete = hasPermission('Configuración', 'Eliminar');
+
   const [activeCatalog, setActiveCatalog] = useState('flota');
+
   const [vehiculos, setVehiculos] = useState([]);
   const [operadores, setOperadores] = useState([]);
   const [catalogData, setCatalogData] = useState([]);
@@ -185,8 +193,9 @@ export default function Catalogos() {
                           <select 
                             className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-1.5 px-3 text-sm outline-none focus:border-primary disabled:opacity-50"
                             value={v.operador_asignado?.cedula || ""}
-                            disabled={savingId === v.placa}
+                            disabled={savingId === v.placa || !canUpdate}
                             onChange={(e) => handleAssignOperator(v.placa, e.target.value)}
+
                           >
                             <option value="">-- Sin Asignar --</option>
                             {operadores.map(op => (
@@ -220,10 +229,11 @@ export default function Catalogos() {
             <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 w-16">ID</th>
-                <th className="px-4 py-3">Nombre / Valor</th>
+                 <th className="px-4 py-3">Nombre / Valor</th>
                 <th className="px-4 py-3 w-1/3">Información Extra</th>
-                <th className="px-4 py-3 w-24 text-center">Acciones</th>
+                {(canUpdate || canDelete) && <th className="px-4 py-3 w-24 text-center">Acciones</th>}
               </tr>
+
             </thead>
             <tbody className="divide-y divide-outline-variant">
               {catalogData.length === 0 ? (
@@ -242,16 +252,23 @@ export default function Catalogos() {
                       {item.modalidad_nombre && <div>Padre: <span className="font-semibold text-primary">{item.modalidad_nombre}</span></div>}
                       {item.eje_nombre && <div>Eje: <span className="font-semibold text-primary">{item.eje_nombre}</span></div>}
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => openModal('edit', item)} className="text-on-surface-variant hover:text-primary transition-colors" title="Editar">
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
-                        <button onClick={() => handleDeleteCatalog(item)} className="text-on-surface-variant hover:text-error transition-colors" title="Eliminar">
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </div>
-                    </td>
+                     {(canUpdate || canDelete) && (
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {canUpdate && (
+                            <button onClick={() => openModal('edit', item)} className="text-on-surface-variant hover:text-primary transition-colors" title="Editar">
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button onClick={() => handleDeleteCatalog(item)} className="text-on-surface-variant hover:text-error transition-colors" title="Eliminar">
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+
                   </tr>
                 ))
               )}
@@ -331,11 +348,12 @@ export default function Catalogos() {
               <span className="material-symbols-outlined mr-2 text-secondary text-[18px]">sell</span>
               {activeCatalog === 'flota' ? FLOTA_ASIGNACION.name : SYSTEM_CATALOGS.find(c => c.id === activeCatalog)?.name}
             </h3>
-            {activeCatalog !== 'flota' && (
+             {activeCatalog !== 'flota' && canCreate && (
               <button onClick={() => openModal('add')} className="bg-primary hover:bg-primary-container text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center shadow-sm">
                 <span className="material-symbols-outlined mr-1 text-[18px]">add</span> Nuevo Valor
               </button>
             )}
+
           </div>
           
           {renderContent()}

@@ -23,12 +23,14 @@ const Sidebar = () => {
     'Operadores': 'Operadores',
     'Rutas': 'Rutas',
     'Mapa de Rutas': 'Rutas',
+    'Terminales': 'Organizaciones',
     'Admin Usuarios': 'Usuarios',
     'Permisos': 'Permisos',
     'Configuración': 'Configuración',
     'Catálogos': 'Configuración',
     'Auditoría': 'Configuración'
   };
+
 
   const navItems = [
     { label: 'Dashboard',      icon: 'dashboard',        path: '/dashboard' },

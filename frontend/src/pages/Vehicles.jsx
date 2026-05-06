@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-
 import { Modal } from '../components/common/Modal';
+import { usePermissions } from '../hooks/usePermissions';
 
 const Vehicles = () => {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('Vehículos', 'Crear');
+  const canUpdate = hasPermission('Vehículos', 'Actualizar');
+  const canDelete = hasPermission('Vehículos', 'Eliminar');
+
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -173,14 +178,17 @@ const Vehicles = () => {
           </div>
         </div>
         <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-          <button 
-            onClick={handleOpenCreate}
-            className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-bold text-label-bold flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm active:scale-95"
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            Nuevo Vehículo
-          </button>
+          {canCreate && (
+            <button 
+              onClick={handleOpenCreate}
+              className="px-4 py-2 bg-primary text-on-primary rounded-lg font-label-bold text-label-bold flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              Nuevo Vehículo
+            </button>
+          )}
         </div>
+
       </div>
 
       {/* Data Table Container */}
@@ -196,8 +204,9 @@ const Vehicles = () => {
                   <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant w-[160px]">Modalidad</th>
                   <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant">Marca / Modelo</th>
                   <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant w-[120px]">Año</th>
-                  <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant text-right w-[120px]">Acciones</th>
+                  {(canUpdate || canDelete) && <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant text-right w-[120px]">Acciones</th>}
                 </tr>
+
               </thead>
               <tbody className="divide-y divide-outline-variant/40 bg-surface-container-lowest">
                 {filteredVehicles.length > 0 ? filteredVehicles.map((v, i) => (
@@ -218,16 +227,23 @@ const Vehicles = () => {
                     <td className="px-6 py-4 font-body-sm text-body-sm text-on-surface">
                       {v.anio}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleEdit(v)} className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded hover:bg-primary/10">
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
-                        <button onClick={() => handleDelete(v.placa)} className="p-2 text-on-surface-variant hover:text-error transition-colors rounded hover:bg-error/10">
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </div>
-                    </td>
+                    {(canUpdate || canDelete) && (
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {canUpdate && (
+                            <button onClick={() => handleEdit(v)} className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded hover:bg-primary/10">
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button onClick={() => handleDelete(v.placa)} className="p-2 text-on-surface-variant hover:text-error transition-colors rounded hover:bg-error/10">
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+
                   </tr>
                 )) : (
                   <tr>

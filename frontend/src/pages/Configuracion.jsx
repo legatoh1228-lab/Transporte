@@ -1,8 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePermissions } from '../hooks/usePermissions';
+
 
 export default function Configuracion() {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+
   
   const cards = [
     {
@@ -43,6 +47,12 @@ export default function Configuracion() {
     }
   ];
 
+  const filteredCards = cards.filter(card => {
+    if (card.id === 'permisos') return hasPermission('Permisos', 'Leer');
+    return hasPermission('Configuración', 'Leer');
+  });
+
+
   return (
     <div className="flex flex-col gap-6 font-public-sans">
       <div>
@@ -51,8 +61,9 @@ export default function Configuracion() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {cards.map((card) => {
+        {filteredCards.map((card) => {
           return (
+
             <div 
               key={card.id}
               onClick={() => navigate(card.path)}

@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
+
 
 const MODULES = ['Organizaciones', 'Vehículos', 'Operadores', 'Rutas', 'Permisos', 'Usuarios', 'Configuración', 'Dashboard'];
 const ACTIONS = ['Leer', 'Crear', 'Actualizar', 'Eliminar'];
 
 export default function Permisos() {
+  const { hasPermission } = usePermissions();
+  const canUpdate = hasPermission('Permisos', 'Actualizar');
+
   const [roles, setRoles] = useState([]);
+
   const [selectedRole, setSelectedRole] = useState(null);
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,10 +52,11 @@ export default function Permisos() {
     }
   }, [selectedRole]);
 
-  const togglePermission = (module, action) => {
-    if (isSuper) return;
+   const togglePermission = (module, action) => {
+    if (isSuper || !canUpdate) return;
     
     setPermissions(prev => {
+
       const existingIdx = prev.findIndex(p => p.modulo === module && p.accion === action);
       if (existingIdx > -1) {
         const newPerms = [...prev];
@@ -99,7 +106,7 @@ export default function Permisos() {
           <p className="text-sm text-on-surface-variant font-medium mt-1">Configure el acceso granular por módulo y acción para cada rol del sistema.</p>
         </div>
         <div className="flex items-center gap-3">
-          {hasDirty && !isSuper && (
+          {hasDirty && !isSuper && canUpdate && (
             <button 
               onClick={handleSaveAll}
               disabled={saving}
@@ -109,6 +116,7 @@ export default function Permisos() {
               {saving ? "Guardando..." : "Guardar Cambios"}
             </button>
           )}
+
           {isSuper && (
             <div className="bg-primary-fixed text-on-primary-fixed px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm border border-primary/20">
               <span className="material-symbols-outlined text-[18px]">verified_user</span>
@@ -181,15 +189,16 @@ export default function Permisos() {
                       const isDirty = permObj?.isDirty || false;
                       return (
                         <td key={`${module}-${action}`} className="px-4 py-4 text-center border-r border-outline-variant/30 last:border-r-0 relative">
-                          <button
+                           <button
                             onClick={() => togglePermission(module, action)}
-                            disabled={isSuper}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all shadow-sm mx-auto ${granted ? 'bg-primary text-on-primary ring-2 ring-primary/20' : 'bg-surface-container-high text-transparent hover:bg-surface-variant ring-1 ring-outline-variant/50'} ${isSuper ? 'opacity-90 cursor-default' : 'active:scale-90'}`}
+                            disabled={isSuper || !canUpdate}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all shadow-sm mx-auto ${granted ? 'bg-primary text-on-primary ring-2 ring-primary/20' : 'bg-surface-container-high text-transparent hover:bg-surface-variant ring-1 ring-outline-variant/50'} ${isSuper || !canUpdate ? 'opacity-90 cursor-default' : 'active:scale-90'}`}
                           >
                             <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'wght' 700" }}>
                               {granted ? 'check' : 'close'}
                             </span>
                           </button>
+
                           {isDirty && (
                             <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]"></div>
                           )}

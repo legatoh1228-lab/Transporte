@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+  
+  const canCreateOrg = hasPermission('Organizaciones', 'Crear');
+  const canCreateVeh = hasPermission('Vehículos', 'Crear');
+  const canViewAudit = hasPermission('Configuración', 'Leer');
+
+
   const [stats, setStats] = useState({
     organizations: 0,
     vehicles: 0,
@@ -40,21 +49,26 @@ const Dashboard = () => {
           <p className="font-body-md text-body-md text-on-surface-variant">Panel de control centralizado para la red de transporte de Aragua.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button 
-            onClick={() => navigate('/organizaciones')}
-            className="bg-surface-container-lowest border border-outline-variant text-primary font-label-bold text-label-bold px-4 py-2.5 rounded flex items-center gap-2 hover:bg-surface-container-low transition-colors shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[18px]">add_business</span>
-            Nueva Org.
-          </button>
-          <button 
-            onClick={() => navigate('/vehiculos')}
-            className="bg-primary text-on-primary font-label-bold text-label-bold px-4 py-2.5 rounded flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[18px]">directions_bus</span>
-            Registrar Vehículo
-          </button>
+          {canCreateOrg && (
+            <button 
+              onClick={() => navigate('/organizaciones')}
+              className="bg-surface-container-lowest border border-outline-variant text-primary font-label-bold text-label-bold px-4 py-2.5 rounded flex items-center gap-2 hover:bg-surface-container-low transition-colors shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[18px]">add_business</span>
+              Nueva Org.
+            </button>
+          )}
+          {canCreateVeh && (
+            <button 
+              onClick={() => navigate('/vehiculos')}
+              className="bg-primary text-on-primary font-label-bold text-label-bold px-4 py-2.5 rounded flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[18px]">directions_bus</span>
+              Registrar Vehículo
+            </button>
+          )}
         </div>
+
       </div>
 
       {/* Bento Grid: Summary Metrics */}
@@ -211,10 +225,13 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-          <button onClick={() => navigate('/auditoria')} className="w-full mt-4 py-2 text-center text-secondary font-label-bold text-label-bold border border-outline-variant rounded hover:bg-surface-container-low transition-colors">
-            Ver Registro Completo
-          </button>
+          {canViewAudit && (
+            <button onClick={() => navigate('/auditoria')} className="w-full mt-4 py-2 text-center text-secondary font-label-bold text-label-bold border border-outline-variant rounded hover:bg-surface-container-low transition-colors">
+              Ver Registro Completo
+            </button>
+          )}
         </div>
+
       </div>
     </div>
   );

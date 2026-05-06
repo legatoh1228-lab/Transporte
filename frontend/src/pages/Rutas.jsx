@@ -5,6 +5,8 @@ import axios from 'axios';
 import { Modal } from '../components/common/Modal';
 import api from '../services/api';
 import { GOOGLE_MAPS_API_KEY } from '../config';
+import { usePermissions } from '../hooks/usePermissions';
+
 
 const mapContainerStyle = {
   width: '100%',
@@ -253,7 +255,13 @@ const RouteDesigner = ({ points, setPoints, onDistanceUpdate, setGeom, municipio
 };
 
 export default function Rutas() {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('Rutas', 'Crear');
+  const canUpdate = hasPermission('Rutas', 'Actualizar');
+  const canDelete = hasPermission('Rutas', 'Eliminar');
+
   const { isLoaded } = useJsApiLoader({
+
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries: ['places']
@@ -487,13 +495,16 @@ export default function Rutas() {
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestión de Rutas</h1>
           <p className="text-sm text-on-surface-variant font-medium mt-1">Trazado inteligente con Google Directions API</p>
         </div>
-        <button 
-          onClick={handleOpenCreate}
-          className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center shadow-md active:scale-95"
-        >
-          <span className="material-symbols-outlined mr-2 text-[18px]">add_road</span>
-          Nueva Ruta
-        </button>
+        {canCreate && (
+          <button 
+            onClick={handleOpenCreate}
+            className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center shadow-md active:scale-95"
+          >
+            <span className="material-symbols-outlined mr-2 text-[18px]">add_road</span>
+            Nueva Ruta
+          </button>
+        )}
+
       </div>
 
       <div className={`flex flex-col lg:flex-row gap-6 flex-1 min-h-0 transition-all duration-300 ${isModalOpen ? 'blur-sm grayscale-[0.2] opacity-50 pointer-events-none' : ''}`}>
@@ -518,13 +529,18 @@ export default function Rutas() {
                     <div className="flex justify-between items-start">
                        <h4 className="font-bold text-on-surface">{route.nombre}</h4>
                        <div className="flex">
-                          <button onClick={(e) => handleEdit(route, e)} className="text-on-surface-variant hover:text-primary p-1">
-                            <span className="material-symbols-outlined text-[18px]">edit</span>
-                          </button>
-                          <button onClick={(e) => handleDeleteClick(route, e)} className="text-on-surface-variant hover:text-error p-1">
-                            <span className="material-symbols-outlined text-[18px]">delete</span>
-                          </button>
+                          {canUpdate && (
+                            <button onClick={(e) => handleEdit(route, e)} className="text-on-surface-variant hover:text-primary p-1">
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button onClick={(e) => handleDeleteClick(route, e)} className="text-on-surface-variant hover:text-error p-1">
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          )}
                        </div>
+
                     </div>
                     <div className="flex items-center gap-2 text-xs mt-1">
                        <span className="bg-surface-container border border-outline-variant px-2 py-0.5 rounded text-on-surface-variant font-semibold">

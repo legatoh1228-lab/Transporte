@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { uiSettings } from '../config/uiSettings';
+import { usePermissions } from '../hooks/usePermissions';
+
+
 
 export default function VisualSettings() {
+  const { hasPermission } = usePermissions();
+  const canUpdate = hasPermission('Configuración', 'Actualizar');
+
   const [loginBg, setLoginBg] = useState('');
+
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -11,17 +18,21 @@ export default function VisualSettings() {
   }, []);
 
   const handleSave = () => {
+    if (!canUpdate) return;
     localStorage.setItem('login_background_url', loginBg);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
 
+
   const handleReset = () => {
+    if (!canUpdate) return;
     localStorage.removeItem('login_background_url');
     setLoginBg('');
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
+
 
   return (
     <div className="flex flex-col gap-8 font-public-sans max-w-4xl mx-auto">
@@ -49,13 +60,16 @@ export default function VisualSettings() {
                 value={loginBg}
                 onChange={(e) => setLoginBg(e.target.value)}
               />
-              <button 
-                onClick={handleSave}
-                className="bg-primary hover:bg-primary-container text-on-primary px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2 transform active:scale-95"
-              >
-                <span className="material-symbols-outlined text-[20px]">save</span>
-                Guardar
-              </button>
+               {canUpdate && (
+                <button 
+                  onClick={handleSave}
+                  className="bg-primary hover:bg-primary-container text-on-primary px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2 transform active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[20px]">save</span>
+                  Guardar
+                </button>
+              )}
+
             </div>
             <p className="text-xs text-on-surface-variant mt-1 italic">
               * Ingrese el URL de una imagen en alta resolución (1920x1080 o superior recomendada).
@@ -88,13 +102,16 @@ export default function VisualSettings() {
                <p className="text-sm text-on-surface-variant leading-relaxed">
                  Si desea volver a la imagen predeterminada (autopista.jpg), puede restablecer la configuración de fábrica.
                </p>
-               <button 
-                 onClick={handleReset}
-                 className="self-start text-error font-bold text-sm hover:underline flex items-center gap-2"
-               >
-                 <span className="material-symbols-outlined text-[18px]">restart_alt</span>
-                 Restablecer imagen por defecto
-               </button>
+                {canUpdate && (
+                  <button 
+                    onClick={handleReset}
+                    className="self-start text-error font-bold text-sm hover:underline flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+                    Restablecer imagen por defecto
+                  </button>
+                )}
+
             </div>
           </div>
         </div>

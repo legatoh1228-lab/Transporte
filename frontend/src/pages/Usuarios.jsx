@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../components/common/Modal';
 import api from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
 
 export default function Usuarios() {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('Usuarios', 'Crear');
+  const canUpdate = hasPermission('Usuarios', 'Actualizar');
+  const canDelete = hasPermission('Usuarios', 'Eliminar');
+
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [organizations, setOrganizations] = useState([]);
@@ -121,13 +127,16 @@ export default function Usuarios() {
           <h1 className="text-2xl font-bold text-on-surface mb-1">Administración de Usuarios</h1>
           <p className="text-sm text-on-surface-variant font-medium">Gestione las cuentas y roles de los funcionarios del sistema.</p>
         </div>
-        <button 
-          onClick={() => handleOpenModal()}
-          className="bg-primary hover:bg-primary-container text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm"
-        >
-          <span className="material-symbols-outlined mr-2 text-[18px]">person_add</span>
-          Crear Nuevo Usuario
-        </button>
+        {canCreate && (
+          <button 
+            onClick={() => handleOpenModal()}
+            className="bg-primary hover:bg-primary-container text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm"
+          >
+            <span className="material-symbols-outlined mr-2 text-[18px]">person_add</span>
+            Crear Nuevo Usuario
+          </button>
+        )}
+
       </div>
 
       <div className="bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden flex flex-col">
@@ -154,9 +163,10 @@ export default function Usuarios() {
                   <th className="px-6 py-4 whitespace-nowrap">Usuario</th>
                   <th className="px-6 py-4">Rol</th>
                   <th className="px-6 py-4">Organización</th>
-                  <th className="px-6 py-4">Estado</th>
-                  <th className="px-6 py-4 text-right">Acciones</th>
+                   <th className="px-6 py-4">Estado</th>
+                  {(canUpdate || canDelete) && <th className="px-6 py-4 text-right">Acciones</th>}
                 </tr>
+
               </thead>
               <tbody className="divide-y divide-outline-variant">
                 {users.map((row) => (
@@ -182,22 +192,29 @@ export default function Usuarios() {
                     <td className="px-6 py-4">
                       <StatusBadge status={row.is_active ? 'Activo' : 'Inactivo'} />
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => handleOpenModal(row)}
-                          className="text-on-surface-variant hover:text-primary p-1 rounded-full hover:bg-surface-container-high transition-colors" title="Editar"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(row.id)}
-                          className="text-on-surface-variant hover:text-error p-1 rounded-full hover:bg-surface-container-high transition-colors" title="Eliminar"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </div>
-                    </td>
+                    {(canUpdate || canDelete) && (
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {canUpdate && (
+                            <button 
+                              onClick={() => handleOpenModal(row)}
+                              className="text-on-surface-variant hover:text-primary p-1 rounded-full hover:bg-surface-container-high transition-colors" title="Editar"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button 
+                              onClick={() => handleDelete(row.id)}
+                              className="text-on-surface-variant hover:text-error p-1 rounded-full hover:bg-surface-container-high transition-colors" title="Eliminar"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+
                   </tr>
                 ))}
               </tbody>

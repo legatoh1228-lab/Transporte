@@ -4,6 +4,8 @@ import wellknown from 'wellknown';
 import { Modal } from '../components/common/Modal';
 import api from '../services/api';
 import { GOOGLE_MAPS_API_KEY } from '../config';
+import { usePermissions } from '../hooks/usePermissions';
+
 
 const mapContainerStyle = {
   width: '100%',
@@ -16,7 +18,13 @@ const center = {
 };
 
 export default function Terminales() {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('Organizaciones', 'Crear');
+  const canUpdate = hasPermission('Organizaciones', 'Actualizar');
+  const canDelete = hasPermission('Organizaciones', 'Eliminar');
+
   const { isLoaded } = useJsApiLoader({
+
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries: ['places']
@@ -226,13 +234,16 @@ export default function Terminales() {
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">Registro de Terminales</h1>
           <p className="text-sm text-on-surface-variant font-medium mt-1">Gestión y control de la infraestructura de terminales de pasajeros.</p>
         </div>
-        <button 
-          onClick={handleOpenCreate}
-          className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center shadow-md active:scale-95"
-        >
-          <span className="material-symbols-outlined mr-2 text-[18px]">add</span>
-          Registrar Terminal
-        </button>
+        {canCreate && (
+          <button 
+            onClick={handleOpenCreate}
+            className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center shadow-md active:scale-95"
+          >
+            <span className="material-symbols-outlined mr-2 text-[18px]">add</span>
+            Registrar Terminal
+          </button>
+        )}
+
       </div>
 
       <div className="bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden flex flex-col">
@@ -260,8 +271,10 @@ export default function Terminales() {
                 <th className="px-6 py-4">Tipo</th>
                 <th className="px-6 py-4">Andenes</th>
                 <th className="px-6 py-4">Estado</th>
-                <th className="px-6 py-4 text-center">Acciones</th>
+                 <th className="px-6 py-4">Estado</th>
+                {canUpdate && <th className="px-6 py-4 text-center">Acciones</th>}
               </tr>
+
             </thead>
             <tbody className="divide-y divide-outline-variant">
               {loading ? (
@@ -286,15 +299,18 @@ export default function Terminales() {
                       {row.estatus}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <button 
-                      onClick={() => handleEdit(row)}
-                      className="text-on-surface-variant hover:text-primary p-2 rounded-lg hover:bg-primary/5 transition-all" 
-                      title="Configurar"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">tune</span>
-                    </button>
-                  </td>
+                   {canUpdate && (
+                    <td className="px-6 py-4 text-center">
+                      <button 
+                        onClick={() => handleEdit(row)}
+                        className="text-on-surface-variant hover:text-primary p-2 rounded-lg hover:bg-primary/5 transition-all" 
+                        title="Configurar"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">tune</span>
+                      </button>
+                    </td>
+                  )}
+
                 </tr>
               ))}
             </tbody>

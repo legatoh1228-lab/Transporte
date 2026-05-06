@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../components/common/Modal';
 import api from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
 
 export default function Operadores() {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('Operadores', 'Crear');
+  const canUpdate = hasPermission('Operadores', 'Actualizar');
+  const canDelete = hasPermission('Operadores', 'Eliminar');
+
   const [operators, setOperators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -171,13 +177,16 @@ export default function Operadores() {
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">Registro de Operadores</h1>
           <p className="text-sm text-on-surface-variant font-medium mt-1">Administración y control del personal de transporte del Estado Aragua</p>
         </div>
-        <button 
-          onClick={handleOpenCreate}
-          className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center shadow-md hover:shadow-lg active:scale-95"
-        >
-          <span className="material-symbols-outlined mr-2 text-[18px]">person_add</span>
-          Nuevo Operador
-        </button>
+        {canCreate && (
+          <button 
+            onClick={handleOpenCreate}
+            className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center shadow-md hover:shadow-lg active:scale-95"
+          >
+            <span className="material-symbols-outlined mr-2 text-[18px]">person_add</span>
+            Nuevo Operador
+          </button>
+        )}
+
       </div>
 
       <div className="bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden flex flex-col">
@@ -207,8 +216,9 @@ export default function Operadores() {
                   <th className="px-6 py-4">Operador</th>
                   <th className="px-6 py-4">Grado Lic.</th>
                   <th className="px-6 py-4 whitespace-nowrap">Vencimiento Lic.</th>
-                  <th className="px-6 py-4 text-center">Acciones</th>
+                  {(canUpdate || canDelete) && <th className="px-6 py-4 text-center">Acciones</th>}
                 </tr>
+
               </thead>
               <tbody className="divide-y divide-outline-variant/40">
                 {filteredOperators.length > 0 ? filteredOperators.map((row) => (
@@ -224,22 +234,29 @@ export default function Operadores() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium">{row.vence_lic}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => handleEdit(row)}
-                          className="text-on-surface-variant hover:text-primary p-2 rounded-lg hover:bg-primary/10 transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(row.cedula)}
-                          className="text-on-surface-variant hover:text-error p-2 rounded-lg hover:bg-error/10 transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </div>
-                    </td>
+                    {(canUpdate || canDelete) && (
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {canUpdate && (
+                            <button 
+                              onClick={() => handleEdit(row)}
+                              className="text-on-surface-variant hover:text-primary p-2 rounded-lg hover:bg-primary/10 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button 
+                              onClick={() => handleDelete(row.cedula)}
+                              className="text-on-surface-variant hover:text-error p-2 rounded-lg hover:bg-error/10 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+
                   </tr>
                 )) : (
                   <tr>
