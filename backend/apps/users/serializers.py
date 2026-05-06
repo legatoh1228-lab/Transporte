@@ -6,9 +6,12 @@ from .models import UserActivity
 User = get_user_model()
 
 class UserActivitySerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    
     class Meta:
         model = UserActivity
-        fields = ['id', 'action', 'details', 'ip_address', 'created_at']
+        fields = ['id', 'user_name', 'action', 'details', 'ip_address', 'created_at']
+
 
 class UserSerializer(serializers.ModelSerializer):
     rol_nombre = serializers.ReadOnlyField(source='rol.nombre')

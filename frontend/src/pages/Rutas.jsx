@@ -455,18 +455,26 @@ export default function Rutas() {
     }
   };
 
-  const handleDelete = async (id, e) => {
+  const [routeToDelete, setRouteToDelete] = useState(null);
+
+  const handleDeleteClick = (route, e) => {
     if (e) e.stopPropagation();
-    if (window.confirm("¿Está seguro de eliminar esta ruta?")) {
-      try {
-        await api.delete(`routes/routes/${id}/`);
-        if (selectedRouteId === id) setSelectedRouteId(null);
-        fetchData();
-      } catch (err) {
-        console.error("Error deleting route:", err);
-      }
+    setRouteToDelete(route);
+  };
+
+  const confirmDelete = async () => {
+    if (!routeToDelete) return;
+    try {
+      await api.delete(`routes/routes/${routeToDelete.id}/`);
+      if (selectedRouteId === routeToDelete.id) setSelectedRouteId(null);
+      fetchData();
+    } catch (err) {
+      console.error("Error deleting route:", err);
+    } finally {
+      setRouteToDelete(null);
     }
   };
+
 
   const getTipoName = (id) => tiposRuta.find(t => t.id === id)?.nombre || 'Desconocido';
 
@@ -513,7 +521,7 @@ export default function Rutas() {
                           <button onClick={(e) => handleEdit(route, e)} className="text-on-surface-variant hover:text-primary p-1">
                             <span className="material-symbols-outlined text-[18px]">edit</span>
                           </button>
-                          <button onClick={(e) => handleDelete(route.id, e)} className="text-on-surface-variant hover:text-error p-1">
+                          <button onClick={(e) => handleDeleteClick(route, e)} className="text-on-surface-variant hover:text-error p-1">
                             <span className="material-symbols-outlined text-[18px]">delete</span>
                           </button>
                        </div>
@@ -650,6 +658,28 @@ export default function Rutas() {
               terminales={terminales}
             />
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!routeToDelete}
+        onClose={() => setRouteToDelete(null)}
+        title="Eliminar Ruta"
+        subtitle="Esta acción no se puede deshacer"
+        icon="warning"
+        maxWidthClass="max-w-md"
+        actions={
+          <>
+            <button onClick={() => setRouteToDelete(null)} className="px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-variant rounded-lg transition-colors">Cancelar</button>
+            <button onClick={confirmDelete} className="px-6 py-2 text-sm font-bold text-white bg-error hover:bg-error/90 rounded-lg shadow-sm transition-all flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">delete_forever</span>
+              Eliminar
+            </button>
+          </>
+        }
+      >
+        <div className="p-2 text-sm text-on-surface-variant">
+          ¿Está seguro que desea eliminar la ruta <strong className="text-on-surface">"{routeToDelete?.nombre}"</strong>?
         </div>
       </Modal>
     </div>

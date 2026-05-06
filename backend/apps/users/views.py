@@ -158,6 +158,14 @@ class UserActivityView(generics.ListAPIView):
         user_id = self.kwargs.get('user_id')
         return UserActivity.objects.filter(user_id=user_id).order_by('-created_at')[:5]
 
+class GlobalAuditView(generics.ListAPIView):
+    serializer_class = UserActivitySerializer
+    permission_classes = [AllowAny] # Change to IsAuthenticated en producción
+
+    def get_queryset(self):
+        return UserActivity.objects.all().order_by('-created_at')[:100]
+
+
 class ChangePasswordView(APIView):
     permission_classes = [AllowAny] # Change to IsAuthenticated
 

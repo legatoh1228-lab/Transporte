@@ -5,7 +5,7 @@ import TopBar from './TopBar';
 
 const DashboardLayout = () => {
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#f8f9f9' }}>
+    <div className="min-h-screen flex" style={{ backgroundColor: 'var(--color-background)' }}>
       {/* Sidebar Fijo */}
       <Sidebar />
       
@@ -14,7 +14,7 @@ const DashboardLayout = () => {
         <TopBar />
         
         {/* Contenido Dinámico */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto" style={{ backgroundColor: '#f8f9f9' }}>
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto" style={{ backgroundColor: 'var(--color-background)' }}>
           <Outlet />
         </main>
       </div>

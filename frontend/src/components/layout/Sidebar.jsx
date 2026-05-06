@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
 
-const SIDEBAR_BG     = '#1f3a5f';
-const ACTIVE_BG      = '#2c5f8a';
-const ACTIVE_BORDER  = '#4a90e2';
-
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
   const [expandedItems, setExpandedItems] = useState({});
+
+  // Variables de color desde el sistema de diseño
+  const sidebarBg        = 'var(--color-sidebar-bg)';
+  const sidebarText      = 'var(--color-sidebar-text)';
+  const sidebarTextActive = 'var(--color-sidebar-text-active)';
+  const activeBg         = 'var(--color-sidebar-item-active)';
+  const activeBorder     = 'var(--color-sidebar-border-active)';
 
   // Mapping labels to Permission Modules
   const moduleMap = {
@@ -42,7 +45,7 @@ const Sidebar = () => {
       path: '/configuracion',
       subItems: [
         { label: 'Permisos',    icon: 'verified_user',    path: '/permisos' },
-        { label: 'Catálogos',   icon: 'inventory_2',      path: '/catalogos' },
+        { label: 'Gestión',     icon: 'inventory_2',      path: '/catalogos' },
         { label: 'Auditoría',   icon: 'history_edu',      path: '/auditoria' },
       ]
     },
@@ -90,22 +93,22 @@ const Sidebar = () => {
 
   return (
     <aside
-      className="fixed left-0 top-0 h-screen w-[280px] flex-col z-50 overflow-y-auto hidden md:flex font-public-sans"
-      style={{ backgroundColor: SIDEBAR_BG }}
+      className="fixed left-0 top-0 h-screen w-[280px] flex-col z-50 overflow-y-auto hidden md:flex font-public-sans transition-colors duration-300 shadow-xl"
+      style={{ backgroundColor: sidebarBg }}
     >
       {/* Header */}
-      <div className="p-6 flex flex-col gap-4" style={{ borderBottom: '1px solid rgba(100,116,139,0.3)' }}>
+      <div className="p-6 flex flex-col gap-4" style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow-inner">
             <span
               className="material-symbols-outlined text-[22px]"
-              style={{ color: SIDEBAR_BG, fontVariationSettings: "'FILL' 1" }}
+              style={{ color: 'var(--color-primary)', fontVariationSettings: "'FILL' 1" }}
             >
               account_balance
             </span>
           </div>
           <div>
-            <h1 className="tracking-wide text-xl font-black text-white uppercase leading-tight">Gestión Aragua</h1>
+            <h1 className="tracking-wide text-xl font-black text-white dark:text-on-primary-fixed-variant uppercase leading-tight">Gestión Aragua</h1>
             <p className="tracking-wide text-slate-400 text-xs mt-0.5">Administración Central</p>
           </div>
         </div>
@@ -126,14 +129,14 @@ const Sidebar = () => {
                 <div className="flex items-center">
                   <Link
                     to={item.path}
-                    className="flex-1 flex items-center px-4 py-3 text-sm font-medium transition-all duration-150 rounded-r"
+                    className="flex-1 flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 rounded-r-xl mr-2"
                     style={{
-                      color:           isActive ? '#ffffff' : '#94a3b8',
-                      backgroundColor: isActive ? ACTIVE_BG  : 'transparent',
+                      color:           isActive ? sidebarTextActive : sidebarText,
+                      backgroundColor: isActive ? activeBg  : 'transparent',
                       borderLeft:      isActive
-                        ? `4px solid ${ACTIVE_BORDER}`
+                        ? `4px solid ${activeBorder}`
                         : '4px solid transparent',
-                      fontWeight: isActive ? 600 : 400,
+                      fontWeight: isActive ? 700 : 400,
                     }}
                   >
                     <span
@@ -158,7 +161,7 @@ const Sidebar = () => {
 
                 {/* Sub-items */}
                 {hasSubItems && isExpanded && (
-                  <ul className="flex flex-col gap-0.5 mt-0.5 ml-4 border-l border-slate-700">
+                  <ul className="flex flex-col gap-0.5 mt-0.5 ml-4 border-l border-slate-700/50">
                     {subs.map((subItem) => {
                       const isSubActive = location.pathname === subItem.path;
                       return (
@@ -167,7 +170,7 @@ const Sidebar = () => {
                             to={subItem.path}
                             className="flex items-center px-8 py-2 text-[13px] font-medium transition-all duration-150"
                             style={{
-                              color: isSubActive ? '#ffffff' : '#94a3b8',
+                              color: isSubActive ? sidebarTextActive : sidebarText,
                               fontWeight: isSubActive ? 600 : 400,
                             }}
                           >
@@ -188,25 +191,18 @@ const Sidebar = () => {
       </nav>
 
       {/* Logout */}
-      <div className="p-4 mt-auto" style={{ borderTop: '1px solid rgba(100,116,139,0.3)' }}>
+      <div className="p-4 mt-auto" style={{ borderTop: '1px solid var(--color-outline-variant)' }}>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-white rounded text-sm font-medium transition-all duration-200"
+          className="w-full flex items-center gap-2 px-4 py-3 text-slate-400 hover:text-white rounded-xl text-sm font-bold transition-all duration-200 hover:bg-white/5"
           style={{ fontFamily: "'Public Sans', sans-serif" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = `${ACTIVE_BG}40`;
-            e.currentTarget.style.color = '#ffffff';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#94a3b8';
-          }}
         >
           <span className="material-symbols-outlined text-[20px]">logout</span>
           Cerrar Sesión
         </button>
       </div>
     </aside>
+
   );
 };
 

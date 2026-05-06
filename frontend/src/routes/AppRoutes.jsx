@@ -16,6 +16,7 @@ import Terminales from '../pages/Terminales';
 import Usuarios from '../pages/Usuarios';
 import Configuracion from '../pages/Configuracion';
 import Profile from '../pages/Profile';
+import VisualSettings from '../pages/VisualSettings';
 
 const AppRoutes = () => {
   return (
@@ -40,6 +41,7 @@ const AppRoutes = () => {
         <Route path="/terminales" element={<Terminales />} />
         <Route path="/usuarios" element={<Usuarios />} />
         <Route path="/configuracion" element={<Configuracion />} />
+        <Route path="/apariencia" element={<VisualSettings />} />
         <Route path="/perfil" element={<Profile />} />
         
         {/* Mantengo Home por compatibilidad si se desea usar la anterior */}

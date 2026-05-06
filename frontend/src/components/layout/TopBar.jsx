@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getMediaUrl } from '../../utils/helpers';
 
 const TopBar = () => {
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
+  const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -14,26 +16,40 @@ const TopBar = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  const toggleTheme = () => {
+    const newDarkMode = !isDarkMode;
+    setIsDarkMode(newDarkMode);
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('access_token');
     navigate('/login');
   };
 
+  const avatarUrl = getMediaUrl(user.avatar) || `https://ui-avatars.com/api/?name=${user.username || 'Admin'}&background=1f3a5f&color=fff`;
+
   return (
     <header
-      className="flex justify-between items-center h-16 px-6 w-full sticky top-0 z-40 font-public-sans"
+      className="flex justify-between items-center h-16 px-6 w-full sticky top-0 z-40 font-public-sans transition-colors duration-200"
       style={{
-        backgroundColor: '#ffffff',
-        borderBottom: '1px solid #c4c6cf',
+        backgroundColor: 'var(--color-surface)',
+        borderBottom: '1px solid var(--color-outline-variant)',
       }}
     >
       {/* Left: Brand + Hamburger */}
       <div className="flex items-center gap-4">
-        <button className="md:hidden p-2 rounded transition-colors" style={{ color: '#74777f' }}>
+        <button className="md:hidden p-2 rounded transition-colors" style={{ color: 'var(--color-outline)' }}>
           <span className="material-symbols-outlined">menu</span>
         </button>
-        <div className="text-lg font-bold hidden md:block" style={{ color: '#1f3a5f' }}>
+        <div className="text-lg font-bold hidden md:block" style={{ color: 'var(--color-primary-container)' }}>
           Transporte Aragua
         </div>
       </div>
@@ -43,32 +59,45 @@ const TopBar = () => {
         <div className="relative">
           <span
             className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px]"
-            style={{ color: '#74777f' }}
+            style={{ color: 'var(--color-outline)' }}
           >
             search
           </span>
           <input
             className="w-full py-2 pl-10 pr-4 text-sm rounded-xl transition-all outline-none"
             style={{
-              backgroundColor: '#f3f4f4',
-              border: '1px solid #c4c6cf',
-              color: '#191c1c',
+              backgroundColor: 'var(--color-surface-container-low)',
+              border: '1px solid var(--color-outline-variant)',
+              color: 'var(--color-on-surface)',
               fontFamily: "'Public Sans', sans-serif",
             }}
             placeholder="Buscar registros, placas u operadores..."
             type="text"
-            onFocus={(e) => { e.target.style.borderColor = '#1f3a5f'; }}
-            onBlur={(e)  => { e.target.style.borderColor = '#c4c6cf'; }}
+            onFocus={(e) => { e.target.style.borderColor = 'var(--color-primary)'; }}
+            onBlur={(e)  => { e.target.style.borderColor = 'var(--color-outline-variant)'; }}
           />
         </div>
       </div>
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
+        {/* Theme Toggle */}
+        <button
+          className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 hover:bg-surface-container active:scale-95 ${isDarkMode ? 'shadow-[0_0_15px_rgba(208,228,255,0.2)]' : ''}`}
+          style={{ color: 'var(--color-outline)' }}
+          onClick={toggleTheme}
+          title={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+        >
+          <span className={`material-symbols-outlined text-[22px] transition-all duration-300 ${isDarkMode ? 'rotate-[360deg] text-primary' : 'rotate-0'}`}>
+            {isDarkMode ? 'light_mode' : 'dark_mode'}
+          </span>
+        </button>
+
+
         {/* Settings */}
         <button
           className="w-10 h-10 flex items-center justify-center rounded-full transition-colors hover:bg-surface-container"
-          style={{ color: '#74777f' }}
+          style={{ color: 'var(--color-outline)' }}
           onClick={() => navigate('/configuracion')}
           title="Configuración"
         >
@@ -93,14 +122,14 @@ const TopBar = () => {
             <img
               alt="User profile"
               className="w-full h-full object-cover"
-              src={user.avatar || `https://ui-avatars.com/api/?name=${user.username || 'Admin'}&background=1f3a5f&color=fff`}
+              src={avatarUrl}
             />
           </button>
 
           {showProfileMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setShowProfileMenu(false)}></div>
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-outline-variant rounded-xl shadow-lg z-20 py-2 animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 mt-2 w-48 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-lg z-20 py-2 animate-in fade-in zoom-in-95">
                 <div className="px-4 py-2 border-b border-outline-variant mb-1">
                   <p className="text-xs font-bold text-outline uppercase tracking-wider">Mi Cuenta</p>
                 </div>
@@ -122,6 +151,7 @@ const TopBar = () => {
         </div>
       </div>
     </header>
+
   );
 };
 

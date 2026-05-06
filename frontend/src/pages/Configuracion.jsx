@@ -31,6 +31,15 @@ export default function Configuracion() {
       color: 'text-error',
       bg: 'bg-error/10',
       path: '/auditoria'
+    },
+    {
+      id: 'visual',
+      title: 'Configuración Visual',
+      description: 'Personaliza la apariencia de la interfaz, incluyendo la imagen de fondo del login.',
+      icon: 'palette',
+      color: 'text-amber-600',
+      bg: 'bg-amber-100',
+      path: '/apariencia'
     }
   ];
 

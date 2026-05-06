@@ -56,3 +56,16 @@ class VehiculoOrganizacion(models.Model):
     class Meta:
         verbose_name_plural = "Relaciones Vehículo-Organización"
         db_table = 'vehiculo_organizacion'
+
+class VehiculoOperador(models.Model):
+    vehiculo = models.ForeignKey(FlotaVehiculo, on_delete=models.CASCADE, related_name='operadores_asignados')
+    operador = models.ForeignKey('personnel.PersonalOperador', on_delete=models.CASCADE, related_name='vehiculos_asignados')
+    fecha_asignacion = models.DateTimeField(auto_now_add=True)
+    estatus = models.CharField(max_length=20, default='Activo', choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')])
+
+    def __str__(self): return f"{self.vehiculo} -> {self.operador}"
+    class Meta:
+        verbose_name_plural = "Asignaciones Vehículo-Operador"
+        db_table = 'vehiculo_operador'
+        unique_together = ('vehiculo', 'operador')
+

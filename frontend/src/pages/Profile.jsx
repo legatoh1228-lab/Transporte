@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { getMediaUrl } from '../utils/helpers';
 
 const Profile = () => {
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
@@ -27,8 +28,9 @@ const Profile = () => {
   
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(
-    user.avatar || `https://ui-avatars.com/api/?name=${user.username || 'Admin'}&background=1f3a5f&color=fff&size=128`
+    getMediaUrl(user.avatar) || `https://ui-avatars.com/api/?name=${user.username || 'Admin'}&background=1f3a5f&color=fff&size=128`
   );
+
 
   useEffect(() => {
     fetchActivities();
@@ -61,9 +63,10 @@ const Profile = () => {
       email: user.email || '',
       username: user.username || ''
     });
-    setAvatarPreview(user.avatar || `https://ui-avatars.com/api/?name=${user.username || 'Admin'}&background=1f3a5f&color=fff&size=128`);
+    setAvatarPreview(getMediaUrl(user.avatar) || `https://ui-avatars.com/api/?name=${user.username || 'Admin'}&background=1f3a5f&color=fff&size=128`);
     setAvatarFile(null);
   };
+
 
   const handleAvatarChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -92,10 +95,12 @@ const Profile = () => {
       const updatedUser = response.data;
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
+      setAvatarPreview(getMediaUrl(updatedUser.avatar) || `https://ui-avatars.com/api/?name=${updatedUser.username || 'Admin'}&background=1f3a5f&color=fff&size=128`);
       setIsEditing(false);
       
       // Update TopBar trigger event
       window.dispatchEvent(new Event('storage'));
+
       showToast('Perfil actualizado correctamente');
       fetchActivities(); // Refresh activities
     } catch (error) {
