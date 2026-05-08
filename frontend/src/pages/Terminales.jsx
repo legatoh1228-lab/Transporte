@@ -7,6 +7,8 @@ import { GOOGLE_MAPS_API_KEY } from '../config';
 import { usePermissions } from '../hooks/usePermissions';
 
 
+const LIBRARIES = ['places'];
+
 const mapContainerStyle = {
   width: '100%',
   height: '100%'
@@ -27,7 +29,7 @@ export default function Terminales() {
 
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: ['places']
+    libraries: LIBRARIES
   });
 
   const [terminales, setTerminales] = useState([]);

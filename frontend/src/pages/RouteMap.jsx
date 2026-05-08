@@ -4,6 +4,8 @@ import wellknown from 'wellknown';
 import api from '../services/api';
 import { GOOGLE_MAPS_API_KEY } from '../config';
 
+const LIBRARIES = ['places'];
+
 const mapContainerStyle = {
   width: '100%',
   height: '100%'
@@ -43,7 +45,7 @@ export default function RouteMap() {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: ['places']
+    libraries: LIBRARIES
   });
 
   const [routes, setRoutes] = useState([]);

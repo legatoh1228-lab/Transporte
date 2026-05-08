@@ -84,7 +84,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    'default': env.db('DATABASE_URL', default=f"postgis://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}")
+    'default': env.db('DATABASE_URL', default=f"postgis://{os.getenv('DB_USER', 'postgres')}:{os.getenv('DB_PASSWORD', '')}@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME', 'transporte')}")
 }
 
 # Password validation
@@ -135,3 +135,23 @@ AUTH_USER_MODEL = 'users.User'
 
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = True # Only for development
+
+# GDAL/GEOS Configuration for Windows
+if os.name == 'nt':
+    import os
+    # Common OSGeo4W paths
+    OSGEO4W_ROOT = os.environ.get('OSGEO4W_ROOT', r'C:\OSGeo4W')
+    if not os.path.exists(OSGEO4W_ROOT):
+        OSGEO4W_ROOT = r'C:\OSGeo4W64'
+    
+    if os.path.exists(OSGEO4W_ROOT):
+        OSGEO4W_BIN = os.path.join(OSGEO4W_ROOT, 'bin')
+        os.environ['PATH'] = OSGEO4W_BIN + os.pathsep + os.environ.get('PATH', '')
+        
+        # Try to find the exact DLL name
+        for dll in ['gdal306.dll', 'gdal305.dll', 'gdal304.dll', 'gdal303.dll', 'gdal302.dll', 'gdal301.dll', 'gdal300.dll', 'gdal204.dll']:
+            if os.path.exists(os.path.join(OSGEO4W_BIN, dll)):
+                GDAL_LIBRARY_PATH = os.path.join(OSGEO4W_BIN, dll)
+                break
+        
+        GEOS_LIBRARY_PATH = os.path.join(OSGEO4W_BIN, 'geos_c.dll')

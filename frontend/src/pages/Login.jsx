@@ -10,14 +10,28 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [bgImage, setBgImage] = useState(uiSettings.loginBackground);
+  const [logo, setLogo] = useState(null);
+  const [systemName, setSystemName] = useState('Gestión de Transporte');
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Cargar fondo personalizado si existe en localStorage
-    const savedBg = localStorage.getItem('login_background_url');
-    if (savedBg) {
-      setBgImage(savedBg);
-    }
+    const fetchVisualSettings = async () => {
+      try {
+        const response = await api.get('catalogs/configuracion-visual/');
+        if (response.data.login_bg) {
+          setBgImage(response.data.login_bg);
+        }
+        if (response.data.logo) {
+          setLogo(response.data.logo);
+        }
+        if (response.data.nombre_sistema) {
+          setSystemName(response.data.nombre_sistema);
+        }
+      } catch (err) {
+        console.error('Error fetching visual settings:', err);
+      }
+    };
+    fetchVisualSettings();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -62,10 +76,14 @@ const Login = () => {
         
         <header className="flex flex-col items-center mb-8 text-center animate-in fade-in slide-in-from-top-8 duration-1000">
           <div className="w-24 h-24 bg-white/10 rounded-2xl flex items-center justify-center mb-4 shadow-2xl backdrop-blur-xl border border-white/10 p-4 transform hover:rotate-3 transition-transform cursor-default">
-            <img src={logoBlanco} alt="Logo Gobernación" className="w-full h-full object-contain filter drop-shadow-md" />
+            {logo ? (
+              <img src={logo} alt="Logo Sistema" className="w-full h-full object-contain filter drop-shadow-md" />
+            ) : (
+              <img src={logoBlanco} alt="Logo Gobernación" className="w-full h-full object-contain filter drop-shadow-md" />
+            )}
           </div>
           <h1 className="text-white text-xl font-black uppercase tracking-[0.2em] drop-shadow-lg">
-            Gestión de Transporte
+            {systemName}
           </h1>
           <div className="w-12 h-1 bg-sky-400 mt-2 rounded-full shadow-[0_0_15px_rgba(56,189,248,0.5)]"></div>
         </header>

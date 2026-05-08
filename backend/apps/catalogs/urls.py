@@ -4,7 +4,7 @@ from .views import (
     ModalidadViewSet, SubModalidadViewSet, TerritorioEjeViewSet,
     TerritorioMunicipioViewSet, TipoCombustibleViewSet, TipoRutaViewSet,
     TipoTransmisionViewSet, TipoViaViewSet, TipoOrganizacionViewSet, RolViewSet,
-    RolPermisoViewSet
+    RolPermisoViewSet, ConfiguracionVisualViewSet
 )
 
 router = DefaultRouter()
@@ -19,6 +19,7 @@ router.register(r'vias', TipoViaViewSet)
 router.register(r'tipos-organizacion', TipoOrganizacionViewSet)
 router.register(r'roles', RolViewSet)
 router.register(r'permisos-rol', RolPermisoViewSet)
+router.register(r'configuracion-visual', ConfiguracionVisualViewSet, basename='configuracion-visual')
 
 urlpatterns = [
     path('', include(router.urls)),

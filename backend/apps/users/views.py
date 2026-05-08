@@ -78,8 +78,8 @@ class DashboardStatsView(APIView):
         total_operators = PersonalOperador.objects.count()
         total_routes = VialidadRuta.objects.count()
 
-        # Fleet Distribution
-        distribution_query = FlotaVehiculo.objects.values('modalidad__nombre').annotate(count=Count('placa'))
+        # Fleet Distribution by Modality (Actual DB names)
+        distribution_query = FlotaVehiculo.objects.values('modalidad__nombre').annotate(count=Count('placa')).order_by('-count')
         fleet_distribution = []
         for item in distribution_query:
             percentage = (item['count'] / total_vehicles * 100) if total_vehicles > 0 else 0
@@ -88,6 +88,19 @@ class DashboardStatsView(APIView):
                 "count": item['count'],
                 "percentage": round(percentage, 1)
             })
+
+        # Axis Distribution (Very important for Aragua)
+        # We derive this from the routes origins
+        axis_query = VialidadRuta.objects.values('municipio_or__eje__nombre').annotate(count=Count('id')).order_by('-count')
+        axis_distribution = []
+        total_r = total_routes if total_routes > 0 else 1
+        for item in axis_query:
+            if item['municipio_or__eje__nombre']:
+                axis_distribution.append({
+                    "name": item['municipio_or__eje__nombre'],
+                    "count": item['count'],
+                    "percentage": round((item['count'] / total_r) * 100, 1)
+                })
 
         # Alerts
         alerts = []
@@ -146,6 +159,7 @@ class DashboardStatsView(APIView):
             "operators": total_operators,
             "routes": total_routes,
             "fleet_distribution": fleet_distribution,
+            "axis_distribution": axis_distribution,
             "alerts": alerts[:10] # Limit to top 10 alerts
         }
         return Response(stats)

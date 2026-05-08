@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
+import api from '../../services/api';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -49,9 +50,30 @@ const Sidebar = () => {
         { label: 'Permisos',    icon: 'verified_user',    path: '/permisos' },
         { label: 'Gestión',     icon: 'inventory_2',      path: '/catalogos' },
         { label: 'Auditoría',   icon: 'history_edu',      path: '/auditoria' },
+        { label: 'Identidad Visual', icon: 'palette',      path: '/apariencia' },
       ]
     },
   ];
+
+  const [branding, setBranding] = useState({
+    nombre_sistema: 'Gestión Aragua',
+    logo: null
+  });
+
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const response = await api.get('catalogs/configuracion-visual/');
+        setBranding({
+          nombre_sistema: response.data.nombre_sistema || 'Gestión Aragua',
+          logo: response.data.logo
+        });
+      } catch (err) {
+        console.error('Error fetching branding:', err);
+      }
+    };
+    fetchBranding();
+  }, []);
 
   // Filter items based on "Leer" permission
   const filteredNavItems = navItems.filter(item => {
@@ -101,17 +123,21 @@ const Sidebar = () => {
       {/* Header */}
       <div className="p-6 flex flex-col gap-4" style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow-inner">
-            <span
-              className="material-symbols-outlined text-[22px]"
-              style={{ color: 'var(--color-primary)', fontVariationSettings: "'FILL' 1" }}
-            >
-              account_balance
-            </span>
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden p-1.5">
+            {branding.logo ? (
+              <img src={branding.logo} alt="Logo" className="w-full h-full object-contain" />
+            ) : (
+              <span
+                className="material-symbols-outlined text-[22px]"
+                style={{ color: 'var(--color-primary)', fontVariationSettings: "'FILL' 1" }}
+              >
+                account_balance
+              </span>
+            )}
           </div>
-          <div>
-            <h1 className="tracking-wide text-xl font-black text-white dark:text-on-primary-fixed-variant uppercase leading-tight">Gestión Aragua</h1>
-            <p className="tracking-wide text-slate-400 text-xs mt-0.5">Administración Central</p>
+          <div className="overflow-hidden">
+            <h1 className="tracking-wide text-lg font-black text-white dark:text-on-primary-fixed-variant uppercase leading-none truncate">{branding.nombre_sistema}</h1>
+            <p className="tracking-wide text-slate-400 text-[10px] mt-1 font-bold uppercase opacity-60">Panel de Control</p>
           </div>
         </div>
       </div>

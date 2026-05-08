@@ -1,136 +1,221 @@
-import React, { useState, useEffect } from 'react';
-import { uiSettings } from '../config/uiSettings';
+import React, { useState, useEffect, useRef } from 'react';
+import api from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
-
-
 
 export default function VisualSettings() {
   const { hasPermission } = usePermissions();
   const canUpdate = hasPermission('Configuración', 'Actualizar');
 
-  const [loginBg, setLoginBg] = useState('');
+  const [settings, setSettings] = useState({
+    nombre_sistema: '',
+    logo: null,
+    login_bg: null,
+    primary_color: '#032448',
+    secondary_color: '#f5f5f5'
+  });
 
-  const [saved, setSaved] = useState(false);
+  const [previews, setPreviews] = useState({
+    logo: null,
+    login_bg: null
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const logoInputRef = useRef();
+  const bgInputRef = useRef();
 
   useEffect(() => {
-    const savedBg = localStorage.getItem('login_background_url');
-    setLoginBg(savedBg || '');
+    fetchSettings();
   }, []);
 
-  const handleSave = () => {
-    if (!canUpdate) return;
-    localStorage.setItem('login_background_url', loginBg);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get('catalogs/configuracion-visual/');
+      setSettings(response.data);
+      setPreviews({
+        logo: response.data.logo,
+        login_bg: response.data.login_bg
+      });
+    } catch (error) {
+      console.error("Error fetching visual settings:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-
-  const handleReset = () => {
-    if (!canUpdate) return;
-    localStorage.removeItem('login_background_url');
-    setLoginBg('');
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleFileChange = (e, field) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSettings(prev => ({ ...prev, [field]: file }));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviews(prev => ({ ...prev, [field]: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
+  const handleSave = async () => {
+    if (!canUpdate) return;
+    setSaving(true);
+    setMessage(null);
+
+    const formData = new FormData();
+    formData.append('nombre_sistema', settings.nombre_sistema);
+    formData.append('primary_color', settings.primary_color);
+    formData.append('secondary_color', settings.secondary_color);
+
+    // Only append files if they are File objects (not URL strings)
+    if (settings.logo instanceof File) {
+      formData.append('logo', settings.logo);
+    }
+    if (settings.login_bg instanceof File) {
+      formData.append('login_bg', settings.login_bg);
+    }
+
+    try {
+      // Use the actual ID if available, otherwise default to 1 for singleton
+      const id = settings.id || 1;
+      await api.patch(`catalogs/configuracion-visual/${id}/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setMessage({ type: 'success', text: 'Configuración guardada exitosamente.' });
+      setTimeout(() => fetchSettings(), 500); // Small delay to allow DB processing
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      const errorMsg = error.response?.data?.detail || 'Error al guardar la configuración. Verifique que haya ejecutado las migraciones.';
+      setMessage({ type: 'error', text: errorMsg });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="p-10 text-center font-bold text-primary animate-pulse">Cargando configuración...</div>;
 
   return (
-    <div className="flex flex-col gap-8 font-public-sans max-w-4xl mx-auto">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-on-surface">Configuración de Apariencia</h1>
-        <p className="text-on-surface-variant">Personalice los elementos visuales de la interfaz del sistema.</p>
+    <div className="flex flex-col gap-10 font-public-sans max-w-5xl mx-auto pb-20">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-black text-on-surface tracking-tight">Identidad Visual</h1>
+          <p className="text-on-surface-variant font-medium">Personalice el logo, fondo y marca del sistema de transporte.</p>
+        </div>
+        {canUpdate && (
+          <button 
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-primary text-on-primary px-8 py-4 rounded-2xl font-black transition-all shadow-xl shadow-primary/20 hover:shadow-primary/40 flex items-center gap-3 disabled:opacity-50 active:scale-95"
+          >
+            <span className="material-symbols-outlined">{saving ? 'sync' : 'save'}</span>
+            {saving ? 'Guardando...' : 'Guardar Cambios'}
+          </button>
+        )}
       </header>
 
-      <section className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-6 border-b border-outline-variant bg-surface-container-low">
-          <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">wallpaper</span>
-            Pantalla de Inicio de Sesión (Login)
-          </h3>
+      {message && (
+        <div className={`p-4 rounded-2xl font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2 ${message.type === 'success' ? 'bg-primary/10 text-primary' : 'bg-error/10 text-error'}`}>
+          <span className="material-symbols-outlined">{message.type === 'success' ? 'check_circle' : 'error'}</span>
+          {message.text}
         </div>
-        
-        <div className="p-6 flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-bold text-on-surface">URL de la Imagen de Fondo</label>
-            <div className="flex gap-3">
+      )}
+
+      {/* Branding Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <section className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 flex flex-col gap-8 shadow-sm">
+           <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                 <span className="material-symbols-outlined text-primary">branding_watermark</span>
+              </div>
+              <h3 className="text-xl font-black text-on-surface">Nombre y Logo</h3>
+           </div>
+
+           <div className="flex flex-col gap-2">
+              <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest pl-1">Nombre del Sistema</label>
               <input 
                 type="text" 
-                className="flex-1 bg-surface border border-outline-variant rounded-xl px-4 py-3 text-on-surface focus:outline-none focus:border-primary transition-all shadow-inner"
-                placeholder="Ej: https://images.unsplash.com/photo..."
-                value={loginBg}
-                onChange={(e) => setLoginBg(e.target.value)}
+                value={settings.nombre_sistema}
+                onChange={(e) => setSettings({...settings, nombre_sistema: e.target.value})}
+                className="bg-surface-container border border-outline-variant/50 rounded-2xl px-5 py-4 text-on-surface font-bold focus:outline-none focus:border-primary transition-all"
+                placeholder="Ej: Transporte Aragua Digital"
               />
-               {canUpdate && (
-                <button 
-                  onClick={handleSave}
-                  className="bg-primary hover:bg-primary-container text-on-primary px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center gap-2 transform active:scale-95"
+           </div>
+
+           <div className="flex flex-col gap-4">
+              <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest pl-1">Logo Institucional</label>
+              <div className="flex flex-col sm:flex-row items-center gap-8 bg-surface-container/30 p-6 rounded-3xl border-2 border-dashed border-outline-variant">
+                 <div className="w-32 h-32 bg-white rounded-2xl flex items-center justify-center p-4 shadow-inner overflow-hidden border border-outline-variant/20">
+                    {previews.logo ? (
+                      <img src={previews.logo} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+                    ) : (
+                      <span className="material-symbols-outlined text-[48px] text-outline-variant">image</span>
+                    )}
+                 </div>
+                 <div className="flex-1 flex flex-col gap-3">
+                    <p className="text-sm text-on-surface-variant font-medium">Suba el logo oficial para el encabezado y reportes. (PNG recomendado)</p>
+                    <button 
+                      onClick={() => logoInputRef.current.click()}
+                      className="bg-surface-container-highest text-on-surface font-black text-sm px-5 py-2.5 rounded-xl hover:bg-outline-variant transition-colors self-start"
+                    >
+                      Seleccionar Archivo
+                    </button>
+                    <input type="file" ref={logoInputRef} className="hidden" onChange={(e) => handleFileChange(e, 'logo')} accept="image/*" />
+                 </div>
+              </div>
+           </div>
+        </section>
+
+        {/* Login Background Section */}
+        <section className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 flex flex-col gap-8 shadow-sm">
+           <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
+                 <span className="material-symbols-outlined text-secondary">wallpaper</span>
+              </div>
+              <h3 className="text-xl font-black text-on-surface">Fondo de Inicio</h3>
+           </div>
+
+           <div className="flex flex-col gap-4">
+              <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest pl-1">Imagen de Fondo (Login)</label>
+              <div className="relative group">
+                <div 
+                  className="w-full h-56 rounded-3xl bg-slate-200 overflow-hidden border border-outline-variant shadow-inner"
+                  style={{
+                    backgroundImage: previews.login_bg ? `url(${previews.login_bg})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
                 >
-                  <span className="material-symbols-outlined text-[20px]">save</span>
-                  Guardar
-                </button>
-              )}
-
-            </div>
-            <p className="text-xs text-on-surface-variant mt-1 italic">
-              * Ingrese el URL de una imagen en alta resolución (1920x1080 o superior recomendada).
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div className="flex flex-col gap-4">
-              <h4 className="text-sm font-bold text-on-surface uppercase tracking-wider">Previsualización</h4>
-              <div 
-                className="w-full h-48 rounded-2xl bg-slate-200 border border-outline-variant overflow-hidden shadow-inner relative"
-                style={{
-                  backgroundImage: `url(${loginBg || uiSettings.loginBackground})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
-                }}
-              >
-                <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                   <div className="w-24 h-16 bg-white/20 backdrop-blur-xl border border-white/20 rounded-lg shadow-xl"></div>
+                  {!previews.login_bg && (
+                    <div className="flex flex-col items-center justify-center h-full text-outline-variant">
+                      <span className="material-symbols-outlined text-[64px]">landscape</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                     <button 
+                       onClick={() => bgInputRef.current.click()}
+                       className="bg-white/20 backdrop-blur-md text-white border border-white/30 px-6 py-3 rounded-2xl font-black hover:bg-white/40 transition-all"
+                     >
+                        Cambiar Imagen
+                     </button>
+                  </div>
                 </div>
               </div>
-            </div>
+              <p className="text-xs text-on-surface-variant font-medium pl-1">
+                 Se recomienda una imagen en alta resolución (1920x1080) y tonos oscuros para mayor contraste.
+              </p>
+              <input type="file" ref={bgInputRef} className="hidden" onChange={(e) => handleFileChange(e, 'login_bg')} accept="image/*" />
+           </div>
+        </section>
+      </div>
 
-            <div className="bg-surface-container-low p-6 rounded-2xl border border-outline-variant flex flex-col gap-4">
-               <h4 className="text-sm font-bold text-on-surface uppercase tracking-wider flex items-center gap-2">
-                 <span className="material-symbols-outlined text-[20px]">info</span>
-                 Opciones de Restauración
-               </h4>
-               <p className="text-sm text-on-surface-variant leading-relaxed">
-                 Si desea volver a la imagen predeterminada (autopista.jpg), puede restablecer la configuración de fábrica.
-               </p>
-                {canUpdate && (
-                  <button 
-                    onClick={handleReset}
-                    className="self-start text-error font-bold text-sm hover:underline flex items-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">restart_alt</span>
-                    Restablecer imagen por defecto
-                  </button>
-                )}
-
-            </div>
-          </div>
-        </div>
-
-        {saved && (
-          <div className="bg-primary text-on-primary p-3 text-center text-sm font-bold animate-in fade-in slide-in-from-bottom-2">
-            ¡Configuración guardada exitosamente! Los cambios se verán al cerrar sesión.
-          </div>
-        )}
-      </section>
-
-      <footer className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-4">
-        <span className="material-symbols-outlined text-amber-600 mt-0.5">lightbulb</span>
-        <div className="flex flex-col gap-1">
-          <h5 className="text-sm font-bold text-amber-900">Consejo de Diseño</h5>
-          <p className="text-sm text-amber-800">
-            Use imágenes oscuras o con poco ruido visual para asegurar que el cuadro de inicio de sesión sea siempre legible.
-          </p>
-        </div>
+      <footer className="bg-primary/5 border border-primary/20 p-8 rounded-[32px] flex items-center gap-6">
+         <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-primary">lightbulb</span>
+         </div>
+         <p className="text-sm text-on-surface-variant font-medium leading-relaxed">
+            <span className="text-primary font-black block mb-1">Nota del Sistema</span>
+            Los cambios en la identidad visual se aplican globalmente para todos los usuarios. El logo aparecerá en la barra superior y en el inicio de sesión.
+         </p>
       </footer>
     </div>
   );

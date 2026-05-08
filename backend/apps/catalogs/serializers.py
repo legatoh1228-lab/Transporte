@@ -1,8 +1,14 @@
 from rest_framework import serializers
 from .models import (
     Modalidad, SubModalidad, TerritorioEje, TerritorioMunicipio,
-    TipoCombustible, TipoRuta, TipoTransmision, TipoVia, TipoOrganizacion, Rol
+    TipoCombustible, TipoRuta, TipoTransmision, TipoVia, TipoOrganizacion, Rol,
+    ConfiguracionVisual
 )
+
+class ConfiguracionVisualSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConfiguracionVisual
+        fields = '__all__'
 
 class ModalidadSerializer(serializers.ModelSerializer):
     class Meta:

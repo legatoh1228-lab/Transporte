@@ -87,3 +87,23 @@ class RolPermiso(models.Model):
         verbose_name_plural = "Permisos de Rol"
         db_table = 'rol_permiso'
         unique_together = ('rol', 'modulo', 'accion')
+
+class ConfiguracionVisual(models.Model):
+    nombre_sistema = models.CharField(max_length=100, default="Sistema de Transporte Aragua")
+    logo = models.ImageField(upload_to='branding/', null=True, blank=True)
+    login_bg = models.ImageField(upload_to='branding/', null=True, blank=True, verbose_name="Fondo de Login")
+    primary_color = models.CharField(max_length=7, default="#032448") # HEX
+    secondary_color = models.CharField(max_length=7, default="#f5f5f5")
+    
+    class Meta:
+        verbose_name = "Configuración Visual"
+        verbose_name_plural = "Configuraciones Visuales"
+        db_table = 'configuracion_visual'
+
+    def __str__(self):
+        return f"Configuración: {self.nombre_sistema}"
+
+    @classmethod
+    def get_solo(cls):
+        obj, created = cls.objects.get_or_create(id=1)
+        return obj

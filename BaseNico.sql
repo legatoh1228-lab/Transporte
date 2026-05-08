@@ -322,3 +322,17 @@ INSERT INTO rol (id, nombre, descripcion) VALUES
 (1, 'ADMIN',     'Super Administrador (Secretaría de Transporte) – acceso total'),
 (2, 'CONSULTOR', 'Consultor Ejecutivo (Despacho de Gobierno) – solo lectura'),
 (3, 'OPERADOR',  'Operador (Línea/Empresa) – gestiona su propia flota y personal');
+
+-- 10. CONFIGURACIÓN VISUAL
+CREATE TABLE IF NOT EXISTS configuracion_visual (
+    id SERIAL PRIMARY KEY,
+    nombre_sistema VARCHAR(100) DEFAULT 'Transporte Aragua Digital',
+    logo VARCHAR(255),
+    login_bg VARCHAR(255),
+    primary_color VARCHAR(7) DEFAULT '#032448',
+    secondary_color VARCHAR(7) DEFAULT '#f5f5f5'
+);
+
+INSERT INTO configuracion_visual (id, nombre_sistema) 
+SELECT 1, 'Transporte Aragua Digital' 
+WHERE NOT EXISTS (SELECT 1 FROM configuracion_visual WHERE id = 1);

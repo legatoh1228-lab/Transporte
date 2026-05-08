@@ -1,18 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMediaUrl } from '../../utils/helpers';
+import { usePermissions } from '../../hooks/usePermissions';
+import api from '../../services/api';
 
 const TopBar = () => {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
   const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
+  const [systemName, setSystemName] = useState('Transporte Aragua');
 
   useEffect(() => {
     const handleStorageChange = () => {
       setUser(JSON.parse(localStorage.getItem('user') || '{}'));
     };
+    const fetchSystemName = async () => {
+      try {
+        const response = await api.get('catalogs/configuracion-visual/');
+        if (response.data.nombre_sistema) setSystemName(response.data.nombre_sistema);
+      } catch (err) {
+        console.error('Error fetching system name:', err);
+      }
+    };
     window.addEventListener('storage', handleStorageChange);
+    fetchSystemName();
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
@@ -49,8 +62,8 @@ const TopBar = () => {
         <button className="md:hidden p-2 rounded transition-colors" style={{ color: 'var(--color-outline)' }}>
           <span className="material-symbols-outlined">menu</span>
         </button>
-        <div className="text-lg font-bold hidden md:block" style={{ color: 'var(--color-primary-container)' }}>
-          Transporte Aragua
+        <div className="text-lg font-black hidden md:block" style={{ color: 'var(--color-primary-container)' }}>
+          {systemName}
         </div>
       </div>
 
@@ -95,14 +108,16 @@ const TopBar = () => {
 
 
         {/* Settings */}
-        <button
-          className="w-10 h-10 flex items-center justify-center rounded-full transition-colors hover:bg-surface-container"
-          style={{ color: 'var(--color-outline)' }}
-          onClick={() => navigate('/configuracion')}
-          title="Configuración"
-        >
-          <span className="material-symbols-outlined text-[22px]">settings</span>
-        </button>
+        {hasPermission('Configuración', 'Leer') && (
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-full transition-colors hover:bg-surface-container"
+            style={{ color: 'var(--color-outline)' }}
+            onClick={() => navigate('/configuracion')}
+            title="Configuración"
+          >
+            <span className="material-symbols-outlined text-[22px]">settings</span>
+          </button>
+        )}
 
         {/* Divider */}
         <div className="h-6 w-px mx-1 hidden sm:block bg-outline-variant" />

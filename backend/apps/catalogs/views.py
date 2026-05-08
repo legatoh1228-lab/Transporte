@@ -1,12 +1,16 @@
 from rest_framework import viewsets
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from .models import (
     Modalidad, SubModalidad, TerritorioEje, TerritorioMunicipio,
-    TipoCombustible, TipoRuta, TipoTransmision, TipoVia, TipoOrganizacion, Rol
+    TipoCombustible, TipoRuta, TipoTransmision, TipoVia, TipoOrganizacion, Rol,
+    ConfiguracionVisual
 )
 from .serializers import (
     ModalidadSerializer, SubModalidadSerializer, TerritorioEjeSerializer,
     TerritorioMunicipioSerializer, TipoCombustibleSerializer, TipoRutaSerializer,
-    TipoTransmisionSerializer, TipoViaSerializer, TipoOrganizacionSerializer, RolSerializer
+    TipoTransmisionSerializer, TipoViaSerializer, TipoOrganizacionSerializer, RolSerializer,
+    ConfiguracionVisualSerializer
 )
 from .models import RolPermiso
 from .serializers_perms import RolPermisoSerializer
@@ -61,3 +65,20 @@ class RolPermisoViewSet(viewsets.ModelViewSet):
         if rol_id is not None:
             queryset = queryset.filter(rol_id=rol_id)
         return queryset
+
+class ConfiguracionVisualViewSet(viewsets.ModelViewSet):
+    queryset = ConfiguracionVisual.objects.all()
+    serializer_class = ConfiguracionVisualSerializer
+    permission_classes = [AllowAny] # Branding needs to be public for Login page
+
+    def get_object(self):
+        # Ensure ID 1 always exists when requested
+        return ConfiguracionVisual.get_solo()
+
+    def get_queryset(self):
+        return ConfiguracionVisual.objects.filter(id=1)
+
+    def list(self, request, *args, **kwargs):
+        obj = ConfiguracionVisual.get_solo()
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data)
