@@ -24,6 +24,7 @@ const Sidebar = () => {
     'Operadores': 'Operadores',
     'Rutas': 'Rutas',
     'Mapa de Rutas': 'Rutas',
+    'Alertas': 'Dashboard',
     'Terminales': 'Organizaciones',
     'Admin Usuarios': 'Usuarios',
     'Permisos': 'Permisos',
@@ -41,6 +42,7 @@ const Sidebar = () => {
     { label: 'Operadores',     icon: 'person_pin',       path: '/operadores' },
     { label: 'Rutas',          icon: 'alt_route',        path: '/rutas' },
     { label: 'Mapa de Rutas',  icon: 'map',              path: '/mapa-rutas' },
+    { label: 'Alertas',        icon: 'notifications_active', path: '/alertas' },
     { label: 'Admin Usuarios', icon: 'manage_accounts',  path: '/usuarios' },
     { 
       label: 'Configuración', 

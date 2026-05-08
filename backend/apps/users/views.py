@@ -102,56 +102,108 @@ class DashboardStatsView(APIView):
                     "percentage": round((item['count'] / total_r) * 100, 1)
                 })
 
-        # Alerts
-        alerts = []
-        
-        # Insurance Expiration
-        insurance_expiring = FlotaVehiculo.objects.filter(seguro_vence__lte=soon)
-        for v in insurance_expiring:
-            status = "vencido" if v.seguro_vence < today else "por vencer"
-            alerts.append({
-                "type": "error" if status == "vencido" else "warning",
-                "icon": "assignment_late",
-                "title": f"Seguro {status.capitalize()}",
-                "message": f"Vehículo {v.placa} ({v.marca}). Vence: {v.seguro_vence}",
-                "link": "/vehiculos"
+def get_system_alerts(limit=None):
+    today = timezone.now().date()
+    soon = today + timedelta(days=30)
+    alerts = []
+    
+    # Insurance Expiration
+    insurance_expiring = FlotaVehiculo.objects.filter(seguro_vence__lte=soon)
+    for v in insurance_expiring:
+        status_label = "vencido" if v.seguro_vence < today else "por vencer"
+        alerts.append({
+            "type": "error" if status_label == "vencido" else "warning",
+            "icon": "assignment_late",
+            "title": f"Seguro {status_label.capitalize()}",
+            "message": f"Vehículo {v.placa} ({v.marca}). Vence: {v.seguro_vence}",
+            "link": "/vehiculos",
+            "date": v.seguro_vence
+        })
+
+    # Technical Inspection
+    tech_expiring = FlotaVehiculo.objects.filter(revision_tecnica_vence__lte=soon)
+    for v in tech_expiring:
+        status_label = "vencida" if v.revision_tecnica_vence < today else "por vencer"
+        alerts.append({
+            "type": "error" if status_label == "vencida" else "warning",
+            "icon": "build_circle",
+            "title": f"Revisión Técnica {status_label.capitalize()}",
+            "message": f"Vehículo {v.placa} ({v.marca}). Vence: {v.revision_tecnica_vence}",
+            "link": "/vehiculos",
+            "date": v.revision_tecnica_vence
+        })
+
+    # Operator Licenses
+    license_expiring = PersonalOperador.objects.filter(vence_lic__lte=soon)
+    for o in license_expiring:
+        status_label = "vencida" if o.vence_lic < today else "por vencer"
+        alerts.append({
+            "type": "error" if status_label == "vencida" else "warning",
+            "icon": "badge",
+            "title": f"Licencia {status_label.capitalize()}",
+            "message": f"{o.nombres} {o.apellidos} ({o.cedula}). Vence: {o.vence_lic}",
+            "link": "/operadores",
+            "date": o.vence_lic
+        })
+
+    # Medical Certificate
+    med_expiring = PersonalOperador.objects.filter(certificado_medico_vence__lte=soon)
+    for o in med_expiring:
+        status_label = "vencido" if o.certificado_medico_vence < today else "por vencer"
+        alerts.append({
+            "type": "error" if status_label == "vencido" else "warning",
+            "icon": "medical_services",
+            "title": f"Certificado Médico {status_label.capitalize()}",
+            "message": f"{o.nombres} {o.apellidos} ({o.cedula}). Vence: {o.certificado_medico_vence}",
+            "link": "/operadores",
+            "date": o.certificado_medico_vence
+        })
+
+    # Sort by date (oldest first or nearest to expire)
+    alerts.sort(key=lambda x: x['date'] if x['date'] else today)
+    
+    if limit:
+        return alerts[:limit]
+    return alerts
+
+class AlertsView(APIView):
+    permission_classes = [AllowAny]
+    def get(self, request):
+        return Response(get_system_alerts())
+
+class DashboardStatsView(APIView):
+    permission_classes = [AllowAny] # Change to IsAuthenticated in production
+
+    def get(self, request):
+        # Basic Stats
+        total_orgs = EmpresaOrganizacion.objects.count()
+        total_vehicles = FlotaVehiculo.objects.count()
+        total_operators = PersonalOperador.objects.count()
+        total_routes = VialidadRuta.objects.count()
+
+        # Fleet Distribution by Modality (Actual DB names)
+        distribution_query = FlotaVehiculo.objects.values('modalidad__nombre').annotate(count=Count('placa')).order_by('-count')
+        fleet_distribution = []
+        for item in distribution_query:
+            percentage = (item['count'] / total_vehicles * 100) if total_vehicles > 0 else 0
+            fleet_distribution.append({
+                "name": item['modalidad__nombre'],
+                "count": item['count'],
+                "percentage": round(percentage, 1)
             })
 
-        # Technical Inspection
-        tech_expiring = FlotaVehiculo.objects.filter(revision_tecnica_vence__lte=soon)
-        for v in tech_expiring:
-            status = "vencida" if v.revision_tecnica_vence < today else "por vencer"
-            alerts.append({
-                "type": "error" if status == "vencida" else "warning",
-                "icon": "build_circle",
-                "title": f"Revisión Técnica {status.capitalize()}",
-                "message": f"Vehículo {v.placa} ({v.marca}). Vence: {v.revision_tecnica_vence}",
-                "link": "/vehiculos"
-            })
-
-        # Operator Licenses
-        license_expiring = PersonalOperador.objects.filter(vence_lic__lte=soon)
-        for o in license_expiring:
-            status = "vencida" if o.vence_lic < today else "por vencer"
-            alerts.append({
-                "type": "error" if status == "vencida" else "warning",
-                "icon": "badge",
-                "title": f"Licencia {status.capitalize()}",
-                "message": f"{o.nombres} {o.apellidos} ({o.cedula}). Vence: {o.vence_lic}",
-                "link": "/operadores"
-            })
-
-        # Medical Certificate
-        med_expiring = PersonalOperador.objects.filter(certificado_medico_vence__lte=soon)
-        for o in med_expiring:
-            status = "vencido" if o.certificado_medico_vence < today else "por vencer"
-            alerts.append({
-                "type": "error" if status == "vencido" else "warning",
-                "icon": "medical_services",
-                "title": f"Certificado Médico {status.capitalize()}",
-                "message": f"{o.nombres} {o.apellidos} ({o.cedula}). Vence: {o.certificado_medico_vence}",
-                "link": "/operadores"
-            })
+        # Axis Distribution (Very important for Aragua)
+        # We derive this from the routes origins
+        axis_query = VialidadRuta.objects.values('municipio_or__eje__nombre').annotate(count=Count('id')).order_by('-count')
+        axis_distribution = []
+        total_r = total_routes if total_routes > 0 else 1
+        for item in axis_query:
+            if item['municipio_or__eje__nombre']:
+                axis_distribution.append({
+                    "name": item['municipio_or__eje__nombre'],
+                    "count": item['count'],
+                    "percentage": round((item['count'] / total_r) * 100, 1)
+                })
 
         stats = {
             "organizations": total_orgs,
@@ -160,7 +212,7 @@ class DashboardStatsView(APIView):
             "routes": total_routes,
             "fleet_distribution": fleet_distribution,
             "axis_distribution": axis_distribution,
-            "alerts": alerts[:10] # Limit to top 10 alerts
+            "alerts": get_system_alerts(limit=10)
         }
         return Response(stats)
 

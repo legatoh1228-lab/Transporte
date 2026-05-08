@@ -259,11 +259,20 @@ const Dashboard = () => {
                     </div>
                     <h3 className="text-xl font-black text-on-surface">Notificaciones</h3>
                  </div>
-                 {stats.alerts.length > 0 && (
-                   <span className="bg-error text-on-error text-[12px] font-black px-3 py-1 rounded-full animate-bounce">
-                     {stats.alerts.length}
-                   </span>
-                 )}
+                 <div className="flex items-center gap-2">
+                    {stats.alerts.length > 0 && (
+                      <span className="bg-error text-on-error text-[12px] font-black px-3 py-1 rounded-full animate-bounce">
+                        {stats.alerts.length}
+                      </span>
+                    )}
+                    <button 
+                      onClick={() => navigate('/alertas')}
+                      className="w-10 h-10 rounded-xl bg-surface-container hover:bg-primary/10 hover:text-primary transition-all flex items-center justify-center group/btn"
+                      title="Ver todas las alertas"
+                    >
+                      <span className="material-symbols-outlined text-[20px] group-hover/btn:rotate-12 transition-transform">open_in_new</span>
+                    </button>
+                 </div>
               </div>
 
               <div className="space-y-4 flex-1 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
@@ -307,14 +316,13 @@ const Dashboard = () => {
                  )}
               </div>
               
-              {canViewAudit && (
-                <button 
-                  onClick={() => navigate('/auditoria')} 
-                  className="mt-8 w-full py-4 border border-outline-variant rounded-2xl text-sm font-black text-on-surface-variant hover:bg-surface-container-high transition-all"
-                >
-                  Bitácora de Actividades
-                </button>
-              )}
+               <button 
+                 onClick={() => navigate('/alertas')} 
+                 className="mt-8 w-full py-4 bg-surface-container border border-outline-variant rounded-2xl text-sm font-black text-on-surface-variant hover:bg-surface-container-highest hover:text-primary transition-all flex items-center justify-center gap-2"
+               >
+                 <span className="material-symbols-outlined text-[18px]">notifications_active</span>
+                 Ver Historial de Alertas
+               </button>
            </div>
         </div>
 
