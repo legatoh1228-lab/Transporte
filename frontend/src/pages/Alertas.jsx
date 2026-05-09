@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { usePermissions } from '../hooks/usePermissions';
 
 const Alertas = () => {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
 
   useEffect(() => {
+    if (!hasPermission('Alertas', 'Leer')) {
+        setLoading(false);
+        return;
+    }
     const fetchAlerts = async () => {
       try {
         const response = await api.get('users/alerts/');
@@ -34,6 +40,24 @@ const Alertas = () => {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!hasPermission('Alertas', 'Leer')) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6 font-public-sans">
+        <div className="w-24 h-24 bg-error/10 text-error rounded-full flex items-center justify-center mb-6">
+          <span className="material-symbols-outlined text-[48px]">lock</span>
+        </div>
+        <h3 className="text-2xl font-black text-on-surface mb-2">Acceso Denegado</h3>
+        <p className="text-sm font-medium text-on-surface-variant max-w-md">No tienes los permisos necesarios para visualizar el centro de alertas. Por favor, contacta al administrador del sistema.</p>
+        <button 
+          onClick={() => navigate('/dashboard')}
+          className="mt-8 bg-primary text-on-primary px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:shadow-lg transition-all"
+        >
+          Volver al Inicio
+        </button>
       </div>
     );
   }

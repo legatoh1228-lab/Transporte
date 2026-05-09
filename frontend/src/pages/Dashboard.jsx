@@ -11,6 +11,7 @@ const Dashboard = () => {
   const canCreateOrg = hasPermission('Organizaciones', 'Crear');
   const canCreateVeh = hasPermission('Vehículos', 'Crear');
   const canViewAudit = hasPermission('Configuración', 'Leer');
+  const canViewAlerts = hasPermission('Alertas', 'Leer');
 
   const [stats, setStats] = useState({
     organizations: 0,
@@ -137,7 +138,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Fleet Analytics - Reimagined */}
-        <div className="lg:col-span-8 space-y-8">
+        <div className={`space-y-8 ${canViewAlerts ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
           {/* First Block: Fleet by Modality */}
           <div className="bg-surface-container-lowest border border-outline-variant rounded-[40px] p-10 flex flex-col shadow-sm relative overflow-hidden group">
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--color-primary) 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
@@ -249,82 +250,83 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Alerts & Insights Section */}
-        <div className="lg:col-span-4 flex flex-col gap-8">
-           <div className="bg-surface-container-lowest border border-outline-variant rounded-[40px] p-8 flex flex-col shadow-sm relative overflow-hidden group/alerts h-full">
-              <div className="flex items-center justify-between mb-8">
-                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-error/10 flex items-center justify-center">
-                       <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>notifications_active</span>
-                    </div>
-                    <h3 className="text-xl font-black text-on-surface">Notificaciones</h3>
-                 </div>
-                 <div className="flex items-center gap-2">
-                    {stats.alerts.length > 0 && (
-                      <span className="bg-error text-on-error text-[12px] font-black px-3 py-1 rounded-full animate-bounce">
-                        {stats.alerts.length}
-                      </span>
-                    )}
-                    <button 
-                      onClick={() => navigate('/alertas')}
-                      className="w-10 h-10 rounded-xl bg-surface-container hover:bg-primary/10 hover:text-primary transition-all flex items-center justify-center group/btn"
-                      title="Ver todas las alertas"
-                    >
-                      <span className="material-symbols-outlined text-[20px] group-hover/btn:rotate-12 transition-transform">open_in_new</span>
-                    </button>
-                 </div>
-              </div>
-
-              <div className="space-y-4 flex-1 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
-                 {stats.alerts.length > 0 ? (
-                   stats.alerts.map((alert, index) => (
-                     <div 
-                       key={index} 
-                       className={`p-5 rounded-[24px] border border-transparent transition-all cursor-pointer hover:shadow-xl hover:shadow-primary/5 ${
-                         alert.type === 'error' 
-                         ? 'bg-error-container/10 hover:border-error/20 hover:bg-error-container/20' 
-                         : 'bg-surface-container hover:border-primary/20 hover:bg-surface-container-high'
-                       }`}
-                       onClick={() => navigate(alert.link)}
-                     >
-                        <div className="flex items-start gap-4">
-                           <span className={`material-symbols-outlined p-2 rounded-xl text-[20px] ${alert.type === 'error' ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}`}>
-                              {alert.icon}
-                           </span>
-                           <div className="flex-1 min-w-0">
-                              <h4 className={`text-[14px] font-black truncate ${alert.type === 'error' ? 'text-error' : 'text-on-surface'}`}>
-                                 {alert.title}
-                              </h4>
-                              <p className="text-[12px] text-on-surface-variant font-medium mt-1 leading-relaxed line-clamp-2">
-                                 {alert.message}
-                              </p>
-                              <div className="mt-3 flex items-center gap-1 text-[11px] font-black text-primary uppercase tracking-tighter hover:underline">
-                                 Gestionar ahora <span className="material-symbols-outlined text-[14px]">arrow_outward</span>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
-                   ))
-                 ) : (
-                   <div className="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-outline-variant/50 rounded-[32px] opacity-40">
-                      <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mb-4">
-                        <span className="material-symbols-outlined text-[40px] text-on-surface-variant">verified</span>
+        {canViewAlerts && (
+          <div className="lg:col-span-4 flex flex-col gap-8">
+             <div className="bg-surface-container-lowest border border-outline-variant rounded-[40px] p-8 flex flex-col shadow-sm relative overflow-hidden group/alerts h-full">
+                <div className="flex items-center justify-between mb-8">
+                   <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-error/10 flex items-center justify-center">
+                         <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>notifications_active</span>
                       </div>
-                      <p className="font-black text-on-surface">Sin alertas pendientes</p>
-                      <p className="text-xs font-medium mt-1">El sistema se encuentra estable y al día.</p>
+                      <h3 className="text-xl font-black text-on-surface">Notificaciones</h3>
                    </div>
-                 )}
-              </div>
-              
-               <button 
-                 onClick={() => navigate('/alertas')} 
-                 className="mt-8 w-full py-4 bg-surface-container border border-outline-variant rounded-2xl text-sm font-black text-on-surface-variant hover:bg-surface-container-highest hover:text-primary transition-all flex items-center justify-center gap-2"
-               >
-                 <span className="material-symbols-outlined text-[18px]">notifications_active</span>
-                 Ver Historial de Alertas
-               </button>
-           </div>
-        </div>
+                   <div className="flex items-center gap-2">
+                      {stats.alerts.length > 0 && (
+                        <span className="bg-error text-on-error text-[12px] font-black px-3 py-1 rounded-full animate-bounce">
+                          {stats.alerts.length}
+                        </span>
+                      )}
+                      <button 
+                        onClick={() => navigate('/alertas')}
+                        className="w-10 h-10 rounded-xl bg-surface-container hover:bg-primary/10 hover:text-primary transition-all flex items-center justify-center group/btn"
+                        title="Ver todas las alertas"
+                      >
+                        <span className="material-symbols-outlined text-[20px] group-hover/btn:rotate-12 transition-transform">open_in_new</span>
+                      </button>
+                   </div>
+                </div>
+
+                <div className="space-y-4 flex-1 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
+                   {stats.alerts.length > 0 ? (
+                     stats.alerts.map((alert, index) => (
+                       <div 
+                         key={index} 
+                         className={`p-5 rounded-[24px] border border-transparent transition-all cursor-pointer hover:shadow-xl hover:shadow-primary/5 ${
+                           alert.type === 'error' 
+                           ? 'bg-error-container/10 hover:border-error/20 hover:bg-error-container/20' 
+                           : 'bg-surface-container hover:border-primary/20 hover:bg-surface-container-high'
+                         }`}
+                         onClick={() => navigate(alert.link)}
+                       >
+                          <div className="flex items-start gap-4">
+                             <span className={`material-symbols-outlined p-2 rounded-xl text-[20px] ${alert.type === 'error' ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}`}>
+                                {alert.icon}
+                             </span>
+                             <div className="flex-1 min-w-0">
+                                <h4 className={`text-[14px] font-black truncate ${alert.type === 'error' ? 'text-error' : 'text-on-surface'}`}>
+                                   {alert.title}
+                                </h4>
+                                <p className="text-[12px] text-on-surface-variant font-medium mt-1 leading-relaxed line-clamp-2">
+                                   {alert.message}
+                                </p>
+                                <div className="mt-3 flex items-center gap-1 text-[11px] font-black text-primary uppercase tracking-tighter hover:underline">
+                                   Gestionar ahora <span className="material-symbols-outlined text-[14px]">arrow_outward</span>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                     ))
+                   ) : (
+                     <div className="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-outline-variant/50 rounded-[32px] opacity-40">
+                        <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mb-4">
+                          <span className="material-symbols-outlined text-[40px] text-on-surface-variant">verified</span>
+                        </div>
+                        <p className="font-black text-on-surface">Sin alertas pendientes</p>
+                        <p className="text-xs font-medium mt-1">El sistema se encuentra estable y al día.</p>
+                     </div>
+                   )}
+                </div>
+                
+                 <button 
+                   onClick={() => navigate('/alertas')} 
+                   className="mt-8 w-full py-4 bg-surface-container border border-outline-variant rounded-2xl text-sm font-black text-on-surface-variant hover:bg-surface-container-highest hover:text-primary transition-all flex items-center justify-center gap-2"
+                 >
+                   <span className="material-symbols-outlined text-[18px]">notifications_active</span>
+                   Ver Historial de Alertas
+                 </button>
+             </div>
+          </div>
+        )}
 
       </div>
     </div>

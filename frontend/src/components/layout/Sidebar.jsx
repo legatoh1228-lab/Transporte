@@ -24,7 +24,7 @@ const Sidebar = () => {
     'Operadores': 'Operadores',
     'Rutas': 'Rutas',
     'Mapa de Rutas': 'Rutas',
-    'Alertas': 'Dashboard',
+    'Alertas': 'Alertas',
     'Terminales': 'Organizaciones',
     'Admin Usuarios': 'Usuarios',
     'Permisos': 'Permisos',

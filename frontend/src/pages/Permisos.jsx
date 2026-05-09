@@ -3,7 +3,7 @@ import api from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 
-const MODULES = ['Organizaciones', 'Vehículos', 'Operadores', 'Rutas', 'Permisos', 'Usuarios', 'Configuración', 'Dashboard'];
+const MODULES = ['Organizaciones', 'Vehículos', 'Operadores', 'Rutas', 'Permisos', 'Usuarios', 'Configuración', 'Dashboard', 'Alertas'];
 const ACTIONS = ['Leer', 'Crear', 'Actualizar', 'Eliminar'];
 
 export default function Permisos() {
@@ -178,7 +178,8 @@ export default function Permisos() {
                            module === 'Rutas' ? 'alt_route' : 
                            module === 'Permisos' ? 'key' : 
                            module === 'Usuarios' ? 'manage_accounts' : 
-                           module === 'Configuración' ? 'settings' : 'dashboard'}
+                           module === 'Configuración' ? 'settings' : 
+                           module === 'Dashboard' ? 'dashboard' : 'notifications'}
                         </span>
                         <span className="font-bold text-on-surface group-hover:text-primary transition-colors">{module}</span>
                       </div>
