@@ -39,6 +39,7 @@ class FlotaVehiculo(models.Model):
     accesibilidad = models.BooleanField(default=False, verbose_name="Rampa/Accesibilidad")
     seguro_vence = models.DateField(blank=True, null=True)
     revision_tecnica_vence = models.DateField(blank=True, null=True)
+    foto = models.ImageField(upload_to='vehicles/', blank=True, null=True, verbose_name="Foto del Vehículo")
 
     def __str__(self): return f"{self.placa} - {self.marca} {self.modelo}"
     class Meta:

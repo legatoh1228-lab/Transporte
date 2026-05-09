@@ -13,6 +13,7 @@ class PersonalOperador(models.Model):
     vence_lic = models.DateField(verbose_name="Vencimiento Licencia")
     certificado_medico_vence = models.DateField(blank=True, null=True, verbose_name="Vencimiento Certificado Médico")
     tipo_sangre = models.CharField(max_length=5, blank=True, null=True)
+    foto = models.ImageField(upload_to='operators/', blank=True, null=True, verbose_name="Foto de Perfil")
 
     def __str__(self): return f"{self.cedula} - {self.nombres} {self.apellidos}"
     class Meta:
