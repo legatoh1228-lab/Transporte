@@ -1,8 +1,16 @@
 from rest_framework import viewsets
-from .models import FlotaVehiculo, VehiculoOrganizacion, Terminal, VehiculoOperador
-from .serializers import FlotaVehiculoSerializer, VehiculoOrganizacionSerializer, TerminalSerializer, VehiculoOperadorSerializer
+from .models import FlotaVehiculo, VehiculoOrganizacion, Terminal, VehiculoOperador, AsignacionRuta
+from .serializers import (
+    FlotaVehiculoSerializer, VehiculoOrganizacionSerializer, 
+    TerminalSerializer, VehiculoOperadorSerializer, AsignacionRutaSerializer
+)
+
+class AsignacionRutaViewSet(viewsets.ModelViewSet):
+    queryset = AsignacionRuta.objects.all().order_by('-fecha_inicio')
+    serializer_class = AsignacionRutaSerializer
 
 class TerminalViewSet(viewsets.ModelViewSet):
+
     queryset = Terminal.objects.all()
     serializer_class = TerminalSerializer
 
