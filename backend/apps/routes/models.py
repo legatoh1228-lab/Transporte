@@ -14,6 +14,7 @@ class VialidadRuta(models.Model):
     tipo_via = models.ForeignKey(TipoVia, on_delete=models.PROTECT)
     observaciones = models.TextField(blank=True, null=True)
     geom = models.LineStringField(srid=4326, blank=True, null=True)
+    paradas = models.JSONField(null=True, blank=True, verbose_name="Paradas de la Ruta")
 
     def __str__(self): return self.nombre
     class Meta:
