@@ -20,7 +20,7 @@ class Gremio(models.Model):
 class EmpresaOrganizacion(models.Model):
     rif = models.CharField(max_length=15, primary_key=True)
     razon_social = models.CharField(max_length=255)
-    tipo = models.ForeignKey(TipoOrganizacion, on_delete=models.PROTECT, related_name='organizaciones')
+    tipo = models.ForeignKey(TipoOrganizacion, on_delete=models.PROTECT, related_name='organizaciones', verbose_name="Tipo de Organización")
     gremio = models.ForeignKey(Gremio, on_delete=models.SET_NULL, null=True, blank=True, related_name='organizaciones')
     rep_legal_ci = models.CharField(max_length=15, verbose_name="Cédula Rep. Legal")
     rep_legal_nom = models.CharField(max_length=150, verbose_name="Nombre Rep. Legal")
@@ -57,7 +57,7 @@ class OrganizacionCps(models.Model):
     fecha_expedicion = models.DateField(verbose_name="Fecha de Expedición")
     fecha_vencimiento = models.DateField(verbose_name="Fecha de Vencimiento")
     modalidad = models.CharField(max_length=50, blank=True, null=True, verbose_name="Modalidad (p.ej. Colectivo Suburbano)")
-    tipo_cps = models.ForeignKey(TipoCps, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Tipo CPS")
+    tipo_cps = models.ForeignKey('catalogs.TipoCps', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Tipo CPS")
     cupo_maximo_unidades = models.SmallIntegerField(blank=True, null=True, verbose_name="Cupo Máximo de Unidades")
     activa = models.BooleanField(default=True)
 

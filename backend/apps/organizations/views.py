@@ -1,8 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from .models import EmpresaOrganizacion
+from .models import EmpresaOrganizacion, Gremio
 from routes.models import GestionPermiso, VialidadRuta
-from .serializers import EmpresaOrganizacionSerializer
+from .serializers import EmpresaOrganizacionSerializer, GremioSerializer
 import datetime
 
 class EmpresaOrganizacionViewSet(viewsets.ModelViewSet):
@@ -59,3 +59,7 @@ class EmpresaOrganizacionViewSet(viewsets.ModelViewSet):
             instance._prefetched_objects_cache = {}
 
         return Response(serializer.data)
+
+class GremioViewSet(viewsets.ModelViewSet):
+    queryset = Gremio.objects.all()
+    serializer_class = GremioSerializer

@@ -42,11 +42,10 @@ class FlotaVehiculo(models.Model):
     revision_tecnica_vence = models.DateField(blank=True, null=True, verbose_name="Vencimiento Revisión Técnica")
     foto = models.ImageField(upload_to='vehicles/', blank=True, null=True, verbose_name="Foto del Vehículo")
     # Nuevos campos - Rev. 1
-    propietario_nombre = models.CharField(max_length=150, blank=True, null=True, verbose_name="Propietario")
-    propietario_cedula = models.CharField(max_length=15, blank=True, null=True, verbose_name="Cédula Propietario")
-    propietario_rif = models.CharField(max_length=15, blank=True, null=True, verbose_name="RIF Propietario")
+    propietario = models.CharField(max_length=150, blank=True, null=True, verbose_name="Propietario")
+    propietario_identificacion = models.CharField(max_length=15, blank=True, null=True, verbose_name="Identificación Propietario")
     serial_carroceria = models.CharField(max_length=50, blank=True, null=True, verbose_name="Serial de Carrocería")
-    cps_tipo = models.ForeignKey(TipoCps, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Tipo de CPS (DT9/DT10)")
+    cps = models.CharField(max_length=50, blank=True, null=True, verbose_name="Tipo de CPS (DT9/DT10)")
 
     def __str__(self): return f"{self.placa} - {self.marca} {self.modelo}"
     class Meta:
@@ -79,10 +78,11 @@ class VehiculoOrganizacion(models.Model):
         # 2. Validar coincidencia de modalidad CPS (si existe un CPS activo en la organización)
         # Buscamos el CPS activo de la organización
         cps_activo = self.organizacion.cps_registros.filter(activa=True).first()
-        if cps_activo and self.vehiculo.cps_tipo:
-            if cps_activo.tipo_cps != self.vehiculo.cps_tipo:
+        if cps_activo and self.vehiculo.cps:
+            # Comparamos el código del CPS activo con el campo cps del vehículo
+            if str(cps_activo.tipo_cps) != str(self.vehiculo.cps):
                 raise ValidationError({
-                    'vehiculo': f"El vehículo ({self.vehiculo.cps_tipo}) no coincide con la modalidad CPS de la organización ({cps_activo.tipo_cps})."
+                    'vehiculo': f"El vehículo ({self.vehiculo.cps}) no coincide con la modalidad CPS de la organización ({cps_activo.tipo_cps})."
                 })
 
     def save(self, *args, **kwargs):

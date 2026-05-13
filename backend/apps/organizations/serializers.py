@@ -1,8 +1,14 @@
 from rest_framework import serializers
-from .models import EmpresaOrganizacion
+from .models import EmpresaOrganizacion, Gremio
+
+class GremioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Gremio
+        fields = '__all__'
 
 class EmpresaOrganizacionSerializer(serializers.ModelSerializer):
     tipo_nombre = serializers.ReadOnlyField(source='tipo.nombre')
+    gremio_nombre = serializers.ReadOnlyField(source='gremio.razon_social')
     rutas = serializers.SerializerMethodField()
     
     class Meta:

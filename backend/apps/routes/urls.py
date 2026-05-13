@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import VialidadRutaViewSet, GestionPermisoViewSet
 
 router = DefaultRouter()
-router.register(r'routes', VialidadRutaViewSet)
+router.register(r'rutas', VialidadRutaViewSet)
 router.register(r'permissions', GestionPermisoViewSet)
 
 urlpatterns = [

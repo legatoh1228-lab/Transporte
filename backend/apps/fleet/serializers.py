@@ -51,11 +51,11 @@ class VehiculoOrganizacionSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         org = data.get('organizacion')
-        if org and org.cupo_unidades > 0:
+        if org and org.cupo_maximo_unidades > 0:
             count = VehiculoOrganizacion.objects.filter(organizacion=org, fecha_fin__isnull=True).count()
-            if not self.instance and count >= org.cupo_unidades:
+            if not self.instance and count >= org.cupo_maximo_unidades:
                 raise serializers.ValidationError(
-                    {"organizacion": f"La organización ha alcanzado su cupo máximo de {org.cupo_unidades} unidades."}
+                    {"organizacion": f"La organización ha alcanzado su cupo máximo de {org.cupo_maximo_unidades} unidades."}
                 )
         return data
 

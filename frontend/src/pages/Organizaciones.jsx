@@ -19,19 +19,21 @@ const Organizaciones = () => {
 
   const [activeTab, setActiveTab] = useState('datos');
   const [tiposOrganizacion, setTiposOrganizacion] = useState([]);
+  const [gremios, setGremios] = useState([]);
   const [rutasCatalog, setRutasCatalog] = useState([]);
 
   const [formData, setFormData] = useState({
     rif: '',
     razon_social: '',
     tipo: '',
+    gremio: '',
     rep_legal_ci: '',
     rep_legal_nom: '',
     telefono: '',
     correo: '',
     direccion_fiscal: '',
-    fecha_constitucion: '',
-    cupo_unidades: 0,
+    fecha_constitucion_mercantil: '',
+    cupo_maximo_unidades: 0,
     modalidad_cps: '',
     esta_activa: true,
     rutas: []
@@ -39,11 +41,13 @@ const Organizaciones = () => {
 
   const fetchCatalogs = async () => {
     try {
-      const [responseTipos, responseRutas] = await Promise.all([
+      const [responseTipos, responseGremios, responseRutas] = await Promise.all([
         api.get('catalogs/tipos-organizacion/'),
+        api.get('organizations/gremios/'),
         api.get('routes/rutas/')
       ]);
       setTiposOrganizacion(responseTipos.data);
+      setGremios(responseGremios.data);
       setRutasCatalog(responseRutas.data);
     } catch (err) {
       console.error("Error fetching catalogs:", err);
@@ -81,13 +85,14 @@ const Organizaciones = () => {
       rif: '',
       razon_social: '',
       tipo: '',
+      gremio: '',
       rep_legal_ci: '',
       rep_legal_nom: '',
       telefono: '',
       correo: '',
       direccion_fiscal: '',
-      fecha_constitucion: '',
-      cupo_unidades: 0,
+      fecha_constitucion_mercantil: '',
+      cupo_maximo_unidades: 0,
       modalidad_cps: '',
       esta_activa: true,
       rutas: []
@@ -137,8 +142,9 @@ const Organizaciones = () => {
     setFormData({
       ...org,
       rutas: org.rutas || [],
-      cupo_unidades: org.cupo_unidades || 0,
-      modalidad_cps: org.modalidad_cps || ''
+      cupo_maximo_unidades: org.cupo_maximo_unidades || 0,
+      modalidad_cps: org.modalidad_cps || '',
+      gremio: org.gremio || ''
     });
     setActiveTab('datos');
     setIsEditing(true);
@@ -238,7 +244,7 @@ const Organizaciones = () => {
                 <tr>
                   <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant w-[160px]">RIF</th>
                   <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant">Razón Social</th>
-                  <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant w-[180px]">Tipo</th>
+                  <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant w-[180px]">Tipo / Gremio</th>
                   <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant">Rep. Legal</th>
                   <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant w-[100px]">Estado</th>
                   <th className="px-6 py-4 font-label-bold text-label-bold text-on-surface-variant text-right w-[100px]">Acciones</th>
@@ -255,9 +261,16 @@ const Organizaciones = () => {
                       <div className="text-[10px] text-on-surface-variant uppercase font-medium">{org.correo || 'Sin correo'}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/10 text-secondary border border-secondary/20 uppercase">
-                        {org.tipo_nombre || 'No especificado'}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/10 text-secondary border border-secondary/20 uppercase w-fit">
+                          {org.tipo_nombre || 'No especificado'}
+                        </span>
+                        {org.gremio_nombre && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-tertiary/10 text-tertiary border border-tertiary/20 uppercase w-fit">
+                            {org.gremio_nombre}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-body-sm text-body-sm text-on-surface font-medium">{org.rep_legal_nom}</div>
@@ -356,13 +369,23 @@ const Organizaciones = () => {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold text-on-surface-variant ml-1">Tipo de Organización</label>
+            <label className="text-xs font-bold text-on-surface-variant ml-1">Tipo de Organización *</label>
             <select 
-              name="tipo" value={formData.tipo} onChange={handleInputChange}
-              className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none"
+              name="tipo" value={formData.tipo} onChange={handleInputChange} required
+              className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none transition-all focus:ring-1 focus:ring-primary"
             >
               <option value="">Seleccione...</option>
               {tiposOrganizacion.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-on-surface-variant ml-1">Gremio / Federación</label>
+            <select 
+              name="gremio" value={formData.gremio} onChange={handleInputChange}
+              className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none transition-all focus:ring-1 focus:ring-primary"
+            >
+              <option value="">Ninguno / Particular</option>
+              {gremios.map(g => <option key={g.id} value={g.id}>{g.razon_social}</option>)}
             </select>
           </div>
           <div className="space-y-1">
@@ -396,14 +419,14 @@ const Organizaciones = () => {
           <div className="space-y-1">
             <label className="text-xs font-bold text-on-surface-variant ml-1">Fecha Constitución</label>
             <input 
-              type="date" name="fecha_constitucion" value={formData.fecha_constitucion} onChange={handleInputChange}
+              type="date" name="fecha_constitucion_mercantil" value={formData.fecha_constitucion_mercantil} onChange={handleInputChange}
               className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none"
             />
           </div>
           <div className="space-y-1">
             <label className="text-xs font-bold text-on-surface-variant ml-1">Cupo Máx. Unidades</label>
             <input 
-              type="number" name="cupo_unidades" value={formData.cupo_unidades} onChange={handleInputChange}
+              type="number" name="cupo_maximo_unidades" value={formData.cupo_maximo_unidades} onChange={handleInputChange}
               placeholder="0" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none"
             />
           </div>
