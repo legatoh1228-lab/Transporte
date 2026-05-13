@@ -1,5 +1,5 @@
 from django.contrib.gis.db import models
-from catalogs.models import Modalidad, SubModalidad, TipoTransmision, TipoCombustible, TerritorioMunicipio
+from catalogs.models import Modalidad, SubModalidad, TipoTransmision, TipoCombustible, TerritorioMunicipio, TipoCps
 # from organizations.models import EmpresaOrganizacion # Eliminado para evitar importaciones circulares
 
 class Terminal(models.Model):
@@ -32,11 +32,7 @@ class FlotaVehiculo(models.Model):
     anio = models.SmallIntegerField(verbose_name="Año")
     color = models.CharField(max_length=30, blank=True, null=True)
     transmision = models.ForeignKey(TipoTransmision, on_delete=models.PROTECT)
-    capacidad = models.SmallIntegerField(verbose_name="Capacidad")
-    serial_carroceria = models.CharField(max_length=100, blank=True, null=True, verbose_name="Serial de Carrocería")
-    propietario = models.CharField(max_length=200, blank=True, null=True, verbose_name="Propietario")
-    propietario_identificacion = models.CharField(max_length=50, blank=True, null=True, verbose_name="Cédula/RIF del Propietario")
-    cps = models.CharField(max_length=10, blank=True, null=True, choices=[('DT9', 'DT9'), ('DT10', 'DT10')], verbose_name="CPS")
+    capacidad = models.SmallIntegerField(help_text="Capacidad de pasajeros")
     combustible = models.ForeignKey(TipoCombustible, on_delete=models.PROTECT)
     aire_acondicionado = models.BooleanField(default=False)
     accesibilidad = models.BooleanField(default=False, verbose_name="Rampa/Accesibilidad")
@@ -45,6 +41,12 @@ class FlotaVehiculo(models.Model):
     certificado_vence = models.DateField(blank=True, null=True, verbose_name="Vencimiento Certificado de Circulación")
     revision_tecnica_vence = models.DateField(blank=True, null=True, verbose_name="Vencimiento Revisión Técnica")
     foto = models.ImageField(upload_to='vehicles/', blank=True, null=True, verbose_name="Foto del Vehículo")
+    # Nuevos campos - Rev. 1
+    propietario_nombre = models.CharField(max_length=150, blank=True, null=True, verbose_name="Propietario")
+    propietario_cedula = models.CharField(max_length=15, blank=True, null=True, verbose_name="Cédula Propietario")
+    propietario_rif = models.CharField(max_length=15, blank=True, null=True, verbose_name="RIF Propietario")
+    serial_carroceria = models.CharField(max_length=50, blank=True, null=True, verbose_name="Serial de Carrocería")
+    cps_tipo = models.ForeignKey(TipoCps, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Tipo de CPS (DT9/DT10)")
 
     def __str__(self): return f"{self.placa} - {self.marca} {self.modelo}"
     class Meta:
@@ -61,8 +63,7 @@ class VehiculoOrganizacion(models.Model):
     def clean(self):
         from django.core.exceptions import ValidationError
         # 1. Validar cupo de unidades
-        if self.organizacion.cupo_unidades > 0:
-            # Contar vehículos activos (sin fecha_fin) excluyendo el actual si estamos editando
+        if self.organizacion.cupo_maximo_unidades and self.organizacion.cupo_maximo_unidades > 0:
             count = VehiculoOrganizacion.objects.filter(
                 organizacion=self.organizacion, 
                 fecha_fin__isnull=True
@@ -70,16 +71,18 @@ class VehiculoOrganizacion(models.Model):
             if self.pk:
                 count = count.exclude(pk=self.pk)
             
-            if count.count() >= self.organizacion.cupo_unidades:
+            if count.count() >= self.organizacion.cupo_maximo_unidades:
                 raise ValidationError({
-                    'organizacion': f"La organización ha alcanzado su cupo máximo de {self.organizacion.cupo_unidades} unidades."
+                    'organizacion': f"La organización ha alcanzado su cupo máximo de {self.organizacion.cupo_maximo_unidades} unidades."
                 })
 
-        # 2. Validar coincidencia de modalidad CPS
-        if self.organizacion.modalidad_cps and self.vehiculo.cps:
-            if self.organizacion.modalidad_cps != self.vehiculo.cps:
+        # 2. Validar coincidencia de modalidad CPS (si existe un CPS activo en la organización)
+        # Buscamos el CPS activo de la organización
+        cps_activo = self.organizacion.cps_registros.filter(activa=True).first()
+        if cps_activo and self.vehiculo.cps_tipo:
+            if cps_activo.tipo_cps != self.vehiculo.cps_tipo:
                 raise ValidationError({
-                    'vehiculo': f"El vehículo ({self.vehiculo.cps}) no coincide con la modalidad CPS de la organización ({self.organizacion.modalidad_cps})."
+                    'vehiculo': f"El vehículo ({self.vehiculo.cps_tipo}) no coincide con la modalidad CPS de la organización ({cps_activo.tipo_cps})."
                 })
 
     def save(self, *args, **kwargs):
