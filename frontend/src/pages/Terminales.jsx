@@ -271,9 +271,8 @@ export default function Terminales() {
                 <th className="px-6 py-4">Nombre del Terminal</th>
                 <th className="px-6 py-4">Municipio</th>
                 <th className="px-6 py-4">Tipo</th>
-                <th className="px-6 py-4">Andenes</th>
+                <th className="px-6 py-4 text-center">Andenes</th>
                 <th className="px-6 py-4">Estado</th>
-                 <th className="px-6 py-4">Estado</th>
                 {canUpdate && <th className="px-6 py-4 text-center">Acciones</th>}
               </tr>
 
@@ -291,11 +290,11 @@ export default function Terminales() {
                   </td>
                   <td className="px-6 py-4 font-medium">{row.municipio_nombre}</td>
                   <td className="px-6 py-4">{row.tipo}</td>
-                  <td className="px-6 py-4 font-bold">{row.capacidad_andenes}</td>
+                  <td className="px-6 py-4 text-center font-bold">{row.capacidad_andenes}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                      row.estatus === 'Activo' ? 'bg-primary/10 text-primary' : 
-                      row.estatus === 'Mantenimiento' ? 'bg-warning/10 text-warning' : 
+                      row.estatus === 'Activo' ? 'bg-[#10b981]/10 text-[#10b981]' : 
+                      row.estatus === 'Mantenimiento' ? 'bg-[#f59e0b]/10 text-[#f59e0b]' : 
                       'bg-error/10 text-error'
                     }`}>
                       {row.estatus}
@@ -344,8 +343,8 @@ export default function Terminales() {
           </>
         }
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[450px]">
-          <div className="space-y-4 overflow-y-auto pr-2">
+        <div className="flex flex-col md:grid md:grid-cols-2 gap-6 h-auto md:h-[500px]">
+          <div className="space-y-4 md:overflow-y-auto md:pr-2">
             {error && <div className="text-error text-xs bg-error-container/10 p-3 rounded-lg border border-error/20">{error}</div>}
             
             <div className="space-y-1.5">
@@ -426,7 +425,7 @@ export default function Terminales() {
             </div>
           </div>
 
-          <div className="h-full rounded-xl overflow-hidden border border-outline-variant relative">
+          <div className="h-[350px] md:h-full rounded-xl overflow-hidden border border-outline-variant relative">
             {!isLoaded ? (
               <div className="w-full h-full flex items-center justify-center bg-surface-container-low">Cargando Mapa...</div>
             ) : (

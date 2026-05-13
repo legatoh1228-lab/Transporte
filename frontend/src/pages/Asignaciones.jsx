@@ -163,6 +163,9 @@ const Asignaciones = () => {
         );
     }
 
+    const selectedOperatorObj = formData.operador ? operators.find(op => op.cedula === formData.operador) : null;
+    const selectedVehicleObj = formData.vehiculo ? vehicles.find(v => v.placa === formData.vehiculo) : null;
+
     return (
         <div className="space-y-8 font-public-sans pb-10 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-outline-variant/50 pb-8 pt-4">
@@ -322,58 +325,138 @@ const Asignaciones = () => {
             <Modal
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
-                title="Nueva Asignación"
-                icon="add_task"
-                maxWidthClass="max-w-lg"
+                title="Nueva Asignación Operativa"
+                subtitle="Vincula un operador a una unidad y ruta específica"
+                icon="assignment_ind"
+                maxWidthClass="max-w-5xl"
                 actions={
                     <div className="flex gap-4 w-full">
-                        <button onClick={() => setShowModal(false)} className="flex-1 bg-surface-container-highest px-8 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest">Cancelar</button>
-                        <button onClick={handleSubmit} className="flex-1 bg-primary text-on-primary px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20">Guardar</button>
+                        <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-surface-container-highest hover:bg-surface-variant px-8 py-3.5 rounded-xl text-xs font-extrabold uppercase tracking-widest transition-colors text-on-surface">Cancelar</button>
+                        <button type="button" onClick={handleSubmit} className="flex-1 bg-primary hover:bg-primary/90 text-on-primary px-8 py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Guardar Asignación</button>
                     </div>
                 }
             >
-                <form className="space-y-6 py-2">
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Operador <span className="text-error">*</span></label>
-                        <select 
-                            required className="w-full bg-surface-container-low border border-outline-variant rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
-                            value={formData.operador} onChange={(e) => setFormData({...formData, operador: e.target.value})}
-                        >
-                            <option value="">Seleccione un operador...</option>
-                            {operators.map(op => <option key={op.cedula} value={op.cedula}>{op.nombres} {op.apellidos} ({op.cedula})</option>)}
-                        </select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Vehículo <span className="text-error">*</span></label>
+                <div className="py-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Left: Form Fields */}
+                    <form className="lg:col-span-7 grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <div className="md:col-span-12 space-y-1.5">
+                            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[16px] text-primary">person</span>
+                                Operador <span className="text-error">*</span>
+                            </label>
                             <select 
-                                required className="w-full bg-surface-container-low border border-outline-variant rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                                required 
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
+                                value={formData.operador} onChange={(e) => setFormData({...formData, operador: e.target.value})}
+                            >
+                                <option value="">Seleccione un operador...</option>
+                                {operators.map(op => <option key={op.cedula} value={op.cedula}>{op.nombres} {op.apellidos} ({op.cedula})</option>)}
+                            </select>
+                        </div>
+
+                        <div className="md:col-span-6 space-y-1.5">
+                            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[16px] text-secondary">directions_bus</span>
+                                Unidad Asignada <span className="text-error">*</span>
+                            </label>
+                            <select 
+                                required 
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
                                 value={formData.vehiculo} onChange={(e) => setFormData({...formData, vehiculo: e.target.value})}
                             >
-                                <option value="">Unidad...</option>
+                                <option value="">Seleccione unidad...</option>
                                 {vehicles.map(v => <option key={v.placa} value={v.placa}>{v.placa}</option>)}
                             </select>
                         </div>
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Ruta <span className="text-error">*</span></label>
+
+                        <div className="md:col-span-6 space-y-1.5">
+                            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[16px] text-tertiary">alt_route</span>
+                                Ruta Operativa <span className="text-error">*</span>
+                            </label>
                             <select 
-                                required className="w-full bg-surface-container-low border border-outline-variant rounded-2xl py-4 px-5 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                                required 
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
                                 value={formData.ruta} onChange={(e) => setFormData({...formData, ruta: e.target.value})}
                             >
-                                <option value="">Ruta...</option>
+                                <option value="">Seleccione ruta...</option>
                                 {routes.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
                             </select>
                         </div>
+
+                        <div className="md:col-span-12 space-y-1.5">
+                            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[16px]">notes</span>
+                                Observaciones / Notas
+                            </label>
+                            <textarea 
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all h-28 resize-none shadow-sm"
+                                placeholder="Ingrese notas adicionales o instrucciones especiales para esta asignación..."
+                                value={formData.observaciones} onChange={(e) => setFormData({...formData, observaciones: e.target.value})}
+                            />
+                        </div>
+                    </form>
+
+                    {/* Right: Previews */}
+                    <div className="lg:col-span-5 flex flex-col gap-5 lg:border-l border-outline-variant/30 lg:pl-6 pt-4 lg:pt-0 border-t lg:border-t-0">
+                        {/* Operador Preview */}
+                        <div className={`p-5 rounded-2xl border transition-all duration-300 ${selectedOperatorObj ? 'bg-surface-container-lowest border-primary/30 shadow-sm' : 'bg-surface-container-lowest/50 border-outline-variant border-dashed'}`}>
+                            <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest block mb-4">Perfil del Operador</span>
+                            {selectedOperatorObj ? (
+                                <div className="flex items-center gap-4">
+                                    {selectedOperatorObj.foto ? (
+                                        <img src={selectedOperatorObj.foto} alt="Operador" className="w-16 h-16 rounded-full object-cover border-2 border-primary/20 shadow-sm shrink-0" />
+                                    ) : (
+                                        <div className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/20 text-primary flex items-center justify-center shrink-0">
+                                            <span className="material-symbols-outlined text-[32px]">person</span>
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-sm text-on-surface truncate">{selectedOperatorObj.nombres} {selectedOperatorObj.apellidos}</p>
+                                        <p className="text-xs text-on-surface-variant mt-0.5 font-medium truncate">CI: {selectedOperatorObj.cedula}</p>
+                                        <p className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded uppercase font-black w-fit mt-1.5 border border-primary/10">Operador Activo</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center text-center text-on-surface-variant/50 h-20">
+                                    <span className="material-symbols-outlined text-[32px] mb-2">account_circle</span>
+                                    <p className="text-xs font-medium">Seleccione un operador para previsualizar</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Vehicle Preview */}
+                        <div className={`p-5 rounded-2xl border transition-all duration-300 ${selectedVehicleObj ? 'bg-surface-container-lowest border-secondary/30 shadow-sm' : 'bg-surface-container-lowest/50 border-outline-variant border-dashed'}`}>
+                            <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest block mb-4">Unidad Asignada</span>
+                            {selectedVehicleObj ? (
+                                <div className="flex flex-col gap-4">
+                                    {selectedVehicleObj.foto ? (
+                                        <img src={selectedVehicleObj.foto} alt="Vehículo" className="w-full h-32 rounded-xl object-cover border border-outline-variant/50 shadow-sm" />
+                                    ) : (
+                                        <div className="w-full h-24 rounded-xl bg-secondary/5 border border-secondary/20 text-secondary flex items-center justify-center shadow-inner">
+                                            <span className="material-symbols-outlined text-[40px]">directions_bus</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between items-start">
+                                        <div className="min-w-0 pr-4">
+                                            <p className="font-bold text-sm text-on-surface truncate">{selectedVehicleObj.marca} {selectedVehicleObj.modelo}</p>
+                                            <p className="text-xs font-medium text-on-surface-variant mt-0.5 uppercase tracking-wide">Placa: <span className="font-bold">{selectedVehicleObj.placa}</span></p>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <p className="text-[10px] font-bold text-on-surface-variant uppercase">Capacidad</p>
+                                            <p className="text-sm font-black text-secondary">{selectedVehicleObj.capacidad} pax</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center text-center text-on-surface-variant/50 h-24">
+                                    <span className="material-symbols-outlined text-[32px] mb-2">directions_bus</span>
+                                    <p className="text-xs font-medium">Seleccione una unidad para previsualizar</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Observaciones</label>
-                        <textarea 
-                            className="w-full bg-surface-container-low border border-outline-variant rounded-2xl py-4 px-5 text-sm font-medium outline-none focus:ring-4 focus:ring-primary/10 transition-all h-24 resize-none"
-                            placeholder="Notas adicionales..."
-                            value={formData.observaciones} onChange={(e) => setFormData({...formData, observaciones: e.target.value})}
-                        />
-                    </div>
-                </form>
+                </div>
             </Modal>
         </div>
     );

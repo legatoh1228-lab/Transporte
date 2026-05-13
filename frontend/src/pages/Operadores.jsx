@@ -454,7 +454,7 @@ export default function Operadores() {
           </div>
         }
       >
-        <form className="space-y-10 py-4">
+        <form className="space-y-8 py-4">
           {error && (
             <div className="bg-error/10 border border-error/20 p-5 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4">
               <span className="material-symbols-outlined text-error text-[24px]">warning</span>
@@ -462,47 +462,53 @@ export default function Operadores() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left Column: Photo and Personal Data */}
-            <div className="lg:col-span-4 space-y-8">
-               <div className="flex flex-col items-center justify-center p-10 bg-surface-container-low rounded-[40px] border-2 border-dashed border-outline-variant/50 relative group transition-all hover:bg-surface-container shadow-inner">
-                  <div className="w-36 h-36 rounded-[48px] bg-white shadow-2xl overflow-hidden border-4 border-white mb-6 relative transition-transform duration-500 group-hover:scale-105">
-                     {imagePreview ? (
-                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                     ) : (
-                       <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary opacity-40">
-                         <span className="material-symbols-outlined text-[64px]">add_a_photo</span>
-                       </div>
-                     )}
-                     <label className="absolute inset-0 bg-primary/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
-                        <span className="material-symbols-outlined text-white text-[32px]">upload</span>
-                        <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-                     </label>
+            <div className="lg:col-span-4 space-y-6">
+               {/* Photo Card */}
+               <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm space-y-6">
+                  <div className="flex flex-col items-center">
+                     <div className="w-36 h-36 rounded-[48px] bg-surface-container-lowest shadow-inner overflow-hidden border-2 border-dashed border-outline-variant/50 relative group transition-all hover:border-primary/50">
+                        {imagePreview ? (
+                          <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-primary/30">
+                            <span className="material-symbols-outlined text-[64px]">add_a_photo</span>
+                          </div>
+                        )}
+                        <label className="absolute inset-0 bg-primary/60 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
+                           <div className="flex flex-col items-center gap-2 text-white">
+                              <span className="material-symbols-outlined text-[32px]">upload</span>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-center leading-tight">Cambiar<br/>Foto</span>
+                           </div>
+                           <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                        </label>
+                     </div>
+                     <p className="text-[10px] font-bold text-on-surface-variant/40 mt-4 uppercase tracking-[0.2em] text-center">Formato Cuadrado<br/>JPG/PNG</p>
                   </div>
-                  <h5 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.3em]">Fotografía</h5>
-                  <p className="text-[10px] text-on-surface-variant/50 mt-2 text-center leading-relaxed">Formato cuadrado recomendado<br/>JPG, PNG (Máx 2MB)</p>
                </div>
 
-               <div className="space-y-4">
-                  <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3">
+               {/* Health Profile Card */}
+               <div className="bg-surface-container-low p-6 rounded-[32px] border border-outline-variant/30 space-y-4">
+                  <h4 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-3 ml-1">
                     <span className="material-symbols-outlined text-[20px]">medical_services</span>
                     Perfil de Salud
                   </h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Fecha Nacimiento</label>
                       <input 
                         type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento || ''} onChange={handleInputChange}
-                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
+                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Tipo de Sangre</label>
                       <select 
                         name="tipo_sangre" value={formData.tipo_sangre || ''} onChange={handleInputChange}
-                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-4 text-sm font-black outline-none focus:ring-2 focus:ring-primary/20"
+                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-4 text-sm font-black outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                       >
-                        <option value="">N/A</option>
+                        <option value="">No Específicado...</option>
                         <option value="A+">A+</option>
                         <option value="O+">O+</option>
                         <option value="B+">B+</option>
@@ -516,132 +522,130 @@ export default function Operadores() {
             </div>
 
             {/* Right Column: Identity, License and Contact */}
-            <div className="lg:col-span-8 space-y-10">
-              {/* Identity Row */}
-              <div className="space-y-5">
-                <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3">
-                   <span className="material-symbols-outlined text-[20px]">fingerprint</span>
-                   Credenciales de Identidad
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Documento <span className="text-error">*</span></label>
-                    <div className="flex shadow-sm rounded-2xl overflow-hidden border border-outline-variant focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                      <select 
-                        name="tipo_identificacion" value={formData.tipo_identificacion || 'V'} onChange={handleInputChange} disabled={isEditing}
-                        className="bg-surface-container-high border-r border-outline-variant py-3.5 px-5 text-sm font-black text-on-surface outline-none w-[90px]"
-                      >
-                        <option value="V">V-</option>
-                        <option value="E">E-</option>
-                        <option value="P">P-</option>
-                      </select>
-                      <input 
-                        name="numero_cedula" value={formData.numero_cedula || ''} onChange={handleInputChange} disabled={isEditing}
-                        placeholder="00000000" className="w-full bg-surface-container-lowest py-3.5 px-5 text-sm font-bold outline-none"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Código Operador <span className="text-error">*</span></label>
-                    <input 
-                      name="codigo_op" value={formData.codigo_op || ''} onChange={handleInputChange}
-                      placeholder="Ej: OP-772" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="lg:col-span-8 space-y-6">
+              {/* Card 1: Identity */}
+              <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm">
+                 <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
+                    <span className="material-symbols-outlined text-[20px]">fingerprint</span>
+                    Credenciales de Identidad
+                 </h4>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                    <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Nombres <span className="text-error">*</span></label>
-                    <input 
-                      name="nombres" value={formData.nombres || ''} onChange={handleInputChange}
-                      placeholder="Nombres completos..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Apellidos <span className="text-error">*</span></label>
-                    <input 
-                      name="apellidos" value={formData.apellidos || ''} onChange={handleInputChange}
-                      placeholder="Apellidos completos..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
-                      required
-                    />
-                  </div>
-                </div>
+                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Documento de Identidad</label>
+                     <div className="flex shadow-sm rounded-2xl overflow-hidden border border-outline-variant focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                       <select 
+                         name="tipo_identificacion" value={formData.tipo_identificacion || 'V'} onChange={handleInputChange} disabled={isEditing}
+                         className="bg-surface-container-high border-r border-outline-variant py-3.5 px-5 text-sm font-black outline-none w-[90px]"
+                       >
+                         <option value="V">V-</option>
+                         <option value="E">E-</option>
+                         <option value="P">P-</option>
+                       </select>
+                       <input 
+                         name="numero_cedula" value={formData.numero_cedula || ''} onChange={handleInputChange} disabled={isEditing}
+                         placeholder="00000000" className="w-full bg-surface-container-lowest py-3.5 px-5 text-sm font-bold outline-none uppercase tracking-widest"
+                         required
+                       />
+                     </div>
+                   </div>
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Código Operador</label>
+                     <input 
+                       name="codigo_op" value={formData.codigo_op || ''} onChange={handleInputChange}
+                       placeholder="Ej: OP-772" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase tracking-widest"
+                       required
+                     />
+                   </div>
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Nombres</label>
+                     <input 
+                       name="nombres" value={formData.nombres || ''} onChange={handleInputChange}
+                       placeholder="Nombres completos..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                       required
+                     />
+                   </div>
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Apellidos</label>
+                     <input 
+                       name="apellidos" value={formData.apellidos || ''} onChange={handleInputChange}
+                       placeholder="Apellidos completos..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                       required
+                     />
+                   </div>
+                 </div>
               </div>
 
-              {/* Technical Data Row */}
-              <div className="space-y-5">
-                <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.2em] flex items-center gap-3">
-                   <span className="material-symbols-outlined text-[20px]">id_card</span>
-                   Licencia e Instrucción Vial
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-1.5 md:col-span-1">
-                    <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Grado Licencia</label>
-                    <select 
-                      name="licencia_grado" value={formData.licencia_grado || 5} onChange={handleInputChange}
-                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                    >
-                      <option value={2}>Grado 2 (Moto)</option>
-                      <option value={3}>Grado 3 (Vehículos)</option>
-                      <option value={4}>Grado 4 (Público)</option>
-                      <option value={5}>Grado 5 (Carga)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Vence Licencia <span className="text-error">*</span></label>
-                    <input 
-                      type="date" name="vence_lic" value={formData.vence_lic || ''} onChange={handleInputChange}
-                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Certificado Médico</label>
-                    <input 
-                      type="date" name="certificado_medico_vence" value={formData.certificado_medico_vence || ''} onChange={handleInputChange}
-                      className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20"
-                    />
-                  </div>
-                </div>
+              {/* Card 2: License Data */}
+              <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm">
+                 <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
+                    <span className="material-symbols-outlined text-[20px]">id_card</span>
+                    Licencia e Instrucción Vial
+                 </h4>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-6">
+                   <div className="space-y-1.5 md:col-span-1">
+                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Grado Licencia</label>
+                     <select 
+                       name="licencia_grado" value={formData.licencia_grado || 5} onChange={handleInputChange}
+                       className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                     >
+                       <option value={2}>Grado 2 (Moto)</option>
+                       <option value={3}>Grado 3 (Vehículos)</option>
+                       <option value={4}>Grado 4 (Público)</option>
+                       <option value={5}>Grado 5 (Carga pesada)</option>
+                     </select>
+                   </div>
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Vence Licencia</label>
+                     <input 
+                       type="date" name="vence_lic" value={formData.vence_lic || ''} onChange={handleInputChange}
+                       className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                       required
+                     />
+                   </div>
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Certificado Médico</label>
+                     <input 
+                       type="date" name="certificado_medico_vence" value={formData.certificado_medico_vence || ''} onChange={handleInputChange}
+                       className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                     />
+                   </div>
+                 </div>
               </div>
 
-              {/* Contact Data Row */}
-              <div className="space-y-5">
-                <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.2em] flex items-center gap-3">
-                   <span className="material-symbols-outlined text-[20px]">contact_phone</span>
-                   Ubicación y Contacto
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                  <div className="md:col-span-4 space-y-1.5">
-                    <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Teléfono Móvil</label>
-                    <div className="flex shadow-sm rounded-2xl overflow-hidden border border-outline-variant focus-within:ring-2 focus-within:ring-secondary/20 transition-all">
-                      <select 
-                        name="prefijo_telefono" value={formData.prefijo_telefono || '0414'} onChange={handleInputChange}
-                        className="bg-surface-container-high border-r border-outline-variant py-3.5 px-4 text-sm font-black text-on-surface outline-none w-[90px]"
-                      >
-                        <option value="0414">0414</option>
-                        <option value="0424">0424</option>
-                        <option value="0412">0412</option>
-                        <option value="0416">0416</option>
-                      </select>
-                      <input 
-                        name="numero_telefono" value={formData.numero_telefono || ''} onChange={handleInputChange}
-                        placeholder="0000000" className="w-full bg-surface-container-lowest py-3.5 px-4 text-sm font-bold outline-none"
-                        maxLength={7}
-                      />
-                    </div>
-                  </div>
-                  <div className="md:col-span-8 space-y-1.5">
-                    <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Dirección Domiciliaria</label>
-                    <input 
-                      name="direccion" value={formData.direccion || ''} onChange={handleInputChange}
-                      placeholder="Estado, Municipio, Parroquia, Sector..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20"
-                    />
-                  </div>
-                </div>
+              {/* Card 3: Contact Data */}
+              <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm">
+                 <h4 className="text-[11px] font-black text-on-surface uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
+                    <span className="material-symbols-outlined text-[20px]">contact_phone</span>
+                    Ubicación y Contacto
+                 </h4>
+                 <div className="grid grid-cols-1 md:grid-cols-12 gap-x-10 gap-y-6">
+                   <div className="md:col-span-4 space-y-1.5">
+                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Teléfono Móvil</label>
+                     <div className="flex shadow-sm rounded-2xl overflow-hidden border border-outline-variant focus-within:ring-2 focus-within:ring-on-surface/20 transition-all">
+                       <select 
+                         name="prefijo_telefono" value={formData.prefijo_telefono || '0414'} onChange={handleInputChange}
+                         className="bg-surface-container-high border-r border-outline-variant py-3.5 px-4 text-sm font-black outline-none w-[90px]"
+                       >
+                         <option value="0414">0414</option>
+                         <option value="0424">0424</option>
+                         <option value="0412">0412</option>
+                         <option value="0416">0416</option>
+                       </select>
+                       <input 
+                         name="numero_telefono" value={formData.numero_telefono || ''} onChange={handleInputChange}
+                         placeholder="0000000" className="w-full bg-surface-container-lowest py-3.5 px-4 text-sm font-bold outline-none tracking-widest"
+                         maxLength={7}
+                       />
+                     </div>
+                   </div>
+                   <div className="md:col-span-8 space-y-1.5">
+                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Dirección Domiciliaria</label>
+                     <input 
+                       name="direccion" value={formData.direccion || ''} onChange={handleInputChange}
+                       placeholder="Estado, Municipio, Parroquia, Sector..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-on-surface/20 transition-all"
+                     />
+                   </div>
+                 </div>
               </div>
             </div>
           </div>
