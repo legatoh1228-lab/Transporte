@@ -5,9 +5,9 @@ from .serializers import UserSerializer, UserActivitySerializer
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework.views import APIView
 from catalogs.models import Modalidad
-from organizations.models import EmpresaOrganizacion
+from organizations.models import EmpresaOrganizacion, Gremio, OrganizacionCps
 from personnel.models import PersonalOperador
-from fleet.models import FlotaVehiculo
+from fleet.models import FlotaVehiculo, Terminal
 from routes.models import VialidadRuta
 from .models import UserActivity
 
@@ -159,6 +159,19 @@ def get_system_alerts(limit=None):
             "date": o.certificado_medico_vence
         })
 
+    # CPS (Permits) Expiration - NEW
+    cps_expiring = OrganizacionCps.objects.filter(fecha_vencimiento__lte=soon)
+    for c in cps_expiring:
+        status_label = "vencido" if c.fecha_vencimiento < today else "por vencer"
+        alerts.append({
+            "type": "error" if status_label == "vencido" else "warning",
+            "icon": "verified_user",
+            "title": f"Permiso CPS {status_label.capitalize()}",
+            "message": f"{c.organizacion.razon_social} (CPS: {c.codigo}). Vence: {c.fecha_vencimiento}",
+            "link": "/organizaciones",
+            "date": c.fecha_vencimiento
+        })
+
     # Sort by date (oldest first or nearest to expire)
     alerts.sort(key=lambda x: x['date'] if x['date'] else today)
     
@@ -170,6 +183,44 @@ class AlertsView(APIView):
     permission_classes = [AllowAny]
     def get(self, request):
         return Response(get_system_alerts())
+
+class DashboardComposicionView(APIView):
+    """
+    Devuelve la composición de elementos según el selector (entidad).
+    Entidades: fleet, terminales, vehicles, operators, gremios, routes
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        entidad = request.query_params.get('entidad', 'fleet')
+        data = []
+
+        if entidad == 'fleet':
+            # Composición por modalidad
+            query = FlotaVehiculo.objects.values('modalidad__nombre').annotate(count=Count('placa'))
+            data = [{"name": x['modalidad__nombre'], "value": x['count']} for x in query]
+        
+        elif entidad == 'terminales':
+            # Composición por municipio
+            query = Terminal.objects.values('municipio__nombre').annotate(count=Count('id'))
+            data = [{"name": x['municipio__nombre'], "value": x['count']} for x in query]
+            
+        elif entidad == 'gremios':
+            # Composición de organizaciones por gremio
+            query = Gremio.objects.annotate(count=Count('organizaciones'))
+            data = [{"name": x.razon_social, "value": x.count} for x in query]
+            
+        elif entidad == 'routes':
+            # Composición por tipo de ruta
+            query = VialidadRuta.objects.values('tipo__nombre').annotate(count=Count('id'))
+            data = [{"name": x['tipo__nombre'], "value": x['count']} for x in query]
+            
+        elif entidad == 'operators':
+            # Composición por grado de licencia
+            query = PersonalOperador.objects.values('grado_licencia').annotate(count=Count('cedula'))
+            data = [{"name": f"Grado {x['grado_licencia']}", "value": x['count']} for x in query]
+
+        return Response(data)
 
 class DashboardStatsView(APIView):
     permission_classes = [AllowAny] # Change to IsAuthenticated in production
