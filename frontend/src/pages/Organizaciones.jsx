@@ -17,8 +17,9 @@ const Organizaciones = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Catalogs
+  const [activeTab, setActiveTab] = useState('datos');
   const [tiposOrganizacion, setTiposOrganizacion] = useState([]);
+  const [rutasCatalog, setRutasCatalog] = useState([]);
 
   const [formData, setFormData] = useState({
     rif: '',
@@ -30,15 +31,22 @@ const Organizaciones = () => {
     correo: '',
     direccion_fiscal: '',
     fecha_constitucion: '',
-    esta_activa: true
+    cupo_unidades: 0,
+    modalidad_cps: '',
+    esta_activa: true,
+    rutas: []
   });
 
   const fetchCatalogs = async () => {
     try {
-      const response = await api.get('catalogs/tipos-organizacion/');
-      setTiposOrganizacion(response.data);
+      const [responseTipos, responseRutas] = await Promise.all([
+        api.get('catalogs/tipos-organizacion/'),
+        api.get('routes/rutas/')
+      ]);
+      setTiposOrganizacion(responseTipos.data);
+      setRutasCatalog(responseRutas.data);
     } catch (err) {
-      console.error("Error fetching org types:", err);
+      console.error("Error fetching catalogs:", err);
     }
   };
 
@@ -79,10 +87,45 @@ const Organizaciones = () => {
       correo: '',
       direccion_fiscal: '',
       fecha_constitucion: '',
-      esta_activa: true
+      cupo_unidades: 0,
+      modalidad_cps: '',
+      esta_activa: true,
+      rutas: []
     });
+    setActiveTab('datos');
     setIsEditing(false);
     setError(null);
+  };
+
+  const handleAddRuta = () => {
+    setFormData(prev => ({
+      ...prev,
+      rutas: [...prev.rutas, {
+        ruta_id: '',
+        numero_resolucion: '',
+        hora_salida_ida: '',
+        hora_regreso_ida: '',
+        frecuencia_ida_min: '',
+        hora_salida_vuelta: '',
+        hora_regreso_vuelta: '',
+        frecuencia_vuelta_min: ''
+      }]
+    }));
+  };
+
+  const handleRemoveRuta = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      rutas: prev.rutas.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleRutaChange = (index, field, value) => {
+    setFormData(prev => {
+      const newRutas = [...prev.rutas];
+      newRutas[index][field] = value;
+      return { ...prev, rutas: newRutas };
+    });
   };
 
   const handleOpenCreate = () => {
@@ -91,13 +134,29 @@ const Organizaciones = () => {
   };
 
   const handleEdit = (org) => {
-    setFormData(org);
+    setFormData({
+      ...org,
+      rutas: org.rutas || [],
+      cupo_unidades: org.cupo_unidades || 0,
+      modalidad_cps: org.modalidad_cps || ''
+    });
+    setActiveTab('datos');
     setIsEditing(true);
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate required fields in rutas
+    for (const r of formData.rutas) {
+      if (!r.ruta_id || !r.hora_salida_ida || !r.hora_regreso_ida || !r.frecuencia_ida_min || !r.hora_salida_vuelta || !r.hora_regreso_vuelta || !r.frecuencia_vuelta_min) {
+        setError("Todos los campos de horario son obligatorios en las rutas agregadas.");
+        setActiveTab('rutas');
+        return;
+      }
+    }
+
     try {
       if (isEditing) {
         await api.put(`organizations/organizations/${formData.rif}/`, formData);
@@ -109,7 +168,7 @@ const Organizaciones = () => {
       resetForm();
     } catch (err) {
       console.error("Error saving organization:", err);
-      setError("Error al guardar la organización. Verifique los campos.");
+      setError("Error al guardar la organización. Verifique los campos y que el RIF sea único.");
     }
   };
 
@@ -262,7 +321,26 @@ const Organizaciones = () => {
           </>
         }
       >
-        <form className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex gap-4 mb-6 border-b border-outline-variant">
+          <button 
+            type="button"
+            className={`pb-2 px-4 font-bold text-sm border-b-2 transition-colors ${activeTab === 'datos' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+            onClick={() => setActiveTab('datos')}
+          >
+            Datos de la Organización
+          </button>
+          <button 
+            type="button"
+            className={`pb-2 px-4 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'rutas' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+            onClick={() => setActiveTab('rutas')}
+          >
+            Rutas y Horarios
+            {formData.rutas.length > 0 && <span className="bg-primary text-on-primary text-[10px] px-1.5 py-0.5 rounded-full">{formData.rutas.length}</span>}
+          </button>
+        </div>
+
+        {activeTab === 'datos' && (
+          <form className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-on-surface-variant ml-1">RIF</label>
             <input 
@@ -322,7 +400,25 @@ const Organizaciones = () => {
               className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none"
             />
           </div>
-          <div className="space-y-1 md:col-span-2">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-on-surface-variant ml-1">Cupo Máx. Unidades</label>
+            <input 
+              type="number" name="cupo_unidades" value={formData.cupo_unidades} onChange={handleInputChange}
+              placeholder="0" className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-on-surface-variant ml-1">Modalidad CPS</label>
+            <select 
+              name="modalidad_cps" value={formData.modalidad_cps} onChange={handleInputChange}
+              className="w-full bg-surface-container border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none"
+            >
+              <option value="">Seleccione...</option>
+              <option value="DT9">DT9 (5-32 Puestos)</option>
+              <option value="DT10">DT10 (32+ Puestos)</option>
+            </select>
+          </div>
+          <div className="space-y-1 md:col-span-3">
             <label className="text-xs font-bold text-on-surface-variant ml-1">Dirección Fiscal</label>
             <textarea 
               name="direccion_fiscal" value={formData.direccion_fiscal} onChange={handleInputChange}
@@ -335,8 +431,112 @@ const Organizaciones = () => {
               <span className="text-xs font-bold text-on-surface-variant">Organización Activa</span>
             </label>
           </div>
-          {error && <div className="md:col-span-2 lg:col-span-3 text-error text-xs font-bold bg-error-container/10 p-2 rounded border border-error/20">{error}</div>}
+          {error && <div className="md:col-span-3 text-error text-xs font-bold bg-error-container/10 p-2 rounded border border-error/20">{error}</div>}
         </form>
+        )}
+
+        {activeTab === 'rutas' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-surface-container-low p-4 rounded-xl border border-outline-variant">
+              <div>
+                <h3 className="font-bold text-on-surface text-sm">Asignación de Rutas y Horarios</h3>
+                <p className="text-xs text-on-surface-variant mt-1">Defina las rutas autorizadas para esta organización y sus respectivos itinerarios operativos.</p>
+              </div>
+              <button 
+                onClick={handleAddRuta}
+                type="button"
+                className="bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-lg text-xs font-bold transition-colors flex items-center"
+              >
+                <span className="material-symbols-outlined mr-1 text-[16px]">add</span> Agregar Ruta
+              </button>
+            </div>
+
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+              {formData.rutas.map((r, index) => (
+                <div key={index} className="bg-surface-container border border-outline-variant rounded-xl p-5 relative">
+                  <button 
+                    onClick={() => handleRemoveRuta(index)}
+                    className="absolute top-4 right-4 text-outline hover:text-error transition-colors"
+                    title="Eliminar Ruta"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">close</span>
+                  </button>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-on-surface-variant">Seleccionar Ruta *</label>
+                      <select 
+                        value={r.ruta_id} onChange={(e) => handleRutaChange(index, 'ruta_id', e.target.value)}
+                        className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none"
+                      >
+                        <option value="">Seleccione una ruta...</option>
+                        {rutasCatalog.map(ruta => <option key={ruta.id} value={ruta.id}>{ruta.nombre}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-on-surface-variant">Resolución/Permiso</label>
+                      <input 
+                        type="text" value={r.numero_resolucion} onChange={(e) => handleRutaChange(index, 'numero_resolucion', e.target.value)}
+                        placeholder="Nro. del Documento" className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 text-sm focus:border-primary outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-surface-container-lowest p-4 rounded-lg border border-outline-variant/50">
+                    {/* Ida */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">trending_up</span> Itinerario de Ida
+                      </h4>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-on-surface-variant">Desde *</label>
+                          <input type="time" value={r.hora_salida_ida} onChange={(e) => handleRutaChange(index, 'hora_salida_ida', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-on-surface-variant">Hasta *</label>
+                          <input type="time" value={r.hora_regreso_ida} onChange={(e) => handleRutaChange(index, 'hora_regreso_ida', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-on-surface-variant">Frec. (min) *</label>
+                          <input type="number" placeholder="Ej: 60" value={r.frecuencia_ida_min} onChange={(e) => handleRutaChange(index, 'frecuencia_ida_min', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Vuelta */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[16px]">trending_down</span> Itinerario de Regreso
+                      </h4>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-on-surface-variant">Desde *</label>
+                          <input type="time" value={r.hora_salida_vuelta} onChange={(e) => handleRutaChange(index, 'hora_salida_vuelta', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-on-surface-variant">Hasta *</label>
+                          <input type="time" value={r.hora_regreso_vuelta} onChange={(e) => handleRutaChange(index, 'hora_regreso_vuelta', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-on-surface-variant">Frec. (min) *</label>
+                          <input type="number" placeholder="Ej: 60" value={r.frecuencia_vuelta_min} onChange={(e) => handleRutaChange(index, 'frecuencia_vuelta_min', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {formData.rutas.length === 0 && (
+                <div className="text-center p-8 border-2 border-dashed border-outline-variant rounded-xl text-on-surface-variant">
+                  <span className="material-symbols-outlined text-4xl mb-2 opacity-50">route</span>
+                  <p className="text-sm font-medium">Esta organización no tiene rutas asignadas.</p>
+                </div>
+              )}
+            </div>
+            {error && <div className="text-error text-xs font-bold bg-error-container/10 p-3 rounded border border-error/20">{error}</div>}
+          </div>
+        )}
       </Modal>
     </div>
   );

@@ -50,6 +50,16 @@ class VehiculoOrganizacionSerializer(serializers.ModelSerializer):
         model = VehiculoOrganizacion
         fields = '__all__'
 
+    def validate(self, data):
+        org = data.get('organizacion')
+        if org and org.cupo_unidades > 0:
+            count = VehiculoOrganizacion.objects.filter(organizacion=org, fecha_fin__isnull=True).count()
+            if not self.instance and count >= org.cupo_unidades:
+                raise serializers.ValidationError(
+                    {"organizacion": f"La organización ha alcanzado su cupo máximo de {org.cupo_unidades} unidades."}
+                )
+        return data
+
 class AsignacionRutaSerializer(serializers.ModelSerializer):
     operador_nombre = serializers.SerializerMethodField()
     vehiculo_placa = serializers.ReadOnlyField(source='vehiculo.placa')

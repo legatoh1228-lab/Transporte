@@ -30,6 +30,18 @@ class EmpresaOrganizacion(models.Model):
     fecha_constitucion_mercantil = models.DateField(blank=True, null=True, verbose_name="Fecha de Constitución Mercantil")
     cupo_maximo_unidades = models.SmallIntegerField(blank=True, null=True, verbose_name="Cupo Máximo de Unidades")
     esta_activa = models.BooleanField(default=True)
+    
+    @property
+    def total_vehiculos(self):
+        # Cuenta vehículos activos (sin fecha_fin)
+        return self.vehiculos.filter(fecha_fin__isnull=True).count()
+
+    @property
+    def cupos_disponibles(self):
+        if not self.cupo_maximo_unidades or self.cupo_maximo_unidades == 0:
+            return "Ilimitado"
+        disponibles = self.cupo_maximo_unidades - self.total_vehiculos
+        return max(0, disponibles)
 
     def __str__(self): return f"{self.rif} - {self.razon_social}"
     class Meta:

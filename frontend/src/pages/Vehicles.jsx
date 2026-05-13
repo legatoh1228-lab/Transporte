@@ -20,11 +20,13 @@ const Vehicles = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
 
-  // Catalogs
-  const [modalidades, setModalidades] = useState([]);
-  const [subModalidades, setSubModalidades] = useState([]);
-  const [transmisiones, setTransmisiones] = useState([]);
-  const [combustibles, setCombustibles] = useState([]);
+    // Catalogs
+    const [modalidades, setModalidades] = useState([]);
+    const [subModalidades, setSubModalidades] = useState([]);
+    const [transmisiones, setTransmisiones] = useState([]);
+    const [combustibles, setCombustibles] = useState([]);
+    const [operadores, setOperadores] = useState([]);
+    const [isPropietarioOperador, setIsPropietarioOperador] = useState(false);
 
   const [formData, setFormData] = useState({
     placa: '',
@@ -36,27 +38,34 @@ const Vehicles = () => {
     color: '',
     transmision: '',
     capacidad: 0,
-    capacidad_pie: 0,
+    serial_carroceria: '',
+    propietario: '',
+    propietario_identificacion: '',
+    cps: '',
     combustible: '',
     aire_acondicionado: false,
     accesibilidad: false,
     seguro_vence: '',
+    rcv_vence: '',
+    certificado_vence: '',
     revision_tecnica_vence: '',
     foto: null
   });
 
   const fetchCatalogs = async () => {
     try {
-      const [m, sm, t, c] = await Promise.all([
+      const [m, sm, t, c, ops] = await Promise.all([
         api.get('catalogs/modalidades/'),
         api.get('catalogs/submodalidades/'),
         api.get('catalogs/transmisiones/'),
-        api.get('catalogs/combustibles/')
+        api.get('catalogs/combustibles/'),
+        api.get('personnel/operators/')
       ]);
       setModalidades(m.data);
       setSubModalidades(sm.data);
       setTransmisiones(t.data);
       setCombustibles(c.data);
+      setOperadores(ops.data);
     } catch (err) {
       console.error("Error fetching catalogs:", err);
     }
@@ -108,11 +117,16 @@ const Vehicles = () => {
       color: '',
       transmision: '',
       capacidad: 0,
-      capacidad_pie: 0,
+      serial_carroceria: '',
+      propietario: '',
+      propietario_identificacion: '',
+      cps: '',
       combustible: '',
       aire_acondicionado: false,
       accesibilidad: false,
       seguro_vence: '',
+      rcv_vence: '',
+      certificado_vence: '',
       revision_tecnica_vence: '',
       foto: null
     });
@@ -186,6 +200,19 @@ const Vehicles = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    if (name === 'operador_as_propietario') {
+      const selectedOp = operadores.find(op => op.cedula === value);
+      if (selectedOp) {
+        setFormData(prev => ({
+          ...prev,
+          propietario: `${selectedOp.nombres} ${selectedOp.apellidos}`,
+          propietario_identificacion: selectedOp.cedula
+        }));
+      }
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -258,7 +285,7 @@ const Vehicles = () => {
                 <tr className="bg-surface-container-high">
                   <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50">Unidad / Identificación</th>
                   <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50">Especificaciones</th>
-                  <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50">Modalidad</th>
+                  <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50">Modalidad / CPS</th>
                   <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50">Capacidad</th>
                   <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50 text-center">Acciones</th>
                 </tr>
@@ -290,16 +317,23 @@ const Vehicles = () => {
                        </div>
                     </td>
                     <td className="px-8 py-5">
-                       <span className="inline-flex px-3 py-1 bg-secondary/10 text-secondary text-[10px] font-black uppercase tracking-tighter rounded-lg border border-secondary/20">
-                          {v.modalidad_nombre}
-                       </span>
+                       <div className="flex flex-col gap-1">
+                          <span className="inline-flex w-fit px-3 py-1 bg-secondary/10 text-secondary text-[10px] font-black uppercase tracking-tighter rounded-lg border border-secondary/20">
+                              {v.modalidad_nombre}
+                           </span>
+                           <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest ml-1">{v.cps || 'S/C'}</span>
+                       </div>
                     </td>
                     <td className="px-8 py-5">
-                       <div className="flex items-center gap-2 text-on-surface">
-                          <span className="material-symbols-outlined text-[18px] opacity-40">airline_seat_recline_normal</span>
-                          <span className="text-sm font-black">{v.capacidad}</span>
-                          <span className="text-[10px] font-bold text-on-surface-variant">asientos</span>
-                       </div>
+                        <div className="flex items-center gap-2 text-on-surface">
+                           <span className="material-symbols-outlined text-[18px] opacity-40">
+                              {v.modalidad == 3 ? 'motorcycle' : 'airline_seat_recline_normal'}
+                           </span>
+                           <span className="text-sm font-black">{v.capacidad}</span>
+                           <span className="text-[10px] font-bold text-on-surface-variant">
+                              {v.modalidad == 3 ? 'puestos' : 'asientos'}
+                           </span>
+                        </div>
                     </td>
                     <td className="px-8 py-5">
                         <div className="flex items-center justify-center gap-2">
@@ -415,6 +449,18 @@ const Vehicles = () => {
                          <span className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest block leading-none">Color de Unidad</span>
                          <span className="text-sm font-black text-on-surface uppercase">{selectedVehicle.color || 'No especificado'}</span>
                       </div>
+                      <div className="space-y-1 py-2 border-b border-outline-variant/10">
+                          <span className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest block leading-none">CPS Autorizado</span>
+                          <span className="text-sm font-black text-on-surface uppercase">{selectedVehicle.cps || 'No registrado'}</span>
+                       </div>
+                       <div className="space-y-1 py-2 border-b border-outline-variant/10">
+                          <span className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest block leading-none">
+                             {selectedVehicle.modalidad == 3 ? 'Puestos Adicionales' : 'Capacidad Total'}
+                          </span>
+                          <span className="text-sm font-black text-on-surface uppercase">
+                             {selectedVehicle.capacidad} {selectedVehicle.modalidad == 3 ? 'puestos' : 'pasajeros'}
+                          </span>
+                       </div>
                       <div className="flex items-center gap-4 pt-2">
                          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${selectedVehicle.aire_acondicionado ? 'bg-success/10 text-success' : 'bg-surface-variant text-on-surface-variant/40'}`}>
                             <span className="material-symbols-outlined text-[18px]">{selectedVehicle.aire_acondicionado ? 'ac_unit' : 'ac_unit_off'}</span>
@@ -428,18 +474,54 @@ const Vehicles = () => {
                    </div>
                 </div>
 
-                <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 space-y-6 shadow-sm">
+                <div className="space-y-8">
+                  <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 space-y-6 shadow-sm">
+                    <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3">
+                       <span className="material-symbols-outlined text-[20px]">person</span>
+                       Propiedad & Identificación
+                    </h4>
+                    <div className="space-y-4">
+                       <div className="p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
+                          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest block mb-1">Propietario</span>
+                          <span className="text-sm font-black text-on-surface uppercase">{selectedVehicle.propietario || 'Sin registro'}</span>
+                       </div>
+                       <div className="p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
+                          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest block mb-1">Cédula / RIF</span>
+                          <span className="text-sm font-black text-on-surface uppercase">{selectedVehicle.propietario_identificacion || 'Sin registro'}</span>
+                       </div>
+                       <div className="p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
+                          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest block mb-1">Serial de Carrocería</span>
+                          <span className="text-sm font-mono font-black text-on-surface uppercase">{selectedVehicle.serial_carroceria || 'Sin registro'}</span>
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 space-y-6 shadow-sm">
                    <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">assignment_turned_in</span>
                       Estatus Legal
                    </h4>
                    <div className="space-y-6">
                       <div className="p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
-                         <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest block mb-2">Vencimiento de Seguro</span>
-                         <span className={`text-sm font-black ${new Date(selectedVehicle.seguro_vence) < new Date() ? 'text-error animate-pulse' : 'text-on-surface'}`}>
-                            {selectedVehicle.seguro_vence || 'Sin registro'}
+                         <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest block mb-2">Vencimiento RCV</span>
+                         <span className={`text-sm font-black ${new Date(selectedVehicle.rcv_vence) < new Date() ? 'text-error animate-pulse' : 'text-on-surface'}`}>
+                            {selectedVehicle.rcv_vence || 'Sin registro'}
                          </span>
                       </div>
+                      <div className="p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
+                         <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest block mb-2">Certificado de Circulación</span>
+                         <span className={`text-sm font-black ${new Date(selectedVehicle.certificado_vence) < new Date() ? 'text-error animate-pulse' : 'text-on-surface'}`}>
+                            {selectedVehicle.certificado_vence || 'Sin registro'}
+                         </span>
+                      </div>
+                      {selectedVehicle.modalidad != 3 && (
+                        <div className="p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
+                           <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest block mb-2">Seguro de Casco</span>
+                           <span className={`text-sm font-black ${new Date(selectedVehicle.seguro_vence) < new Date() ? 'text-error animate-pulse' : 'text-on-surface'}`}>
+                              {selectedVehicle.seguro_vence || 'Sin registro'}
+                           </span>
+                        </div>
+                      )}
                       <div className="p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
                          <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest block mb-2">Revisión Técnica</span>
                          <span className={`text-sm font-black ${new Date(selectedVehicle.revision_tecnica_vence) < new Date() ? 'text-error animate-pulse' : 'text-on-surface'}`}>
@@ -450,6 +532,7 @@ const Vehicles = () => {
                 </div>
              </div>
           </div>
+        </div>
         )}
       </Modal>
 
@@ -469,7 +552,7 @@ const Vehicles = () => {
           </div>
         }
       >
-        <form className="space-y-10 py-4">
+        <form className="space-y-8 py-4">
           {error && (
             <div className="bg-error/10 border border-error/20 p-5 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4">
               <span className="material-symbols-outlined text-error text-[24px]">warning</span>
@@ -477,204 +560,236 @@ const Vehicles = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            {/* Left Column: Photo and Key Identifiers */}
-            <div className="lg:col-span-4 space-y-8">
-               <div className="flex flex-col items-center justify-center p-10 bg-surface-container-low rounded-[40px] border-2 border-dashed border-outline-variant/50 relative group transition-all hover:bg-surface-container shadow-inner">
-                  <div className="w-full aspect-[4/3] rounded-[32px] bg-white shadow-2xl overflow-hidden border-4 border-white mb-6 relative transition-transform duration-500 group-hover:scale-[1.02]">
-                     {imagePreview ? (
-                       <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                     ) : (
-                       <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary opacity-40">
-                         <span className="material-symbols-outlined text-[64px]">add_photo_alternate</span>
-                       </div>
-                     )}
-                     <label className="absolute inset-0 bg-primary/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
-                        <span className="material-symbols-outlined text-white text-[32px]">upload</span>
-                        <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-                     </label>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Left Column: Essential Identification */}
+            <div className="lg:col-span-4 space-y-6">
+               <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm space-y-6">
+                  <div className="flex flex-col items-center">
+                     <div className="w-full aspect-[4/3] rounded-[32px] bg-surface-container-lowest shadow-inner overflow-hidden border-2 border-dashed border-outline-variant/50 relative group transition-all hover:border-primary/50">
+                        {imagePreview ? (
+                          <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-primary/30">
+                            <span className="material-symbols-outlined text-[64px]">local_shipping</span>
+                          </div>
+                        )}
+                        <label className="absolute inset-0 bg-primary/60 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer">
+                           <div className="flex flex-col items-center gap-2 text-white">
+                              <span className="material-symbols-outlined text-[32px]">add_a_photo</span>
+                              <span className="text-[10px] font-black uppercase tracking-widest">Cambiar Foto</span>
+                           </div>
+                           <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                        </label>
+                     </div>
+                     <p className="text-[10px] font-bold text-on-surface-variant/40 mt-4 uppercase tracking-[0.2em]">Imagen Referencial de Unidad</p>
                   </div>
-                  <h5 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.3em]">Imagen del Vehículo</h5>
-                  <p className="text-[10px] text-on-surface-variant/50 mt-2 text-center leading-relaxed">Formato horizontal recomendado<br/>JPG, PNG (Máx 2MB)</p>
+
+                  <div className="pt-4 space-y-2">
+                     <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1">Placa de Identificación</label>
+                     <input 
+                       name="placa" value={formData.placa} onChange={handleInputChange} disabled={isEditing}
+                       placeholder="Placa..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-4 px-6 text-2xl font-mono font-black text-primary outline-none focus:ring-4 focus:ring-primary/10 transition-all uppercase tracking-tighter shadow-sm disabled:opacity-50"
+                       required
+                     />
+                  </div>
                </div>
 
-               <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Placa de Identificación <span className="text-error">*</span></label>
-                  <input 
-                    name="placa" value={formData.placa} onChange={handleInputChange} disabled={isEditing}
-                    placeholder="AAA000" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-4 px-5 text-xl font-mono font-black text-primary outline-none focus:ring-4 focus:ring-primary/10 transition-all uppercase tracking-tighter shadow-sm"
-                    required
-                  />
+               <div className="bg-surface-container-low p-6 rounded-[32px] border border-outline-variant/30 space-y-4">
+                  <h4 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-3 ml-1">
+                     <span className="material-symbols-outlined text-[20px]">tune</span>
+                     Extras de Confort
+                  </h4>
+                  {formData.modalidad != '3' ? (
+                     <div className="space-y-3">
+                        <label className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/20 cursor-pointer hover:border-primary/30 transition-all group">
+                           <div className="flex items-center gap-3">
+                              <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">ac_unit</span>
+                              <span className="text-[11px] font-black text-on-surface-variant uppercase tracking-widest">Aire Acondicionado</span>
+                           </div>
+                           <div className="relative">
+                              <input type="checkbox" name="aire_acondicionado" checked={formData.aire_acondicionado} onChange={handleInputChange} className="peer hidden" />
+                              <div className="w-10 h-6 bg-surface-variant rounded-full peer-checked:bg-primary transition-all"></div>
+                              <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:left-5"></div>
+                           </div>
+                        </label>
+                        <label className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/20 cursor-pointer hover:border-primary/30 transition-all group">
+                           <div className="flex items-center gap-3">
+                              <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">accessible</span>
+                              <span className="text-[11px] font-black text-on-surface-variant uppercase tracking-widest">Accesibilidad</span>
+                           </div>
+                           <div className="relative">
+                              <input type="checkbox" name="accesibilidad" checked={formData.accesibilidad} onChange={handleInputChange} className="peer hidden" />
+                              <div className="w-10 h-6 bg-surface-variant rounded-full peer-checked:bg-primary transition-all"></div>
+                              <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:left-5"></div>
+                           </div>
+                        </label>
+                     </div>
+                  ) : (
+                     <div className="p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/20 text-[10px] font-bold text-on-surface-variant/40 uppercase italic text-center py-6">
+                        No aplica para motocicletas
+                     </div>
+                  )}
                </div>
             </div>
 
-            {/* Right Column: Detailed Tech Specs */}
-            <div className="lg:col-span-8 space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                 <div className="space-y-5">
-                    <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.2em] flex items-center gap-3">
-                       <span className="material-symbols-outlined text-[20px]">branding_watermark</span>
-                       Marca & Modelo
-                    </h4>
-                    <div className="space-y-4">
-                       <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Fabricante / Marca <span className="text-error">*</span></label>
-                          <input 
-                            name="marca" value={formData.marca} onChange={handleInputChange}
-                            placeholder="Ej: Encava, Iveco..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                            required
-                          />
-                       </div>
-                       <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Modelo Específico <span className="text-error">*</span></label>
-                          <input 
-                            name="modelo" value={formData.modelo} onChange={handleInputChange}
-                            placeholder="Ej: E-NT610, Daily..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                            required
-                          />
-                       </div>
-                       <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                             <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Año <span className="text-error">*</span></label>
-                             <input 
-                               type="number" name="anio" value={formData.anio} onChange={handleInputChange}
-                               className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                               required
-                             />
-                          </div>
-                          <div className="space-y-1.5">
-                             <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Color</label>
-                             <input 
-                               name="color" value={formData.color} onChange={handleInputChange}
-                               placeholder="Blanco, Azul..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                             />
-                          </div>
-                       </div>
-                    </div>
-                 </div>
+            {/* Right Column: Details and Legal */}
+            <div className="lg:col-span-8 space-y-6">
+               {/* Card 1: Technical Specs */}
+               <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm">
+                  <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
+                     <span className="material-symbols-outlined text-[20px]">settings_suggest</span>
+                     Especificaciones de la Unidad
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Marca / Fabricante</label>
+                        <input name="marca" value={formData.marca} onChange={handleInputChange} placeholder="Ej: Encava" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" required />
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Modelo</label>
+                        <input name="modelo" value={formData.modelo} onChange={handleInputChange} placeholder="Ej: E-NT610" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" required />
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Año</label>
+                           <input type="number" name="anio" value={formData.anio} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-primary/20 transition-all" required />
+                        </div>
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Color</label>
+                           <input name="color" value={formData.color} onChange={handleInputChange} placeholder="Blanco" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                        </div>
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Transmisión</label>
+                           <select name="transmision" value={formData.transmision} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-primary/20 transition-all" required>
+                              <option value="">Seleccione...</option>
+                              {transmisiones.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                           </select>
+                        </div>
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Combustible</label>
+                           <select name="combustible" value={formData.combustible} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-primary/20 transition-all" required>
+                              <option value="">Seleccione...</option>
+                              {combustibles.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                           </select>
+                        </div>
+                     </div>
+                  </div>
+               </div>
 
-                 <div className="space-y-5">
-                    <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.2em] flex items-center gap-3">
-                       <span className="material-symbols-outlined text-[20px]">settings</span>
-                       Configuración Mecánica
-                    </h4>
-                    <div className="space-y-4">
-                       <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Transmisión <span className="text-error">*</span></label>
-                          <select 
-                            name="transmision" value={formData.transmision} onChange={handleInputChange}
-                            className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                            required
-                          >
-                            <option value="">Seleccione...</option>
-                            {transmisiones.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-                          </select>
-                       </div>
-                       <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Combustible <span className="text-error">*</span></label>
-                          <select 
-                            name="combustible" value={formData.combustible} onChange={handleInputChange}
-                            className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                            required
-                          >
-                            <option value="">Seleccione...</option>
-                            {combustibles.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                          </select>
-                       </div>
-                       <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                             <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Pasajeros <span className="text-error">*</span></label>
-                             <input 
-                               type="number" name="capacidad" value={formData.capacidad} onChange={handleInputChange}
-                               className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                               required
-                             />
-                          </div>
-                          <div className="space-y-1.5">
-                             <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Parados</label>
-                             <input 
-                               type="number" name="capacidad_pie" value={formData.capacidad_pie} onChange={handleInputChange}
-                               className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                             />
-                          </div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
+               {/* Card 2: Operación & Capacidad */}
+               <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm">
+                  <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
+                     <span className="material-symbols-outlined text-[20px]">route</span>
+                     Asignación Operativa & Capacidad
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Modalidad de Servicio</label>
+                        <select name="modalidad" value={formData.modalidad} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all" required>
+                           <option value="">Seleccione...</option>
+                           {modalidades.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                        </select>
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Sub-Modalidad</label>
+                        <select name="submodalidad" value={formData.submodalidad} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all" required>
+                           <option value="">Seleccione modalidad primero...</option>
+                           {subModalidades.filter(sm => sm.modalidad == formData.modalidad).map(sm => <option key={sm.id} value={sm.id}>{sm.nombre}</option>)}
+                        </select>
+                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">CPS Autorizado</label>
+                           <select name="cps" value={formData.cps} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all" required>
+                              <option value="">Seleccione...</option>
+                              <option value="DT9">DT9</option>
+                              <option value="DT10">DT10</option>
+                           </select>
+                        </div>
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">
+                              {formData.modalidad == '3' ? 'Puestos' : 'Capacidad Total'}
+                           </label>
+                           <input type="number" name="capacidad" value={formData.capacidad} onChange={handleInputChange} placeholder="0" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all" required />
+                        </div>
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Serial de Carrocería</label>
+                        <input name="serial_carroceria" value={formData.serial_carroceria} onChange={handleInputChange} placeholder="Serial..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-mono font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
+                     </div>
+                  </div>
+               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                 <div className="space-y-5">
-                    <h4 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-3">
-                       <span className="material-symbols-outlined text-[20px]">assignment_ind</span>
-                       Operación & Modalidad
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                       <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Modalidad <span className="text-error">*</span></label>
-                          <select 
-                            name="modalidad" value={formData.modalidad} onChange={handleInputChange}
-                            className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                            required
-                          >
-                            <option value="">Seleccione...</option>
-                            {modalidades.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-                          </select>
-                       </div>
-                       <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Sub-Modalidad <span className="text-error">*</span></label>
-                          <select 
-                            name="submodalidad" value={formData.submodalidad} onChange={handleInputChange}
-                            className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                            required
-                          >
-                            <option value="">Seleccione...</option>
-                            {subModalidades.filter(sm => sm.modalidad == formData.modalidad).map(sm => <option key={sm.id} value={sm.id}>{sm.nombre}</option>)}
-                          </select>
-                       </div>
-                    </div>
-                    <div className="flex items-center gap-8 pt-2 px-1">
-                       <label className="flex items-center gap-3 cursor-pointer group">
-                          <div className="relative">
-                             <input type="checkbox" name="aire_acondicionado" checked={formData.aire_acondicionado} onChange={handleInputChange} className="peer hidden" />
-                             <div className="w-10 h-6 bg-surface-container-highest rounded-full peer-checked:bg-primary transition-all"></div>
-                             <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:left-5"></div>
-                          </div>
-                          <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest group-hover:text-primary transition-colors">Aire Acond.</span>
-                       </label>
-                       <label className="flex items-center gap-3 cursor-pointer group">
-                          <div className="relative">
-                             <input type="checkbox" name="accesibilidad" checked={formData.accesibilidad} onChange={handleInputChange} className="peer hidden" />
-                             <div className="w-10 h-6 bg-surface-container-highest rounded-full peer-checked:bg-primary transition-all"></div>
-                             <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:left-5"></div>
-                          </div>
-                          <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest group-hover:text-primary transition-colors">Accesible</span>
-                       </label>
-                    </div>
-                 </div>
+               {/* Card 3: Propiedad & Documentación */}
+               <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm">
+                  <div className="flex items-center justify-between mb-8">
+                     <h4 className="text-[11px] font-black text-on-surface uppercase tracking-[0.3em] flex items-center gap-3">
+                        <span className="material-symbols-outlined text-[20px]">badge</span>
+                        Propiedad & Documentación Legal
+                     </h4>
+                     <label className="flex items-center gap-2 cursor-pointer bg-surface-container-lowest px-4 py-2 rounded-xl border border-outline-variant/30 hover:border-primary/50 transition-all group">
+                        <input type="checkbox" checked={isPropietarioOperador} onChange={(e) => setIsPropietarioOperador(e.target.checked)} className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary/20" />
+                        <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest group-hover:text-primary transition-colors">¿Es un Operador?</span>
+                     </label>
+                  </div>
 
-                 <div className="space-y-5">
-                    <h4 className="text-[11px] font-black text-error uppercase tracking-[0.2em] flex items-center gap-3">
-                       <span className="material-symbols-outlined text-[20px]">verified_user</span>
-                       Control de Vigencias
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                       <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Vence Seguro</label>
-                          <input 
-                            type="date" name="seguro_vence" value={formData.seguro_vence} onChange={handleInputChange}
-                            className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-error/20 transition-all"
-                          />
-                       </div>
-                       <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Revisión Técnica</label>
-                          <input 
-                            type="date" name="revision_tecnica_vence" value={formData.revision_tecnica_vence} onChange={handleInputChange}
-                            className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-error/20 transition-all"
-                          />
-                       </div>
-                    </div>
-                 </div>
-              </div>
+                  <div className="space-y-8">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                        <div className="space-y-4">
+                           {isPropietarioOperador && (
+                              <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">
+                                 <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Seleccionar de Lista</label>
+                                 <select name="operador_as_propietario" onChange={handleInputChange} className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant rounded-2xl py-3 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all">
+                                    <option value="">Buscar operador...</option>
+                                    {operadores.map(op => <option key={op.cedula} value={op.cedula} className="bg-surface-container-lowest text-on-surface">{op.cedula} - {op.nombres} {op.apellidos}</option>)}
+                                 </select>
+                              </div>
+                           )}
+                           <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Nombre del Propietario</label>
+                              <input name="propietario" value={formData.propietario} onChange={handleInputChange} placeholder="Nombre completo" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-on-surface/20 transition-all" />
+                           </div>
+                           <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Identificación / RIF</label>
+                              <input name="propietario_identificacion" value={formData.propietario_identificacion} onChange={handleInputChange} placeholder="V-00.000.000" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-on-surface/20 transition-all" />
+                           </div>
+                        </div>
+
+                        <div className="space-y-5">
+                           <h5 className="text-[10px] font-black text-error uppercase tracking-[0.2em] flex items-center gap-2 mb-2 ml-1">
+                              <span className="material-symbols-outlined text-[16px]">verified</span>
+                              Vigencia de Documentos
+                           </h5>
+                           <div className="grid grid-cols-1 gap-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Vence RCV</label>
+                                    <input type="date" name="rcv_vence" value={formData.rcv_vence} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-2 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-error/20 transition-all" />
+                                 </div>
+                                 <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Vence Certificado</label>
+                                    <input type="date" name="certificado_vence" value={formData.certificado_vence} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-2 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-error/20 transition-all" />
+                                 </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                 {formData.modalidad != '3' && (
+                                    <div className="space-y-1">
+                                       <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Seguro Casco</label>
+                                       <input type="date" name="seguro_vence" value={formData.seguro_vence} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-2 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-error/20 transition-all" />
+                                    </div>
+                                 )}
+                                 <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Rev. Técnica</label>
+                                    <input type="date" name="revision_tecnica_vence" value={formData.revision_tecnica_vence} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-2 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-error/20 transition-all" />
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
             </div>
           </div>
         </form>

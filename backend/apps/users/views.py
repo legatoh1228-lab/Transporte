@@ -238,7 +238,41 @@ class DashboardStatsView(APIView):
         for item in distribution_query:
             percentage = (item['count'] / total_vehicles * 100) if total_vehicles > 0 else 0
             fleet_distribution.append({
-                "name": item['modalidad__nombre'],
+                "name": item['modalidad__nombre'] if item['modalidad__nombre'] else 'No Especificado',
+                "count": item['count'],
+                "percentage": round(percentage, 1)
+            })
+
+        # Operator Distribution by License Grade
+        op_dist_query = PersonalOperador.objects.values('licencia_grado').annotate(count=Count('cedula')).order_by('-count')
+        operator_distribution = []
+        for item in op_dist_query:
+            percentage = (item['count'] / total_operators * 100) if total_operators > 0 else 0
+            grado = item['licencia_grado']
+            operator_distribution.append({
+                "name": f"Grado {grado}" if grado else 'Desconocido',
+                "count": item['count'],
+                "percentage": round(percentage, 1)
+            })
+
+        # Organizations Distribution by Type
+        org_dist_query = EmpresaOrganizacion.objects.values('tipo__nombre').annotate(count=Count('rif')).order_by('-count')
+        org_distribution = []
+        for item in org_dist_query:
+            percentage = (item['count'] / total_orgs * 100) if total_orgs > 0 else 0
+            org_distribution.append({
+                "name": item['tipo__nombre'] if item['tipo__nombre'] else 'Otros',
+                "count": item['count'],
+                "percentage": round(percentage, 1)
+            })
+
+        # Routes Distribution by Type
+        route_dist_query = VialidadRuta.objects.values('tipo__nombre').annotate(count=Count('id')).order_by('-count')
+        route_distribution = []
+        for item in route_dist_query:
+            percentage = (item['count'] / total_routes * 100) if total_routes > 0 else 0
+            route_distribution.append({
+                "name": item['tipo__nombre'] if item['tipo__nombre'] else 'Sin Clasificar',
                 "count": item['count'],
                 "percentage": round(percentage, 1)
             })
@@ -262,6 +296,9 @@ class DashboardStatsView(APIView):
             "operators": total_operators,
             "routes": total_routes,
             "fleet_distribution": fleet_distribution,
+            "operator_distribution": operator_distribution,
+            "org_distribution": org_distribution,
+            "route_distribution": route_distribution,
             "axis_distribution": axis_distribution,
             "alerts": get_system_alerts(limit=10)
         }
