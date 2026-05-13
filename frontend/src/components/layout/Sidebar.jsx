@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
 import api from '../../services/api';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
@@ -22,7 +22,9 @@ const Sidebar = () => {
     'Organizaciones': 'Organizaciones',
     'Vehículos': 'Vehículos',
     'Operadores': 'Operadores',
+    'Asignaciones': 'Asignaciones',
     'Rutas': 'Rutas',
+
     'Mapa de Rutas': 'Rutas',
     'Alertas': 'Alertas',
     'Terminales': 'Organizaciones',
@@ -40,6 +42,7 @@ const Sidebar = () => {
     { label: 'Terminales',     icon: 'store',            path: '/terminales' },
     { label: 'Vehículos',      icon: 'directions_bus',   path: '/vehiculos' },
     { label: 'Operadores',     icon: 'person_pin',       path: '/operadores' },
+    { label: 'Asignaciones',   icon: 'assignment_ind',   path: '/asignaciones' },
     { label: 'Rutas',          icon: 'alt_route',        path: '/rutas' },
     { label: 'Mapa de Rutas',  icon: 'map',              path: '/mapa-rutas' },
     { label: 'Alertas',        icon: 'notifications_active', path: '/alertas' },
@@ -119,9 +122,18 @@ const Sidebar = () => {
 
   return (
     <aside
-      className="fixed left-0 top-0 h-screen w-[280px] flex-col z-50 overflow-y-auto hidden md:flex font-public-sans transition-colors duration-300 shadow-xl"
+      className={`fixed left-0 top-0 h-screen w-[280px] flex-col z-50 overflow-y-auto font-public-sans transition-all duration-300 shadow-xl
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:flex`}
       style={{ backgroundColor: sidebarBg }}
     >
+      {/* Mobile Close Button */}
+      <button 
+        onClick={onClose}
+        className="md:hidden absolute right-4 top-6 p-2 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all active:scale-95"
+      >
+        <span className="material-symbols-outlined">close</span>
+      </button>
+
       {/* Header */}
       <div className="p-6 flex flex-col gap-4" style={{ borderBottom: '1px solid var(--color-outline-variant)' }}>
         <div className="flex items-center gap-3">
@@ -159,6 +171,7 @@ const Sidebar = () => {
                 <div className="flex items-center">
                   <Link
                     to={item.path}
+                    onClick={() => { if (!hasSubItems && window.innerWidth < 768) onClose(); }}
                     className="flex-1 flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 rounded-r-xl mr-2"
                     style={{
                       color:           isActive ? sidebarTextActive : sidebarText,
@@ -198,6 +211,7 @@ const Sidebar = () => {
                         <li key={subItem.path}>
                           <Link
                             to={subItem.path}
+                            onClick={() => { if (window.innerWidth < 768) onClose(); }}
                             className="flex items-center px-8 py-2 text-[13px] font-medium transition-all duration-150"
                             style={{
                               color: isSubActive ? sidebarTextActive : sidebarText,

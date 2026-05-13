@@ -4,7 +4,7 @@ import { getMediaUrl } from '../../utils/helpers';
 import { usePermissions } from '../../hooks/usePermissions';
 import api from '../../services/api';
 
-const TopBar = () => {
+const TopBar = ({ onMenuToggle }) => {
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -51,21 +51,26 @@ const TopBar = () => {
 
   return (
     <header
-      className="flex justify-between items-center h-16 px-6 w-full sticky top-0 z-40 font-public-sans transition-colors duration-200"
+      className="flex justify-between items-center h-16 px-4 md:px-6 w-full sticky top-0 z-40 font-public-sans transition-colors duration-200"
       style={{
         backgroundColor: 'var(--color-surface)',
         borderBottom: '1px solid var(--color-outline-variant)',
       }}
     >
       {/* Left: Brand + Hamburger */}
-      <div className="flex items-center gap-4">
-        <button className="md:hidden p-2 rounded transition-colors" style={{ color: 'var(--color-outline)' }}>
+      <div className="flex items-center gap-2 md:gap-4">
+        <button 
+          onClick={onMenuToggle}
+          className="md:hidden p-2 rounded-xl hover:bg-surface-container transition-colors" 
+          style={{ color: 'var(--color-outline)' }}
+        >
           <span className="material-symbols-outlined">menu</span>
         </button>
-        <div className="text-lg font-black hidden md:block" style={{ color: 'var(--color-primary-container)' }}>
+        <div className="text-base md:text-lg font-black" style={{ color: 'var(--color-primary-container)' }}>
           {systemName}
         </div>
       </div>
+
 
       {/* Center: Search Bar */}
       <div className="flex-1 max-w-md mx-6 hidden lg:block">

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import FlotaVehiculo, VehiculoOrganizacion, Terminal, VehiculoOperador
+from .models import FlotaVehiculo, VehiculoOrganizacion, Terminal, VehiculoOperador, AsignacionRuta
 
 class TerminalSerializer(serializers.ModelSerializer):
     municipio_nombre = serializers.ReadOnlyField(source='municipio.nombre')
@@ -49,3 +49,14 @@ class VehiculoOrganizacionSerializer(serializers.ModelSerializer):
         model = VehiculoOrganizacion
         fields = '__all__'
 
+class AsignacionRutaSerializer(serializers.ModelSerializer):
+    operador_nombre = serializers.SerializerMethodField()
+    vehiculo_placa = serializers.ReadOnlyField(source='vehiculo.placa')
+    ruta_nombre = serializers.ReadOnlyField(source='ruta.nombre')
+
+    class Meta:
+        model = AsignacionRuta
+        fields = '__all__'
+
+    def get_operador_nombre(self, obj):
+        return f"{obj.operador.nombres} {obj.operador.apellidos}"

@@ -75,3 +75,19 @@ class VehiculoOperador(models.Model):
         db_table = 'vehiculo_operador'
         unique_together = ('vehiculo', 'operador')
 
+class AsignacionRuta(models.Model):
+    operador = models.ForeignKey('personnel.PersonalOperador', on_delete=models.CASCADE, related_name='asignaciones_ruta')
+    vehiculo = models.ForeignKey(FlotaVehiculo, on_delete=models.CASCADE, related_name='asignaciones_ruta')
+    ruta = models.ForeignKey('routes.VialidadRuta', on_delete=models.CASCADE, related_name='asignaciones_operativas')
+    fecha_inicio = models.DateField(auto_now_add=True)
+    fecha_fin = models.DateField(blank=True, null=True)
+    estatus = models.CharField(max_length=20, default='Activo', choices=[('Activo', 'Activo'), ('Finalizado', 'Finalizado'), ('Inactivo', 'Inactivo')])
+    observaciones = models.TextField(blank=True, null=True)
+
+    def __str__(self): return f"{self.operador} | {self.vehiculo} | {self.ruta}"
+    class Meta:
+        verbose_name = "Asignación de Ruta"
+        verbose_name_plural = "Asignaciones de Rutas"
+        db_table = 'asignacion_ruta'
+
+
