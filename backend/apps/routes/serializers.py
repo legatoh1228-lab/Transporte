@@ -1,5 +1,10 @@
 from rest_framework import serializers
-from .models import VialidadRuta, GestionPermiso
+from .models import VialidadRuta, GestionPermiso, HorarioRuta
+
+class HorarioRutaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HorarioRuta
+        fields = '__all__'
 
 class VialidadRutaSerializer(serializers.ModelSerializer):
     tipo_nombre = serializers.ReadOnlyField(source='tipo.nombre')
