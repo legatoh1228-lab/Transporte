@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import (
     Modalidad, SubModalidad, TerritorioEje, TerritorioMunicipio,
     TipoCombustible, TipoRuta, TipoTransmision, TipoVia, TipoOrganizacion, Rol,
-    ConfiguracionVisual
+    ConfiguracionVisual, TipoCps
 )
 
 class ConfiguracionVisualSerializer(serializers.ModelSerializer):
@@ -60,4 +60,9 @@ class TipoOrganizacionSerializer(serializers.ModelSerializer):
 class RolSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rol
+        fields = '__all__'
+
+class TipoCpsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TipoCps
         fields = '__all__'

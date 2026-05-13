@@ -1,9 +1,16 @@
 from rest_framework import serializers
-from .models import EmpresaOrganizacion, Gremio
+from .models import EmpresaOrganizacion, Gremio, OrganizacionCps
 
 class GremioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Gremio
+        fields = '__all__'
+
+class OrganizacionCpsSerializer(serializers.ModelSerializer):
+    tipo_cps_codigo = serializers.ReadOnlyField(source='tipo_cps.codigo')
+    
+    class Meta:
+        model = OrganizacionCps
         fields = '__all__'
 
 class EmpresaOrganizacionSerializer(serializers.ModelSerializer):
