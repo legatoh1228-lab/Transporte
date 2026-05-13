@@ -324,33 +324,6 @@ export default function RouteMap() {
         </div>
 
         <div className="flex-1 bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden relative">
-          <div className="absolute top-4 left-4 z-[20] w-72">
-            <div className="relative group">
-              <input 
-                type="text" 
-                placeholder="Buscar lugar o dirección..." 
-                className="w-full bg-surface-container-highest/90 backdrop-blur-md border border-outline-variant rounded-lg py-3 px-4 pl-11 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-xl transition-all"
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-              />
-              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">location_on</span>
-              {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-surface-container-highest rounded-xl shadow-2xl border border-outline-variant overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                  {searchResults.map(res => (
-                    <div 
-                      key={res.place_id} 
-                      onClick={() => selectPlace(res)}
-                      className="px-4 py-3 text-xs hover:bg-primary/10 cursor-pointer border-b border-outline-variant last:border-0 transition-colors flex items-center gap-3"
-                    >
-                      <span className="material-symbols-outlined text-on-surface-variant text-[16px]">place</span>
-                      <span className="flex-1 truncate">{res.description}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
           <GoogleMap
             key={selectedRouteId || 'route-map'}
             mapContainerStyle={mapContainerStyle}

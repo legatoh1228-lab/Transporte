@@ -27,6 +27,15 @@ class GestionPermiso(models.Model):
     f_emision = models.DateField(verbose_name="Fecha de Emisión")
     numero_resolucion = models.CharField(max_length=50, blank=True, null=True)
     estatus = models.CharField(max_length=15, default='ACT', choices=[('ACT', 'Activo'), ('SUSP', 'Suspendido')])
+    
+    hora_salida_ida = models.TimeField(blank=True, null=True, verbose_name="Hora Salida Ida")
+    hora_regreso_ida = models.TimeField(blank=True, null=True, verbose_name="Hora Regreso Ida")
+    frecuencia_ida_min = models.PositiveIntegerField(blank=True, null=True, verbose_name="Frecuencia Ida (min)")
+    
+    hora_salida_vuelta = models.TimeField(blank=True, null=True, verbose_name="Hora Salida Vuelta")
+    hora_regreso_vuelta = models.TimeField(blank=True, null=True, verbose_name="Hora Regreso Vuelta")
+    frecuencia_vuelta_min = models.PositiveIntegerField(blank=True, null=True, verbose_name="Frecuencia Vuelta (min)")
+    
     observaciones = models.TextField(blank=True, null=True)
 
     def __str__(self): return f"Permiso {self.numero_resolucion} - {self.org}"
