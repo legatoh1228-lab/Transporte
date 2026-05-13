@@ -24,6 +24,7 @@ class FlotaVehiculoSerializer(serializers.ModelSerializer):
     submodalidad_nombre = serializers.ReadOnlyField(source='submodalidad.nombre')
     transmision_nombre = serializers.ReadOnlyField(source='transmision.nombre')
     combustible_nombre = serializers.ReadOnlyField(source='combustible.nombre')
+    cps_tipo_codigo = serializers.ReadOnlyField(source='cps_tipo.codigo')
     operador_asignado = serializers.SerializerMethodField()
     
     class Meta:

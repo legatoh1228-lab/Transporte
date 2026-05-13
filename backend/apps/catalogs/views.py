@@ -4,13 +4,13 @@ from rest_framework.permissions import AllowAny
 from .models import (
     Modalidad, SubModalidad, TerritorioEje, TerritorioMunicipio,
     TipoCombustible, TipoRuta, TipoTransmision, TipoVia, TipoOrganizacion, Rol,
-    ConfiguracionVisual
+    ConfiguracionVisual, TipoCps
 )
 from .serializers import (
     ModalidadSerializer, SubModalidadSerializer, TerritorioEjeSerializer,
     TerritorioMunicipioSerializer, TipoCombustibleSerializer, TipoRutaSerializer,
     TipoTransmisionSerializer, TipoViaSerializer, TipoOrganizacionSerializer, RolSerializer,
-    ConfiguracionVisualSerializer
+    ConfiguracionVisualSerializer, TipoCpsSerializer
 )
 from .models import RolPermiso
 from .serializers_perms import RolPermisoSerializer
@@ -82,3 +82,7 @@ class ConfiguracionVisualViewSet(viewsets.ModelViewSet):
         obj = ConfiguracionVisual.get_solo()
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
+
+class TipoCpsViewSet(viewsets.ModelViewSet):
+    queryset = TipoCps.objects.all()
+    serializer_class = TipoCpsSerializer
