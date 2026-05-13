@@ -1,5 +1,5 @@
 from django.contrib.gis.db import models
-from catalogs.models import Modalidad, SubModalidad, TipoTransmision, TipoCombustible, TerritorioMunicipio
+from catalogs.models import Modalidad, SubModalidad, TipoTransmision, TipoCombustible, TerritorioMunicipio, TipoCps
 from organizations.models import EmpresaOrganizacion
 
 class Terminal(models.Model):
@@ -32,14 +32,19 @@ class FlotaVehiculo(models.Model):
     anio = models.SmallIntegerField(verbose_name="Año")
     color = models.CharField(max_length=30, blank=True, null=True)
     transmision = models.ForeignKey(TipoTransmision, on_delete=models.PROTECT)
-    capacidad = models.SmallIntegerField(help_text="Capacidad Sentados")
-    capacidad_pie = models.SmallIntegerField(blank=True, null=True, help_text="Capacidad Parados")
+    capacidad = models.SmallIntegerField(help_text="Capacidad de pasajeros")
     combustible = models.ForeignKey(TipoCombustible, on_delete=models.PROTECT)
     aire_acondicionado = models.BooleanField(default=False)
     accesibilidad = models.BooleanField(default=False, verbose_name="Rampa/Accesibilidad")
     seguro_vence = models.DateField(blank=True, null=True)
     revision_tecnica_vence = models.DateField(blank=True, null=True)
     foto = models.ImageField(upload_to='vehicles/', blank=True, null=True, verbose_name="Foto del Vehículo")
+    # Nuevos campos - Rev. 1
+    propietario_nombre = models.CharField(max_length=150, blank=True, null=True, verbose_name="Propietario")
+    propietario_cedula = models.CharField(max_length=15, blank=True, null=True, verbose_name="Cédula Propietario")
+    propietario_rif = models.CharField(max_length=15, blank=True, null=True, verbose_name="RIF Propietario")
+    serial_carroceria = models.CharField(max_length=50, blank=True, null=True, verbose_name="Serial de Carrocería")
+    cps_tipo = models.ForeignKey(TipoCps, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Tipo de CPS (DT9/DT10)")
 
     def __str__(self): return f"{self.placa} - {self.marca} {self.modelo}"
     class Meta:
