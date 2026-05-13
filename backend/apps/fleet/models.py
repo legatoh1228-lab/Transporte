@@ -1,6 +1,6 @@
 from django.contrib.gis.db import models
 from catalogs.models import Modalidad, SubModalidad, TipoTransmision, TipoCombustible, TerritorioMunicipio
-from organizations.models import EmpresaOrganizacion
+# from organizations.models import EmpresaOrganizacion # Eliminado para evitar importaciones circulares
 
 class Terminal(models.Model):
     nombre = models.CharField(max_length=150, unique=True)
@@ -54,9 +54,37 @@ class FlotaVehiculo(models.Model):
 
 class VehiculoOrganizacion(models.Model):
     vehiculo = models.ForeignKey(FlotaVehiculo, on_delete=models.CASCADE, related_name='organizaciones')
-    organizacion = models.ForeignKey(EmpresaOrganizacion, on_delete=models.CASCADE, related_name='vehiculos')
+    organizacion = models.ForeignKey('organizations.EmpresaOrganizacion', on_delete=models.CASCADE, related_name='vehiculos')
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField(blank=True, null=True)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        # 1. Validar cupo de unidades
+        if self.organizacion.cupo_unidades > 0:
+            # Contar vehículos activos (sin fecha_fin) excluyendo el actual si estamos editando
+            count = VehiculoOrganizacion.objects.filter(
+                organizacion=self.organizacion, 
+                fecha_fin__isnull=True
+            )
+            if self.pk:
+                count = count.exclude(pk=self.pk)
+            
+            if count.count() >= self.organizacion.cupo_unidades:
+                raise ValidationError({
+                    'organizacion': f"La organización ha alcanzado su cupo máximo de {self.organizacion.cupo_unidades} unidades."
+                })
+
+        # 2. Validar coincidencia de modalidad CPS
+        if self.organizacion.modalidad_cps and self.vehiculo.cps:
+            if self.organizacion.modalidad_cps != self.vehiculo.cps:
+                raise ValidationError({
+                    'vehiculo': f"El vehículo ({self.vehiculo.cps}) no coincide con la modalidad CPS de la organización ({self.organizacion.modalidad_cps})."
+                })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self): return f"{self.vehiculo} @ {self.organizacion}"
     class Meta:

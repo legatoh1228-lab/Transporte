@@ -14,6 +14,18 @@ class EmpresaOrganizacion(models.Model):
     cupo_unidades = models.PositiveIntegerField(default=0, verbose_name="Cupo máximo de unidades")
     modalidad_cps = models.CharField(max_length=10, choices=[('DT9', 'DT9 (5-32 Puestos)'), ('DT10', 'DT10 (32+ Puestos)')], blank=True, null=True, verbose_name="Modalidad CPS")
     esta_activa = models.BooleanField(default=True)
+    
+    @property
+    def total_vehiculos(self):
+        # Cuenta vehículos activos (sin fecha_fin)
+        return self.vehiculos.filter(fecha_fin__isnull=True).count()
+
+    @property
+    def cupos_disponibles(self):
+        if self.cupo_unidades == 0:
+            return "Ilimitado"
+        disponibles = self.cupo_unidades - self.total_vehiculos
+        return max(0, disponibles)
 
     def __str__(self): return f"{self.rif} - {self.razon_social}"
     class Meta:
