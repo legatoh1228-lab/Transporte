@@ -125,12 +125,12 @@ const Asignaciones = () => {
             setFormData({ operador: '', vehiculo: '', ruta: '', estatus: 'Activo', observaciones: '' });
             fetchData();
         } catch (error) {
-            alert("Error al crear la asignación.");
+            alert("Error al crear la vinculación.");
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("¿Desea eliminar esta asignación?")) {
+        if (window.confirm("¿Desea eliminar esta vinculación?")) {
             try {
                 await api.delete(`fleet/asignaciones-operativas/${id}/`);
                 fetchData();
@@ -186,8 +186,8 @@ const Asignaciones = () => {
         <div className="space-y-8 font-public-sans pb-10 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-outline-variant/50 pb-8 pt-4">
                 <div className="space-y-2">
-                    <h1 className="text-4xl md:text-5xl font-black text-on-surface tracking-tighter leading-none">Asignaciones</h1>
-                    <p className="text-sm font-bold text-on-surface-variant opacity-70">Control operativo de vinculación entre operadores, unidades y rutas.</p>
+                    <h1 className="text-4xl md:text-5xl font-black text-on-surface tracking-tighter leading-none">Vinculación</h1>
+                    <p className="text-sm font-bold text-on-surface-variant opacity-70">Panel especializado para vincular operadores, organizaciones y unidades dentro del sistema de transporte.</p>
                 </div>
                 <div className="flex items-center gap-4">
                    <div className="bg-surface-container-high px-5 py-3 rounded-2xl border border-outline-variant/50 flex items-center gap-4 shadow-sm">
@@ -226,7 +226,7 @@ const Asignaciones = () => {
                             className="flex-1 sm:flex-none px-8 py-4 bg-primary text-on-primary rounded-2xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-3 hover:shadow-2xl hover:shadow-primary/30 transition-all active:scale-95"
                         >
                             <span className="material-symbols-outlined text-[20px]">add_task</span>
-                            Nueva Asignación
+                            Nueva Vinculación
                         </button>
                     )}
                 </div>
@@ -321,7 +321,7 @@ const Asignaciones = () => {
             <Modal
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
-                title="Detalles de Asignación"
+                title="Detalles de Vinculación"
                 icon="info"
                 maxWidthClass="max-w-2xl"
                 actions={<button onClick={() => setIsDetailOpen(false)} className="bg-primary text-on-primary px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest">Cerrar</button>}
@@ -346,7 +346,7 @@ const Asignaciones = () => {
                         <div className="p-5 bg-surface-container rounded-[24px] border border-outline-variant/30">
                             <span className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest block mb-2">Observaciones</span>
                             <p className="text-sm font-medium text-on-surface-variant leading-relaxed">
-                                {selectedAsignacion.observaciones || 'Sin observaciones registradas para esta asignación.'}
+                                {selectedAsignacion.observaciones || 'Sin observaciones registradas para esta vinculación.'}
                             </p>
                         </div>
                     </div>
@@ -356,14 +356,14 @@ const Asignaciones = () => {
             <Modal
                 isOpen={showModal}
                 onClose={() => setShowModal(false)}
-                title="Nueva Asignación Operativa"
+                title="Nueva Vinculación Operativa"
                 subtitle="Vincula un operador a una unidad y ruta específica"
                 icon="assignment_ind"
                 maxWidthClass="max-w-5xl"
                 actions={
                     <div className="flex gap-4 w-full">
                         <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-surface-container-highest hover:bg-surface-variant px-8 py-3.5 rounded-xl text-xs font-extrabold uppercase tracking-widest transition-colors text-on-surface">Cancelar</button>
-                        <button type="button" onClick={handleSubmit} className="flex-1 bg-primary hover:bg-primary/90 text-on-primary px-8 py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Guardar Asignación</button>
+                        <button type="button" onClick={handleSubmit} className="flex-1 bg-primary hover:bg-primary/90 text-on-primary px-8 py-3.5 rounded-xl font-extrabold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">Guardar Vinculación</button>
                     </div>
                 }
             >
