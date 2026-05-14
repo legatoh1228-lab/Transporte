@@ -16,6 +16,7 @@ class OrganizacionCpsSerializer(serializers.ModelSerializer):
 class EmpresaOrganizacionSerializer(serializers.ModelSerializer):
     tipo_nombre = serializers.ReadOnlyField(source='tipo.nombre')
     gremio_nombre = serializers.ReadOnlyField(source='gremio.razon_social')
+    municipio_nombre = serializers.ReadOnlyField(source='municipio.nombre')
     rutas = serializers.SerializerMethodField()
     
     class Meta:
@@ -29,6 +30,9 @@ class EmpresaOrganizacionSerializer(serializers.ModelSerializer):
             'id': p.id,
             'ruta_id': p.ruta.id,
             'ruta_nombre': p.ruta.nombre,
+            'municipio_or': p.ruta.municipio_or.nombre if p.ruta.municipio_or else 'N/A',
+            'municipio_des': p.ruta.municipio_des.nombre if p.ruta.municipio_des else 'N/A',
+            'tipo_ruta': p.ruta.tipo.nombre if p.ruta.tipo else 'N/A',
             'numero_resolucion': p.numero_resolucion,
             'hora_salida_ida': p.hora_salida_ida,
             'hora_regreso_ida': p.hora_regreso_ida,
