@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
@@ -12,6 +12,8 @@ const Alertas = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [filterDate, setFilterDate] = useState('');
+  const [dateRange, setDateRange] = useState('all'); // all, expired, soon, month
   const [branding, setBranding] = useState({
     nombre_sistema: 'Transporte Aragua Digital',
     logo: null
@@ -44,101 +46,146 @@ const Alertas = () => {
     fetchData();
   }, []);
 
-  const filteredAlerts = alerts.filter(alert => {
-    const matchesSearch = alert.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          alert.message.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || alert.type === filterType;
-    return matchesSearch && matchesType;
-  });
+  const filteredAlerts = useMemo(() => {
+    return alerts.filter(alert => {
+      // 1. Search filter
+      const matchesSearch = alert.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            alert.message.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // 2. Priority filter
+      const matchesType = filterType === 'all' || alert.type === filterType;
+      
+      // 3. Date Selection (Manual)
+      let matchesManualDate = true;
+      if (filterDate) {
+        const alertDate = new Date(alert.date).toISOString().split('T')[0];
+        matchesManualDate = alertDate === filterDate;
+      }
+
+      // 4. Date Range (Quick Filters)
+      let matchesRange = true;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const alertDate = new Date(alert.date);
+      alertDate.setHours(0, 0, 0, 0);
+
+      if (dateRange === 'expired') {
+        matchesRange = alertDate < today;
+      } else if (dateRange === 'soon') {
+        const next7Days = new Date(today);
+        next7Days.setDate(today.getDate() + 7);
+        matchesRange = alertDate >= today && alertDate <= next7Days;
+      } else if (dateRange === 'month') {
+        matchesRange = alertDate.getMonth() === today.getMonth() && alertDate.getFullYear() === today.getFullYear();
+      }
+      
+      return matchesSearch && matchesType && matchesManualDate && matchesRange;
+    });
+  }, [alerts, searchTerm, filterType, filterDate, dateRange]);
 
   const generatePDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const date = new Date().toLocaleDateString('es-ES', { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     });
 
-    // Header Color Bar
-    doc.setFillColor(3, 36, 72); // Navy Blue from primary color
-    doc.rect(0, 0, pageWidth, 40, 'F');
-
-    // Title
+    // --- Header Corporativo ---
+    doc.setFillColor(3, 36, 72); 
+    doc.rect(0, 0, pageWidth, 45, 'F');
+    
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
+    doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text(branding.nombre_sistema.toUpperCase(), 20, 25);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('REPORTE ADMINISTRATIVO DE ALERTAS', 20, 32);
+    doc.text('CENTRO DE GESTIÓN OPERATIVA Y ALERTAS TEMPRANAS', 20, 33);
+    doc.setDrawColor(255, 255, 255, 0.5);
+    doc.line(20, 37, 100, 37);
 
-    // Date and User info
-    doc.setTextColor(100, 100, 100);
+    // --- Información del Reporte ---
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INFORME ESTADO DE ALERTAS Y VENCIMIENTOS', 20, 60);
+    
     doc.setFontSize(9);
-    doc.text(`Fecha de emisión: ${date}`, pageWidth - 20, 50, { align: 'right' });
-    doc.text(`Total de alertas: ${filteredAlerts.length}`, 20, 50);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Documento emitido el: ${date}`, pageWidth - 20, 60, { align: 'right' });
 
-    // Decorative Line
-    doc.setDrawColor(230, 230, 230);
-    doc.line(20, 55, pageWidth - 20, 55);
+    // --- Resumen Ejecutivo ---
+    const criticalCount = filteredAlerts.filter(a => a.type === 'error').length;
+    const warningCount = filteredAlerts.filter(a => a.type === 'warning').length;
 
-    // Table
+    doc.setFillColor(245, 247, 250);
+    doc.roundedRect(20, 68, pageWidth - 40, 25, 3, 3, 'F');
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(3, 36, 72);
+    doc.text('RESUMEN EJECUTIVO', 25, 75);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Total de registros: ${filteredAlerts.length}`, 25, 83);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(220, 38, 38);
+    doc.text(`Prioridad Crítica: ${criticalCount}`, 70, 83);
+    
+    doc.setTextColor(217, 119, 6);
+    doc.text(`Advertencias: ${warningCount}`, 120, 83);
+
+    // --- Tabla de Datos ---
     const tableData = filteredAlerts.map(alert => [
-      alert.type === 'error' ? 'CRÍTICA' : 'ADVERTENCIA',
+      alert.type === 'error' ? 'CRÍTICA' : 'AVISO',
       alert.title,
       alert.message,
-      new Date(alert.date).toLocaleDateString('es-ES')
+      new Date(alert.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
     ]);
 
     autoTable(doc, {
-      head: [['Prioridad', 'Recurso / Título', 'Descripción de Alerta', 'Vencimiento']],
+      head: [['Prioridad', 'Concepto / Recurso', 'Descripción Detallada', 'Vencimiento']],
       body: tableData,
-      startY: 60,
-      theme: 'striped',
+      startY: 100,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 4, valign: 'middle' },
       headStyles: {
         fillColor: [3, 36, 72],
         textColor: [255, 255, 255],
-        fontSize: 10,
         fontStyle: 'bold',
         halign: 'center'
       },
       columnStyles: {
-        0: { cellWidth: 30, halign: 'center', fontStyle: 'bold' },
-        1: { cellWidth: 40, fontStyle: 'bold' },
-        3: { cellWidth: 30, halign: 'center' }
-      },
-      styles: {
-        fontSize: 9,
-        cellPadding: 5,
-        valign: 'middle'
+        0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 45, fontStyle: 'bold' },
+        3: { cellWidth: 25, halign: 'center' }
       },
       didParseCell: function(data) {
         if (data.section === 'body' && data.column.index === 0) {
-          if (data.cell.raw === 'CRÍTICA') {
-            data.cell.styles.textColor = [220, 38, 38]; // Red for critical
-          } else {
-            data.cell.styles.textColor = [217, 119, 6]; // Amber for warning
-          }
+          if (data.cell.raw === 'CRÍTICA') data.cell.styles.textColor = [220, 38, 38];
+          else data.cell.styles.textColor = [217, 119, 6];
         }
-      }
+      },
+      alternateRowStyles: { fillColor: [250, 250, 250] }
     });
 
-    // Footer
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
+    // --- Pie de Página ---
+    const totalPagesCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPagesCount; i++) {
       doc.setPage(i);
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20);
       doc.setFontSize(8);
       doc.setTextColor(150, 150, 150);
-      doc.text(
-        `Página ${i} de ${pageCount} - Documento generado automáticamente por el Sistema de Gestión de Transporte`,
-        pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 10,
-        { align: 'center' }
-      );
+      doc.text(`Reporte Oficial - ${branding.nombre_sistema} - Página ${i} de ${totalPagesCount}`, pageWidth / 2, pageHeight - 12, { align: 'center' });
+      doc.setFontSize(7);
+      doc.text("Documento oficial para fines administrativos. Información sujeta a reserva legal.", pageWidth / 2, pageHeight - 8, { align: 'center' });
     }
 
     doc.save(`Reporte_Alertas_${new Date().getTime()}.pdf`);
@@ -173,97 +220,156 @@ const Alertas = () => {
   return (
     <div className="space-y-6 md:space-y-8 font-public-sans pb-10">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-2 md:pt-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-2 md:pt-4 border-b border-outline-variant/60 pb-8">
         <div>
-          <h2 className="text-2xl md:text-4xl font-black text-on-surface tracking-tight mb-1 md:mb-2 text-center md:text-left">Centro de Alertas</h2>
-          <p className="text-xs md:text-sm text-on-surface-variant font-medium text-center md:text-left">Gestión preventiva de vencimientos y notificaciones</p>
+          <h2 className="text-3xl md:text-5xl font-black text-on-surface tracking-tighter mb-1 md:mb-2 text-center md:text-left">Centro de Alertas</h2>
+          <p className="text-xs md:text-sm text-on-surface-variant font-bold text-center md:text-left opacity-70">Gestión preventiva de vencimientos y notificaciones operativas.</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-3">
+          <div className="bg-error/10 px-6 py-3 rounded-2xl border border-error/20 flex items-center justify-center gap-3 shadow-sm">
+              <span className="material-symbols-outlined text-error animate-pulse text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>notifications_active</span>
+              <span className="text-xs md:text-sm font-black text-error uppercase tracking-wider">{alerts.length} Notificaciones</span>
+          </div>
           <button 
             onClick={generatePDF}
-            className="w-full sm:w-auto bg-surface-container-high text-on-surface px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary hover:text-on-primary transition-all flex items-center justify-center gap-2 border border-outline-variant/30 shadow-sm active:scale-95"
+            className="bg-primary text-on-primary px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:shadow-2xl hover:shadow-primary/30 transition-all flex items-center justify-center gap-3 active:scale-95"
           >
             <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
-            Generar PDF
+            Exportar Informe
           </button>
-          <div className="w-full sm:w-auto bg-error/10 px-6 py-3 rounded-2xl border border-error/20 flex items-center justify-center gap-3">
-              <span className="material-symbols-outlined text-error animate-pulse text-[20px]">notifications_active</span>
-              <span className="text-xs md:text-sm font-black text-error uppercase tracking-wider">{alerts.length} Alertas Activas</span>
-          </div>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-surface-container-lowest border border-outline-variant/50 p-3 md:p-4 rounded-[24px] md:rounded-[28px] shadow-sm flex flex-col lg:flex-row items-center gap-4">
-        <div className="relative flex-1 w-full">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-50">search</span>
-          <input 
-            type="text" 
-            placeholder="Buscar por placa, nombre o descripción..."
-            className="w-full pl-12 pr-4 py-3 bg-surface-container rounded-2xl border-none focus:ring-2 focus:ring-primary/20 text-sm font-medium transition-all"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Optimized Filter Bar - Compact & Professional */}
+      <div className="bg-surface-container-lowest border border-outline-variant/40 p-5 rounded-[32px] shadow-sm space-y-4">
+        <div className="flex flex-col xl:flex-row items-center gap-4">
+          {/* Search Field */}
+          <div className="relative flex-1 w-full">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+            <input 
+              type="text" 
+              placeholder="Buscar recurso o placa..."
+              className="w-full pl-11 pr-4 py-3 bg-surface-container-low rounded-2xl border border-outline-variant/30 focus:border-primary focus:ring-4 focus:ring-primary/10 text-sm font-bold transition-all outline-none"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          {/* Controls Group */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+            {/* Priority Selector (Compact) */}
+            <div className="flex bg-surface-container-low p-1 rounded-xl border border-outline-variant/30 w-full sm:w-auto">
+              {[
+                { id: 'all', label: 'Todas' },
+                { id: 'error', label: 'Críticas' },
+                { id: 'warning', label: 'Avisos' }
+              ].map((t) => (
+                <button 
+                  key={t.id}
+                  onClick={() => setFilterType(t.id)}
+                  className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterType === t.id ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Date Manual Picker (Compact) */}
+            <div className="relative w-full sm:w-44">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-primary text-[18px] z-10 pointer-events-none">calendar_today</span>
+              <input 
+                type="date" 
+                value={filterDate}
+                onChange={(e) => { setFilterDate(e.target.value); setDateRange('all'); }}
+                className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl py-2.5 pl-10 pr-3 text-xs font-bold outline-none focus:border-primary transition-all"
+              />
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide no-scrollbar">
-          <button 
-            onClick={() => setFilterType('all')}
-            className={`flex-1 lg:flex-none whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border ${filterType === 'all' ? 'bg-primary text-on-primary border-primary shadow-lg shadow-primary/20' : 'bg-surface-container text-on-surface-variant border-transparent hover:bg-surface-container-high'}`}
-          >
-            Todas
-          </button>
-          <button 
-            onClick={() => setFilterType('error')}
-            className={`flex-1 lg:flex-none whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border ${filterType === 'error' ? 'bg-error text-on-error border-error shadow-lg shadow-error/20' : 'bg-surface-container text-on-surface-variant border-transparent hover:bg-surface-container-high'}`}
-          >
-            Críticas
-          </button>
-          <button 
-            onClick={() => setFilterType('warning')}
-            className={`flex-1 lg:flex-none whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border ${filterType === 'warning' ? 'bg-warning-container text-on-warning-container border-warning shadow-lg' : 'bg-surface-container text-on-surface-variant border-transparent hover:bg-surface-container-high'}`}
-          >
-            Advertencias
-          </button>
+
+        {/* Quick Filters and Stats Row */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-outline-variant/30">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-40">Filtros Rápidos:</span>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'all', label: 'Historial' },
+                { id: 'expired', label: 'Vencidos' },
+                { id: 'soon', label: 'Próx. 7 días' },
+                { id: 'month', label: 'Este mes' }
+              ].map((r) => (
+                <button 
+                  key={r.id}
+                  onClick={() => { setDateRange(r.id); setFilterDate(''); }}
+                  className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all border ${dateRange === r.id ? 'bg-primary text-on-primary border-primary shadow-md shadow-primary/20' : 'bg-surface-container-low text-on-surface-variant border-transparent hover:border-outline-variant/40'}`}
+                >
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 ml-auto">
+             <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest bg-primary/10 px-4 py-2 rounded-full border border-primary/20">
+                <span className="material-symbols-outlined text-[16px]">done_all</span> 
+                <span>{filteredAlerts.length} Resultados</span>
+             </div>
+
+            {(searchTerm || filterType !== 'all' || filterDate || dateRange !== 'all') && (
+              <button 
+                onClick={() => { setSearchTerm(''); setFilterType('all'); setFilterDate(''); setDateRange('all'); }}
+                className="text-[10px] font-black text-error uppercase tracking-widest flex items-center gap-2 hover:underline"
+              >
+                <span className="material-symbols-outlined text-[16px]">filter_alt_off</span>
+                Limpiar
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Alerts Grid/List */}
-      <div className="grid grid-cols-1 gap-4 md:gap-6">
+      {/* Alerts Grid - Optimized Distribution */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {filteredAlerts.length > 0 ? (
           filteredAlerts.map((alert, index) => (
             <div 
               key={index}
-              className={`group bg-surface-container-lowest border border-outline-variant/40 p-5 md:p-6 rounded-[24px] md:rounded-[32px] transition-all hover:shadow-xl ${alert.type === 'error' ? 'hover:border-error/30' : 'hover:border-primary/30'}`}
+              className={`group bg-surface-container-lowest border border-outline-variant/40 p-5 rounded-[28px] transition-all hover:shadow-xl hover:-translate-y-1 ${alert.type === 'error' ? 'hover:border-error/30' : 'hover:border-primary/30'}`}
             >
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-                <div className={`w-12 h-12 md:w-14 md:h-14 rounded-[18px] md:rounded-[22px] flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 ${alert.type === 'error' ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}`}>
-                  <span className="material-symbols-outlined text-[28px] md:text-[32px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              <div className="flex items-start gap-4 h-full">
+                {/* Icon Column */}
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:rotate-12 ${alert.type === 'error' ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}`}>
+                  <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                     {alert.icon}
                   </span>
                 </div>
                 
-                <div className="flex-1 space-y-1 w-full">
-                  <div className="flex items-center justify-between md:justify-start gap-3">
-                    <h3 className={`text-base md:text-lg font-black tracking-tight ${alert.type === 'error' ? 'text-error' : 'text-on-surface'}`}>{alert.title}</h3>
-                    <span className={`text-[9px] md:text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${alert.type === 'error' ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}`}>
-                      {alert.type === 'error' ? 'Urgente' : 'Pendiente'}
-                    </span>
+                {/* Content Column */}
+                <div className="flex-1 flex flex-col justify-between h-full min-h-[110px]">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className={`text-sm md:text-base font-black tracking-tight line-clamp-1 ${alert.type === 'error' ? 'text-error' : 'text-on-surface'}`}>{alert.title}</h3>
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shrink-0 ${alert.type === 'error' ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}`}>
+                        {alert.type === 'error' ? 'Urgente' : 'Pendiente'}
+                      </span>
+                    </div>
+                    <p className="text-on-surface-variant font-medium text-xs leading-relaxed line-clamp-2">{alert.message}</p>
                   </div>
-                  <p className="text-on-surface-variant font-medium text-xs md:text-sm leading-relaxed">{alert.message}</p>
-                </div>
 
-                <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-4 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-outline-variant/30 md:min-w-[180px]">
-                  <div className="text-left md:text-right">
-                    <p className="text-[9px] md:text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50 mb-0.5 md:mb-1">Vencimiento</p>
-                    <p className="font-black text-xs md:text-sm text-on-surface">{new Date(alert.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  <div className="flex items-center justify-between pt-4 mt-auto border-t border-outline-variant/30">
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest opacity-40">Vencimiento</span>
+                      <span className="font-black text-xs text-on-surface">{new Date(alert.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    </div>
+                    <button 
+                      onClick={() => navigate(alert.link)}
+                      className="bg-surface-container-high hover:bg-primary hover:text-on-primary transition-all px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group/btn active:scale-95"
+                    >
+                      Gestionar
+                      <span className="material-symbols-outlined text-[14px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => navigate(alert.link)}
-                    className="bg-surface-container-high hover:bg-primary hover:text-on-primary transition-all px-5 py-2.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest flex items-center gap-2 group/btn active:scale-95"
-                  >
-                    Gestionar
-                    <span className="material-symbols-outlined text-[14px] md:text-[16px] group-hover/btn:translate-x-1 transition-transform">arrow_forward</span>
-                  </button>
                 </div>
               </div>
             </div>

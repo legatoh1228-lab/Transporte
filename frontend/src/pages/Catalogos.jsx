@@ -3,7 +3,7 @@ import api from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 
-const FLOTA_ASIGNACION = { id: 'flota', name: 'Vehículos Activos', icon: 'directions_car' };
+
 
 const SYSTEM_CATALOGS = [
   { id: 'modalidades', name: 'Modalidades Vehiculares', endpoint: 'catalogs/modalidades/', icon: 'category' },
@@ -23,10 +23,7 @@ export default function Catalogos() {
   const canCreate = hasPermission('Configuración', 'Crear');
   const canDelete = hasPermission('Configuración', 'Eliminar');
 
-  const [activeCatalog, setActiveCatalog] = useState('flota');
-
-  const [vehiculos, setVehiculos] = useState([]);
-  const [operadores, setOperadores] = useState([]);
+  const [activeCatalog, setActiveCatalog] = useState('modalidades');
   const [catalogData, setCatalogData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState(null);
@@ -38,62 +35,10 @@ export default function Catalogos() {
   const [parentOptions, setParentOptions] = useState([]);
 
   useEffect(() => {
-    if (activeCatalog === 'flota') {
-      fetchFlotaData();
-    } else {
-      fetchCatalogData(activeCatalog);
-    }
+    fetchCatalogData(activeCatalog);
   }, [activeCatalog]);
 
-  const fetchFlotaData = async () => {
-    setLoading(true);
-    try {
-      const [resVehiculos, resOperadores] = await Promise.all([
-        api.get('fleet/vehicles/'),
-        api.get('personnel/operators/')
-      ]);
-      setVehiculos(resVehiculos.data);
-      setOperadores(resOperadores.data);
-    } catch (error) {
-      console.error("Error fetching fleet data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const fetchCatalogData = async (catId) => {
-    setLoading(true);
-    const cat = SYSTEM_CATALOGS.find(c => c.id === catId);
-    if (cat) {
-      try {
-        const res = await api.get(cat.endpoint);
-        setCatalogData(res.data);
-      } catch (error) {
-        console.error(`Error fetching catalog ${catId}:`, error);
-        setCatalogData([]);
-      }
-    }
-    setLoading(false);
-  };
-
-  const handleAssignOperator = async (vehiculoPlaca, operadorCedula) => {
-    setSavingId(vehiculoPlaca);
-    try {
-      if (operadorCedula) {
-        await api.post('fleet/vehiculo-operadores/', {
-          vehiculo: vehiculoPlaca,
-          operador: operadorCedula,
-          estatus: 'Activo'
-        });
-      }
-      await fetchFlotaData();
-    } catch (error) {
-      console.error("Error asigando operador:", error);
-      alert("Error al asignar el operador");
-    } finally {
-      setSavingId(null);
-    }
-  };
 
   const openModal = async (mode, item = null) => {
     setModalMode(mode);
@@ -152,72 +97,22 @@ export default function Catalogos() {
     }
   };
 
-  const renderContent = () => {
-    if (activeCatalog === 'flota') {
-      return (
-        <div className="flex-1 overflow-auto p-4">
-          {loading ? (
-            <div className="text-center py-10 text-on-surface-variant animate-pulse">Cargando flota...</div>
-          ) : (
-            <table className="w-full text-left text-sm text-on-surface border border-outline-variant rounded-lg overflow-hidden">
-              <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold border-b border-outline-variant">
-                <tr>
-                  <th className="px-4 py-3">Vehículo</th>
-                  <th className="px-4 py-3">Datos Importantes</th>
-                  <th className="px-4 py-3 text-center">Estatus</th>
-                  <th className="px-4 py-3 w-1/3">Operador Asignado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant">
-                {vehiculos.length === 0 ? (
-                  <tr><td colSpan="4" className="px-4 py-6 text-center text-on-surface-variant">No hay vehículos registrados.</td></tr>
-                ) : (
-                  vehiculos.map((v) => {
-                    const isAssigned = !!v.operador_asignado;
-                    return (
-                      <tr key={v.placa} className="hover:bg-surface-container-low transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="font-mono text-primary font-bold">{v.placa}</div>
-                          <div className="font-medium text-xs">{v.marca} {v.modelo} <span className="text-outline">({v.anio})</span></div>
-                        </td>
-                        <td className="px-4 py-3 text-xs">
-                          <div className="text-on-surface-variant font-semibold">{v.modalidad_nombre}</div>
-                          <div className="text-outline">Capacidad: {v.capacidad} pax</div>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${isAssigned ? 'bg-primary/20 text-primary' : 'bg-error/20 text-error'}`}>
-                            {isAssigned ? 'Activo (Operativo)' : 'Inactivo (En Base)'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 relative">
-                          <select 
-                            className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-1.5 px-3 text-sm outline-none focus:border-primary disabled:opacity-50"
-                            value={v.operador_asignado?.cedula || ""}
-                            disabled={savingId === v.placa || !canUpdate}
-                            onChange={(e) => handleAssignOperator(v.placa, e.target.value)}
-
-                          >
-                            <option value="">-- Sin Asignar --</option>
-                            {operadores.map(op => (
-                              <option key={op.cedula} value={op.cedula}>
-                                {op.nombres} {op.apellidos}
-                              </option>
-                            ))}
-                          </select>
-                          {savingId === v.placa && (
-                            <span className="absolute right-6 top-1/2 -translate-y-1/2 material-symbols-outlined text-[16px] animate-spin text-primary">sync</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
-      );
+  const fetchCatalogData = async (catId) => {
+    setLoading(true);
+    const cat = SYSTEM_CATALOGS.find(c => c.id === catId);
+    if (cat) {
+      try {
+        const res = await api.get(cat.endpoint);
+        setCatalogData(res.data);
+      } catch (error) {
+        console.error(`Error fetching catalog ${catId}:`, error);
+        setCatalogData([]);
+      }
     }
+    setLoading(false);
+  };
+
+  const renderContent = () => {
 
     // Generic Catalog Content
     return (
@@ -283,8 +178,8 @@ export default function Catalogos() {
     <div className="flex flex-col h-[calc(100vh-8rem)] font-public-sans">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-on-surface">Gestión Operativa</h1>
-          <p className="text-sm text-on-surface-variant font-medium mt-1">Asignación de flota y administración de parámetros.</p>
+          <h1 className="text-2xl font-bold text-on-surface">Diccionarios del Sistema</h1>
+          <p className="text-sm text-on-surface-variant font-medium mt-1">Administración de parámetros globales y catálogos técnicos.</p>
         </div>
       </div>
 
@@ -298,23 +193,6 @@ export default function Catalogos() {
             </h3>
           </div>
           <div className="overflow-y-auto flex-1 p-2 space-y-4">
-             <div>
-                <h4 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2 ml-2">Operaciones</h4>
-                <div 
-                  onClick={() => setActiveCatalog('flota')}
-                  className={`p-3 rounded-lg cursor-pointer transition-all flex items-center justify-between ${activeCatalog === 'flota' ? 'bg-primary-fixed text-on-primary-fixed' : 'hover:bg-surface-container text-on-surface'}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[20px]">{FLOTA_ASIGNACION.icon}</span>
-                    <span className="font-semibold text-sm">{FLOTA_ASIGNACION.name}</span>
-                  </div>
-                  {activeCatalog === 'flota' && !loading && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-white/40 text-on-primary-fixed font-bold">
-                      {vehiculos.length}
-                    </span>
-                  )}
-                </div>
-             </div>
 
              <div>
                 <h4 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2 ml-2">Diccionarios del Sistema</h4>
@@ -346,14 +224,13 @@ export default function Catalogos() {
           <div className="p-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
             <h3 className="font-bold text-on-surface text-sm uppercase tracking-wide flex items-center">
               <span className="material-symbols-outlined mr-2 text-secondary text-[18px]">sell</span>
-              {activeCatalog === 'flota' ? FLOTA_ASIGNACION.name : SYSTEM_CATALOGS.find(c => c.id === activeCatalog)?.name}
+              {SYSTEM_CATALOGS.find(c => c.id === activeCatalog)?.name}
             </h3>
-             {activeCatalog !== 'flota' && canCreate && (
+            {canCreate && (
               <button onClick={() => openModal('add')} className="bg-primary hover:bg-primary-container text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center shadow-sm">
                 <span className="material-symbols-outlined mr-1 text-[18px]">add</span> Nuevo Valor
               </button>
             )}
-
           </div>
           
           {renderContent()}
