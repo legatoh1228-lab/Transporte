@@ -5,6 +5,8 @@ import { Modal } from '../components/common/Modal';
 import api from '../services/api';
 import { GOOGLE_MAPS_API_KEY } from '../config';
 import { usePermissions } from '../hooks/usePermissions';
+import { usePagination } from '../hooks/usePagination';
+import { PaginationControls } from '../components/common/PaginationControls';
 
 
 const LIBRARIES = ['places'];
@@ -84,6 +86,20 @@ export default function Terminales() {
       t.municipio_nombre?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [terminales, searchTerm]);
+
+  const {
+    paginatedData,
+    currentPage,
+    totalPages,
+    totalFiltered,
+    startIndex,
+    endIndex,
+    hasNextPage,
+    hasPrevPage,
+    goToPage,
+    nextPage,
+    prevPage
+  } = usePagination(filteredTerminales, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -280,9 +296,9 @@ export default function Terminales() {
             <tbody className="divide-y divide-outline-variant">
               {loading ? (
                 <tr><td colSpan="6" className="px-6 py-10 text-center text-on-surface-variant animate-pulse">Cargando terminales...</td></tr>
-              ) : filteredTerminales.length === 0 ? (
+              ) : paginatedData.length === 0 ? (
                 <tr><td colSpan="6" className="px-6 py-10 text-center text-on-surface-variant">No se encontraron terminales.</td></tr>
-              ) : filteredTerminales.map((row) => (
+              ) : paginatedData.map((row) => (
                 <tr key={row.id} className="hover:bg-surface-container-low transition-colors">
                   <td className="px-6 py-4 font-bold flex items-center gap-3 text-primary">
                     <span className="material-symbols-outlined text-[20px]">store</span>
@@ -316,6 +332,21 @@ export default function Terminales() {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalFiltered={totalFiltered}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            totalItems={terminales.length}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            onPageChange={goToPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
+          />
         </div>
       </div>
       

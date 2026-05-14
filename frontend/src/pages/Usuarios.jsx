@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../components/common/Modal';
 import api from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
+import { usePagination } from '../hooks/usePagination';
+import { PaginationControls } from '../components/common/PaginationControls';
 
 export default function Usuarios() {
   const { hasPermission } = usePermissions();
@@ -13,6 +15,7 @@ export default function Usuarios() {
   const [roles, setRoles] = useState([]);
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null); // Para editar
   const [formData, setFormData] = useState({
@@ -120,6 +123,27 @@ export default function Usuarios() {
     }
   };
 
+  const filteredUsers = users.filter(u => 
+    (u.first_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.last_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.username || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const {
+    paginatedData,
+    currentPage,
+    totalPages,
+    totalFiltered,
+    startIndex,
+    endIndex,
+    hasNextPage,
+    hasPrevPage,
+    goToPage,
+    nextPage,
+    prevPage
+  } = usePagination(filteredUsers, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
+
   return (
     <div className="flex flex-col gap-6 font-public-sans">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -147,6 +171,8 @@ export default function Usuarios() {
             <input 
               type="text" 
               placeholder="Buscar por nombre o correo..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-surface-container-lowest border border-outline-variant focus:border-primary rounded-lg py-2 pl-9 pr-4 text-sm outline-none transition-all"
             />
           </div>
@@ -169,7 +195,7 @@ export default function Usuarios() {
 
               </thead>
               <tbody className="divide-y divide-outline-variant">
-                {users.map((row) => (
+                {paginatedData.map((row) => (
                   <tr key={row.id} className="hover:bg-surface-container-low transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -220,6 +246,21 @@ export default function Usuarios() {
               </tbody>
             </table>
           )}
+        </div>
+        <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalFiltered={totalFiltered}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            totalItems={users.length}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            onPageChange={goToPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
+          />
         </div>
       </div>
 

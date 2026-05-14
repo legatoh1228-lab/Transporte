@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
+import { usePagination } from '../hooks/usePagination';
+import { PaginationControls } from '../components/common/PaginationControls';
 
 export default function Auditoria() {
   const [activities, setActivities] = useState([]);
@@ -32,6 +34,20 @@ export default function Auditoria() {
       (activity.details && activity.details.toLowerCase().includes(searchStr))
     ));
   }, [activities, searchTerm]);
+
+  const {
+    paginatedData,
+    currentPage,
+    totalPages,
+    totalFiltered,
+    startIndex,
+    endIndex,
+    hasNextPage,
+    hasPrevPage,
+    goToPage,
+    nextPage,
+    prevPage
+  } = usePagination(filteredActivities, { itemsPerPage: 15, enableSearch: false, enableFilter: false });
 
   const getActionBadge = (action) => {
     const act = action ? action.toUpperCase() : 'UNKNOWN';
@@ -93,7 +109,7 @@ export default function Auditoria() {
           </div>
           <div className="flex items-center gap-2 text-xs font-bold text-on-surface-variant uppercase tracking-wider bg-surface-container px-4 py-2 rounded-lg border border-outline-variant/50">
              <span className="material-symbols-outlined text-[16px] text-primary">data_usage</span> 
-             <span>{filteredActivities.length} Registros Auditados</span>
+             <span>{totalFiltered} Registros Auditados</span>
           </div>
         </div>
 
@@ -129,7 +145,7 @@ export default function Auditoria() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredActivities.map((row) => (
+              ) : paginatedData.map((row) => (
                 <tr key={row.id} className="hover:bg-surface-container-low/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="font-mono text-xs text-on-surface-variant bg-surface-container-high/30 px-2.5 py-1 rounded-md inline-block border border-outline-variant/30">
@@ -164,6 +180,21 @@ export default function Auditoria() {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalFiltered={totalFiltered}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            totalItems={activities.length}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            onPageChange={goToPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
+          />
         </div>
       </div>
     </div>
