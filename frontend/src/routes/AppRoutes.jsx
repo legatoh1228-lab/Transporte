@@ -19,6 +19,7 @@ import Profile from '../pages/Profile';
 import VisualSettings from '../pages/VisualSettings';
 import Alertas from '../pages/Alertas';
 import Asignaciones from '../pages/Asignaciones';
+import Gremios from '../pages/Gremios';
 
 const AppRoutes = () => {
   return (
@@ -47,6 +48,7 @@ const AppRoutes = () => {
         <Route path="/perfil" element={<Profile />} />
         <Route path="/alertas" element={<Alertas />} />
         <Route path="/asignaciones" element={<Asignaciones />} />
+        <Route path="/gremios" element={<Gremios />} />
         
         {/* Mantengo Home por compatibilidad si se desea usar la anterior */}
         <Route path="/old-home" element={<Home />} />

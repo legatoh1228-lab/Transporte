@@ -20,6 +20,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const moduleMap = {
     'Dashboard': 'Dashboard',
     'Organizaciones': 'Organizaciones',
+    'Gremios': 'Organizaciones',
     'Vehículos': 'Vehículos',
     'Operadores': 'Operadores',
     'Asignaciones': 'Asignaciones',
@@ -39,6 +40,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const navItems = [
     { label: 'Dashboard',      icon: 'dashboard',        path: '/dashboard' },
     { label: 'Organizaciones', icon: 'corporate_fare',   path: '/organizaciones' },
+    { label: 'Gremios',        icon: 'groups',           path: '/gremios' },
     { label: 'Terminales',     icon: 'store',            path: '/terminales' },
     { label: 'Vehículos',      icon: 'directions_bus',   path: '/vehiculos' },
     { label: 'Operadores',     icon: 'person_pin',       path: '/operadores' },
