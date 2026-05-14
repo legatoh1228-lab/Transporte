@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { Modal } from '../components/common/Modal';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { usePagination } from '../hooks/usePagination';
+import { PaginationControls } from '../components/common/PaginationControls';
 
 const Asignaciones = () => {
     const navigate = useNavigate();
@@ -145,6 +147,20 @@ const Asignaciones = () => {
         a.ruta_nombre?.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
+    const {
+        paginatedData,
+        currentPage,
+        totalPages,
+        totalFiltered,
+        startIndex,
+        endIndex,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage
+    } = usePagination(filteredAsignaciones, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
+
     if (loading) return (
         <div className="p-20 text-center flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -229,7 +245,7 @@ const Asignaciones = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/30">
-                            {filteredAsignaciones.map((asig) => (
+                            {paginatedData.map((asig) => (
                                 <tr key={asig.id} className="hover:bg-primary/[0.03] transition-colors group">
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-4">
@@ -284,6 +300,21 @@ const Asignaciones = () => {
                             ))}
                         </tbody>
                     </table>
+                </div>
+                <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <PaginationControls
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalFiltered={totalFiltered}
+                        startIndex={startIndex}
+                        endIndex={endIndex}
+                        totalItems={asignaciones.length}
+                        hasNextPage={hasNextPage}
+                        hasPrevPage={hasPrevPage}
+                        onPageChange={goToPage}
+                        onNextPage={nextPage}
+                        onPrevPage={prevPage}
+                    />
                 </div>
             </div>
 

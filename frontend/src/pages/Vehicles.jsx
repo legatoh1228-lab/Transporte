@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Modal } from '../components/common/Modal';
 import { usePermissions } from '../hooks/usePermissions';
+import { usePagination } from '../hooks/usePagination';
+import { PaginationControls } from '../components/common/PaginationControls';
 
 const Vehicles = () => {
   const { hasPermission } = usePermissions();
@@ -225,6 +227,20 @@ const Vehicles = () => {
     v.modelo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const {
+    paginatedData,
+    currentPage,
+    totalPages,
+    totalFiltered,
+    startIndex,
+    endIndex,
+    hasNextPage,
+    hasPrevPage,
+    goToPage,
+    nextPage,
+    prevPage
+  } = usePagination(filteredVehicles, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
+
   return (
     <div className="space-y-6 font-public-sans pb-10">
       {/* Header Block */}
@@ -291,7 +307,7 @@ const Vehicles = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/20">
-                {filteredVehicles.length > 0 ? filteredVehicles.map((v) => (
+                {paginatedData.length > 0 ? paginatedData.map((v) => (
                   <tr key={v.placa} className="hover:bg-primary/[0.02] transition-colors group">
                     <td className="px-8 py-5">
                        <div className="flex items-center gap-4">
@@ -378,6 +394,21 @@ const Vehicles = () => {
               </tbody>
             </table>
           )}
+        </div>
+        <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalFiltered={totalFiltered}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            totalItems={vehicles.length}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            onPageChange={goToPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
+          />
         </div>
       </div>
 

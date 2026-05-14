@@ -18,27 +18,28 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   // Mapping labels to Permission Modules
   const moduleMap = {
-    'Dashboard': 'Dashboard',
-    'Organizaciones': 'Organizaciones',
-    'Vehículos': 'Vehículos',
-    'Operadores': 'Operadores',
-    'Asignaciones': 'Asignaciones',
-    'Rutas': 'Rutas',
-
-    'Mapa de Rutas': 'Rutas',
-    'Alertas': 'Alertas',
-    'Terminales': 'Organizaciones',
-    'Admin Usuarios': 'Usuarios',
-    'Permisos': 'Permisos',
-    'Configuración': 'Configuración',
-    'Catálogos': 'Configuración',
-    'Auditoría': 'Configuración'
+    'Dashboard':       'Dashboard',
+    'Organizaciones':  'Organizaciones',
+    'Gremios':         'Gremios',
+    'Terminales':      'Organizaciones',
+    'Vehículos':       'Vehículos',
+    'Operadores':      'Operadores',
+    'Asignaciones':    'Asignaciones',
+    'Rutas':           'Rutas',
+    'Mapa de Rutas':   'Rutas',
+    'Alertas':         'Alertas',
+    'Admin Usuarios':  'Usuarios',
+    'Permisos':        'Permisos',
+    'Configuración':   'Configuración',
+    'Catálogos':       'Configuración',
+    'Auditoría':       'Configuración'
   };
 
 
   const navItems = [
     { label: 'Dashboard',      icon: 'dashboard',        path: '/dashboard' },
     { label: 'Organizaciones', icon: 'corporate_fare',   path: '/organizaciones' },
+    { label: 'Gremios',        icon: 'groups',           path: '/gremios' },
     { label: 'Terminales',     icon: 'store',            path: '/terminales' },
     { label: 'Vehículos',      icon: 'directions_bus',   path: '/vehiculos' },
     { label: 'Operadores',     icon: 'person_pin',       path: '/operadores' },

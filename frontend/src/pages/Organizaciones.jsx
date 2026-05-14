@@ -3,6 +3,8 @@ import api from '../services/api';
 
 import { Modal } from '../components/common/Modal';
 import { usePermissions } from '../hooks/usePermissions';
+import { usePagination } from '../hooks/usePagination';
+import { PaginationControls } from '../components/common/PaginationControls';
 
 const Organizaciones = () => {
   const { hasPermission } = usePermissions();
@@ -274,6 +276,20 @@ const Organizaciones = () => {
     return matchesSearch && matchesMun && matchesTipo && matchesGremio;
   });
 
+  const {
+    paginatedData,
+    currentPage,
+    totalPages,
+    totalFiltered,
+    startIndex,
+    endIndex,
+    hasNextPage,
+    hasPrevPage,
+    goToPage,
+    nextPage,
+    prevPage
+  } = usePagination(filteredOrgs, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
+
   return (
     <div className="space-y-6 font-public-sans">
       {/* Header Block */}
@@ -428,7 +444,7 @@ const Organizaciones = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/40 bg-surface-container-lowest">
-                {filteredOrgs.length > 0 ? filteredOrgs.map((org, i) => (
+                {paginatedData.length > 0 ? paginatedData.map((org, i) => (
                   <tr key={org.rif} className={`hover:bg-surface-container-low transition-all group border-b border-outline-variant/30`}>
                     <td className="px-6 py-5">
                       <div className="flex flex-col">
@@ -514,8 +530,20 @@ const Organizaciones = () => {
           )}
         </div>
         {/* Table Footer */}
-        <div className="p-4 border-t border-outline-variant bg-surface-container-low flex items-center justify-between">
-          <p className="font-body-sm text-body-sm text-on-surface-variant">Mostrando <span className="font-medium text-on-surface">{filteredOrgs.length}</span> organizaciones</p>
+        <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalFiltered={totalFiltered}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            totalItems={organizations.length}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            onPageChange={goToPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
+          />
         </div>
       </div>
 

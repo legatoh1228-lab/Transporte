@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../components/common/Modal';
 import api from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
+import { usePagination } from '../hooks/usePagination';
+import { PaginationControls } from '../components/common/PaginationControls';
 
 export default function Operadores() {
   const { hasPermission } = usePermissions();
@@ -208,6 +210,20 @@ export default function Operadores() {
     `${op.nombres} ${op.apellidos}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const {
+    paginatedData,
+    currentPage,
+    totalPages,
+    totalFiltered,
+    startIndex,
+    endIndex,
+    hasNextPage,
+    hasPrevPage,
+    goToPage,
+    nextPage,
+    prevPage
+  } = usePagination(filteredOperators, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
+
   return (
     <div className="flex flex-col gap-6 font-public-sans pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -261,7 +277,7 @@ export default function Operadores() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/40">
-                {filteredOperators.length > 0 ? filteredOperators.map((row) => (
+                {paginatedData.length > 0 ? paginatedData.map((row) => (
                   <tr key={row.cedula} className="hover:bg-primary/[0.02] transition-colors group">
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-4">
@@ -339,6 +355,21 @@ export default function Operadores() {
               </tbody>
             </table>
           )}
+        </div>
+        <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalFiltered={totalFiltered}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            totalItems={operators.length}
+            hasNextPage={hasNextPage}
+            hasPrevPage={hasPrevPage}
+            onPageChange={goToPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
+          />
         </div>
       </div>
 
