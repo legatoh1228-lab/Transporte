@@ -18,22 +18,21 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   // Mapping labels to Permission Modules
   const moduleMap = {
-    'Dashboard': 'Dashboard',
-    'Organizaciones': 'Organizaciones',
-    'Gremios': 'Organizaciones',
-    'Vehículos': 'Vehículos',
-    'Operadores': 'Operadores',
-    'Asignaciones': 'Asignaciones',
-    'Rutas': 'Rutas',
-
-    'Mapa de Rutas': 'Rutas',
-    'Alertas': 'Alertas',
-    'Terminales': 'Organizaciones',
-    'Admin Usuarios': 'Usuarios',
-    'Permisos': 'Permisos',
-    'Configuración': 'Configuración',
-    'Catálogos': 'Configuración',
-    'Auditoría': 'Configuración'
+    'Dashboard':       'Dashboard',
+    'Organizaciones':  'Organizaciones',
+    'Gremios':         'Gremios',
+    'Terminales':      'Organizaciones',
+    'Vehículos':       'Vehículos',
+    'Operadores':      'Operadores',
+    'Asignaciones':    'Asignaciones',
+    'Rutas':           'Rutas',
+    'Mapa de Rutas':   'Rutas',
+    'Alertas':         'Alertas',
+    'Admin Usuarios':  'Usuarios',
+    'Permisos':        'Permisos',
+    'Configuración':   'Configuración',
+    'Catálogos':       'Configuración',
+    'Auditoría':       'Configuración'
   };
 
 
