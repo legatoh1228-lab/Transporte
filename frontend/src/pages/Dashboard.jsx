@@ -175,12 +175,12 @@ const Dashboard = () => {
           <div className="bg-surface-container-lowest border border-outline-variant rounded-[40px] p-10 flex flex-col shadow-sm relative overflow-hidden group">
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--color-primary) 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
             
-            <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-10 relative z-10">
-              <div>
-                <h3 className="text-2xl font-black text-on-surface mb-4">Resumen de Composición</h3>
-                
+            <h3 className="text-2xl font-black text-on-surface mb-6 relative z-10">Resumen de Composición</h3>
+            
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-10 relative z-10">
+              <div className="flex flex-col gap-3">
                 {/* Premium Filter Chips */}
-                <div className="flex flex-wrap items-center gap-2 bg-surface-container p-1.5 rounded-[20px] w-fit border border-outline-variant/30 shadow-inner">
+                <div className="flex flex-wrap items-center gap-0.5 bg-surface-container p-0.5 rounded-xl w-fit border border-outline-variant/30 shadow-inner">
                   {[
                     { id: 'vehiculos', icon: 'directions_bus', label: 'Flota' },
                     { id: 'operadores', icon: 'badge', label: 'Operadores' },
@@ -190,19 +190,20 @@ const Dashboard = () => {
                     <button
                       key={tab.id}
                       onClick={() => setSelectedComposition(tab.id)}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-200 ${
                         selectedComposition === tab.id 
-                        ? 'bg-primary text-on-primary shadow-md scale-[1.02]' 
+                        ? 'bg-primary text-on-primary shadow-sm' 
                         : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+                      <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
                       {tab.label}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-on-surface-variant font-bold mt-4 ml-2 opacity-60 tracking-wide uppercase">{activeComposition.subtitle}</p>
+                <p className="text-[10px] text-on-surface-variant font-bold ml-1 opacity-60 tracking-widest uppercase">{activeComposition.subtitle}</p>
               </div>
+
               <div className="bg-surface-container-low border border-outline-variant/60 rounded-3xl px-6 py-4 flex items-center gap-5 shadow-sm">
                 <div className="flex flex-col text-right">
                   <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest leading-none mb-1.5">Total {activeComposition.label}</span>
@@ -264,7 +265,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2 gap-3 md:gap-4 w-full">
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-1 xl:grid-cols-1 gap-4 w-full">
                 {activeComposition.data.map((item, index) => {
                     const chartColors = ['#0ea5e9', '#f97316', '#10b981', '#8b5cf6', '#f43f5e'];
                     const color = chartColors[index % chartColors.length];
@@ -272,21 +273,21 @@ const Dashboard = () => {
                     const percentageStr = Number(item.percentage).toFixed(item.percentage % 1 === 0 ? 0 : 1);
 
                     return (
-                      <div key={item.name} className="flex items-center justify-between p-4 rounded-[20px] bg-surface-container-lowest border border-outline-variant/30 hover:border-outline-variant/60 hover:shadow-md transition-all group/item min-w-0">
-                        <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
-                           <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: `${color}1A`, color: color }}>
-                              <span className="material-symbols-outlined text-[20px] md:text-[24px]">{icon}</span>
+                      <div key={item.name} className="flex items-center justify-between p-5 rounded-[24px] bg-surface-container-lowest border border-outline-variant/40 hover:border-primary/40 hover:shadow-lg transition-all group/item min-w-0">
+                        <div className="flex items-center gap-4 min-w-0 flex-1">
+                           <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: `${color}1A`, color: color }}>
+                              <span className="material-symbols-outlined text-[28px]">{icon}</span>
                            </div>
                            <div className="flex flex-col min-w-0 flex-1">
                              <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }}></div>
-                                <span className="text-xs md:text-sm font-black text-on-surface tracking-tight leading-none truncate" title={item.name}>{item.name}</span>
+                                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }}></div>
+                                <span className="text-sm md:text-base font-black text-on-surface tracking-tight leading-none truncate" title={item.name}>{item.name}</span>
                              </div>
-                             <span className="text-[10px] md:text-[11px] font-medium text-on-surface-variant mt-1.5 truncate">{item.count} {activeComposition.label.toLowerCase()}</span>
+                             <span className="text-[11px] md:text-xs font-bold text-on-surface-variant mt-2 uppercase tracking-wide opacity-70">{item.count} {activeComposition.label}</span>
                            </div>
                         </div>
-                        <div className="flex flex-col items-end flex-shrink-0 pl-3 md:pl-4">
-                          <span className="text-lg md:text-xl font-black leading-none" style={{ color: color }}>{percentageStr}%</span>
+                        <div className="flex flex-col items-end flex-shrink-0 pl-6 border-l border-outline-variant/30 ml-4">
+                          <span className="text-xl md:text-2xl font-black leading-none" style={{ color: color }}>{percentageStr}%</span>
                         </div>
                       </div>
                     );
@@ -345,9 +346,9 @@ const Dashboard = () => {
                    </div>
                 </div>
 
-                <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-4 flex-1 min-h-0 overflow-y-auto max-h-[520px] pr-2 custom-scrollbar">
                    {stats.alerts.length > 0 ? (
-                     stats.alerts.map((alert, index) => (
+                     stats.alerts.slice(0, 6).map((alert, index) => (
                        <div 
                          key={index} 
                          className={`p-5 rounded-[24px] border transition-all cursor-pointer hover:-translate-y-1 ${
