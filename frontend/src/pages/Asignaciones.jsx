@@ -43,7 +43,7 @@ const Asignaciones = () => {
                 api.get('fleet/asignaciones-operativas/'),
                 api.get('personnel/operators/'),
                 api.get('fleet/vehicles/'),
-                api.get('routes/routes/'),
+                api.get('routes/rutas/'),
                 api.get('catalogs/configuracion-visual/')
             ]);
             setAsignaciones(asignRes.data);

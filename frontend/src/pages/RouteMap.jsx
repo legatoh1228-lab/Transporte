@@ -60,7 +60,7 @@ export default function RouteMap() {
   const fetchRoutes = async () => {
     try {
       setLoading(true);
-      const response = await api.get('routes/routes/');
+      const response = await api.get('routes/rutas/');
       const processedRoutes = response.data.map(route => {
         let path = [];
         if (route.geom) {

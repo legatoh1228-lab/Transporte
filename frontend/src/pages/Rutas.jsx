@@ -475,7 +475,7 @@ export default function Rutas() {
     try {
       setLoading(true);
       const [resRoutes, resTipos, resVias, resMun, resTerm] = await Promise.all([
-        api.get('routes/routes/'),
+        api.get('routes/rutas/'),
         api.get('catalogs/tipos-ruta/'),
         api.get('catalogs/vias/'),
         api.get('catalogs/municipios/'),
@@ -628,9 +628,9 @@ export default function Rutas() {
 
     try {
       if (isEditing) {
-        await api.put(`routes/routes/${payload.id}/`, payload);
+        await api.put(`routes/rutas/${payload.id}/`, payload);
       } else {
-        await api.post('routes/routes/', payload);
+        await api.post('routes/rutas/', payload);
       }
       setIsModalOpen(false);
       fetchData();
@@ -650,7 +650,7 @@ export default function Rutas() {
   const confirmDelete = async () => {
     if (!routeToDelete) return;
     try {
-      await api.delete(`routes/routes/${routeToDelete.id}/`);
+      await api.delete(`routes/rutas/${routeToDelete.id}/`);
       if (selectedRouteId === routeToDelete.id) setSelectedRouteId(null);
       fetchData();
     } catch (err) {
