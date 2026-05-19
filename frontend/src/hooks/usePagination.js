@@ -8,7 +8,10 @@ export const usePagination = (data = [], options = {}) => {
     itemsPerPage = ITEMS_PER_PAGE,
     enableSearch = true,
     enableFilter = true,
-    filterField = 'estado' // Campo para filtrado (estado, estatus, tipo, etc.)
+    filterField = 'estado',
+    serverSide = false,
+    totalCount = 0,
+    onParamsChange = null
   } = options;
 
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -17,39 +20,40 @@ export const usePagination = (data = [], options = {}) => {
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
 
-  // Track previous data length to detect external filter changes and reset page
-  const prevDataLengthRef = useRef(data.length);
+  // Notify parent of parameter changes for server-side fetching
   useEffect(() => {
-    if (data.length !== prevDataLengthRef.current) {
-      prevDataLengthRef.current = data.length;
-      setCurrentPage(1);
+    if (serverSide && onParamsChange) {
+      onParamsChange({
+        page: currentPage,
+        search: searchTerm,
+        filter: selectedFilter,
+        ordering: sortField ? `${sortDirection === 'desc' ? '-' : ''}${sortField}` : null
+      });
     }
-  }, [data.length]);
+  }, [currentPage, searchTerm, selectedFilter, sortField, sortDirection, serverSide]);
 
-  // Get unique filter values from data
+  // Client-side unique filter values
   const uniqueFilterValues = useMemo(() => {
-    if (!enableFilter) return [];
+    if (serverSide || !enableFilter) return [];
     const values = new Set();
     data.forEach(item => {
       const value = item[filterField] || item.estado || item.estatus || item.tipo_nombre || '';
       if (value) values.add(value);
     });
     return Array.from(values).sort();
-  }, [data, filterField, enableFilter]);
+  }, [data, filterField, enableFilter, serverSide]);
 
-  // Filter data based on search term and selected filter
+  // Client-side filtering logic
   const filteredData = useMemo(() => {
-    let result = [...data];
+    if (serverSide) return data; // Data is already filtered by server
 
-    // Apply filter dropdown
+    let result = [...data];
     if (enableFilter && selectedFilter) {
       result = result.filter(item => {
         const filterValue = item[filterField] || item.estado || item.estatus || item.tipo_nombre || '';
         return filterValue === selectedFilter;
       });
     }
-
-    // Apply search term
     if (enableSearch && searchTerm.trim()) {
       const search = searchTerm.toLowerCase();
       result = result.filter(item => {
@@ -59,52 +63,47 @@ export const usePagination = (data = [], options = {}) => {
         });
       });
     }
-
-    // Apply sorting
     if (sortField) {
       result.sort((a, b) => {
         const aVal = a[sortField];
         const bVal = b[sortField];
-        
         if (aVal === null || aVal === undefined) return 1;
         if (bVal === null || bVal === undefined) return -1;
-        
         if (typeof aVal === 'string') {
-          return sortDirection === 'asc' 
-            ? aVal.localeCompare(bVal) 
-            : bVal.localeCompare(aVal);
+          return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         }
-        
         return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
       });
     }
-
     return result;
-  }, [data, searchTerm, selectedFilter, sortField, sortDirection, filterField, enableSearch, enableFilter]);
+  }, [data, searchTerm, selectedFilter, sortField, sortDirection, filterField, enableSearch, enableFilter, serverSide]);
 
   // Pagination calculations
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
-  // Clamp currentPage if it exceeds totalPages (e.g. after filtering reduces results)
+  const totalItemsCount = serverSide ? totalCount : filteredData.length;
+  const totalPages = Math.max(1, Math.ceil(totalItemsCount / itemsPerPage));
   const safePage = Math.min(currentPage, totalPages);
-  const startIndex = filteredData.length === 0 ? 0 : (safePage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
-  const paginatedData = filteredData.slice(startIndex, endIndex);
+  
+  const paginatedData = useMemo(() => {
+    if (serverSide) return data; // Data is already paginated by server
+    const start = (safePage - 1) * itemsPerPage;
+    return filteredData.slice(start, start + itemsPerPage);
+  }, [filteredData, safePage, itemsPerPage, serverSide, data]);
 
-  // Reset to page 1 when search or filter changes
-  const resetPage = useCallback(() => {
-    setCurrentPage(1);
-  }, []);
+  const startIndex = totalItemsCount === 0 ? 0 : (safePage - 1) * itemsPerPage;
+  const endIndex = serverSide 
+    ? startIndex + data.length 
+    : Math.min(startIndex + itemsPerPage, totalItemsCount);
 
   // Handlers
   const handleSearchChange = useCallback((value) => {
     setSearchTerm(value);
-    resetPage();
-  }, [resetPage]);
+    setCurrentPage(1);
+  }, []);
 
   const handleFilterChange = useCallback((value) => {
     setSelectedFilter(value);
-    resetPage();
-  }, [resetPage]);
+    setCurrentPage(1);
+  }, []);
 
   const handleSort = useCallback((field) => {
     if (sortField === field) {
@@ -113,6 +112,7 @@ export const usePagination = (data = [], options = {}) => {
       setSortField(field);
       setSortDirection('asc');
     }
+    setCurrentPage(1);
   }, [sortField]);
 
   const goToPage = useCallback((page) => {
@@ -128,12 +128,8 @@ export const usePagination = (data = [], options = {}) => {
   }, []);
 
   return {
-    // Data
     paginatedData,
-    filteredData,
-    totalFiltered: filteredData.length,
-    
-    // Pagination info — expose safePage as currentPage so UI reflects clamped value
+    totalFiltered: totalItemsCount,
     currentPage: safePage,
     totalPages,
     itemsPerPage,
@@ -141,25 +137,18 @@ export const usePagination = (data = [], options = {}) => {
     endIndex,
     hasNextPage: safePage < totalPages,
     hasPrevPage: safePage > 1,
-    
-    // Search & Filter
     searchTerm,
     setSearchTerm: handleSearchChange,
     selectedFilter,
     setSelectedFilter: handleFilterChange,
     uniqueFilterValues,
-    filterField,
-    
-    // Sorting
     sortField,
     sortDirection,
     handleSort,
-    
-    // Navigation
     goToPage,
     nextPage,
     prevPage,
-    resetPage
+    resetPage: () => setCurrentPage(1)
   };
 };
 
