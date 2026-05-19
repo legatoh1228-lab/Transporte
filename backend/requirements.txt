@@ -5,7 +5,5 @@ python-dotenv
 django-environ
 djangorestframework
 django-cors-headers
-# GIS support is built into Django, but we need the DB drivers
-psycopg2-binary
 Pillow>=10.0.0
 openpyxl
