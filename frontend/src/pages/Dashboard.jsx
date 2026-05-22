@@ -80,20 +80,77 @@ const Dashboard = () => {
   };
 
   const activeComposition = compositionConfig[selectedComposition];
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
-  // Helper for Wave Chart calculation
-  const calculateWaveLayers = (data) => {
-    let acc = 0;
-    const computed = (data || []).map((item, index) => {
-      acc += item.percentage;
-      const yPos = 100 - acc;
-      return { ...item, index, yPos };
-    });
-    // Sort so the topmost layer (smallest Y) is drawn first (at the back)
-    return computed.sort((a, b) => a.yPos - b.yPos);
+  // Clear hover state when composition tab changes
+  useEffect(() => {
+    setHoveredIndex(null);
+  }, [selectedComposition]);
+
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius; // ~226.195
+
+  let accumulatedPercent = 0;
+  const donutSlices = (activeComposition.data || []).map((item, index) => {
+    const percentage = Number(item.percentage) || 0;
+    const strokeLength = (percentage / 100) * circumference;
+    const strokeOffset = - (accumulatedPercent / 100) * circumference;
+    accumulatedPercent += percentage;
+    
+    // For visual spacing between slices, subtract a tiny gap if length is enough
+    const visualLength = strokeLength > 3 ? strokeLength - 1.5 : strokeLength;
+    
+    return {
+      ...item,
+      index,
+      strokeLength: visualLength,
+      strokeOffset,
+      percentage
+    };
+  });
+
+  const chartColors = ['#0ea5e9', '#f97316', '#10b981', '#8b5cf6', '#f43f5e'];
+  const hasData = donutSlices.length > 0 && activeComposition.total > 0;
+
+  const getAxisIcon = (name) => {
+    const n = name.toUpperCase();
+    if (n.includes('METRO')) return 'location_city';
+    if (n.includes('ESTE')) return 'east';
+    if (n.includes('SUR')) return 'south';
+    if (n.includes('COSTA') || n.includes('NORTE')) return 'sailing';
+    return 'explore';
   };
 
-  const waveLayers = calculateWaveLayers(activeComposition.data);
+  const axisStyles = [
+    {
+      text: 'text-primary',
+      bg: 'bg-primary',
+      lightBg: 'bg-primary/10',
+      border: 'border-primary/20 hover:border-primary/50',
+      icon: 'location_city'
+    },
+    {
+      text: 'text-secondary',
+      bg: 'bg-secondary',
+      lightBg: 'bg-secondary/10',
+      border: 'border-secondary/20 hover:border-secondary/50',
+      icon: 'east'
+    },
+    {
+      text: 'text-tertiary',
+      bg: 'bg-tertiary',
+      lightBg: 'bg-tertiary/10',
+      border: 'border-tertiary/20 hover:border-tertiary/50',
+      icon: 'south'
+    },
+    {
+      text: 'text-error',
+      bg: 'bg-error',
+      lightBg: 'bg-error/10',
+      border: 'border-error/20 hover:border-error/50',
+      icon: 'sailing'
+    }
+  ];
 
   return (
     <div className="space-y-10 font-public-sans pb-10">
@@ -141,6 +198,9 @@ const Dashboard = () => {
             onClick={() => navigate(card.path)}
             className="group relative overflow-hidden bg-surface-container-lowest border border-outline-variant/40 rounded-3xl p-5 flex items-center gap-5 transition-all duration-300 hover:shadow-lg hover:border-outline-variant/80 cursor-pointer hover:-translate-y-1"
           >
+             {/* Subtle color highlight at the bottom */}
+             <div className={`absolute bottom-0 left-0 right-0 h-[3px] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left ${card.textClass.includes('text-primary') ? 'bg-primary' : card.textClass.includes('text-secondary') ? 'bg-secondary' : card.textClass.includes('text-tertiary') ? 'bg-tertiary' : 'bg-error'}`}></div>
+
              {/* Icon */}
              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3 ${card.bgClass} ${card.textClass}`}>
                <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -172,7 +232,7 @@ const Dashboard = () => {
         {/* Fleet Analytics - Reimagined */}
         <div className={`space-y-8 ${canViewAlerts ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
           {/* First Block: Fleet by Modality */}
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-[40px] p-10 flex flex-col shadow-sm relative overflow-hidden group">
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-[40px] p-8 md:p-10 flex flex-col shadow-sm relative overflow-hidden group">
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--color-primary) 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
             
             <h3 className="text-2xl font-black text-on-surface mb-6 relative z-10">Resumen de Composición</h3>
@@ -217,77 +277,163 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="flex flex-col xl:flex-row items-center xl:items-center gap-12 xl:gap-16 relative z-10">
-              <div className="relative w-56 h-56 md:w-64 md:h-64 flex-shrink-0 rounded-full border-[10px] border-surface-container-high overflow-hidden shadow-[inset_0_4px_20px_rgba(0,0,0,0.1)] bg-surface-container">
-                <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-                  {waveLayers.map((layer) => {
-                    const chartColors = ['#0ea5e9', '#f97316', '#10b981', '#8b5cf6', '#f43f5e'];
-                    const color = chartColors[layer.index % chartColors.length];
-                    const y = Math.max(0, layer.yPos); 
-                    const dur = 2.5 + (layer.index % 2); // Faster base animation
-                    const amplitude = 6; // Taller waves for more movement
-                    
-                    return (
-                      <g key={`${selectedComposition}-${layer.name}`}>
-                        {/* Back wave (slower, offset, lower opacity for 3D liquid effect) */}
-                        <path 
-                          d={`M 0 ${y} C 12.5 ${y+amplitude}, 37.5 ${y-amplitude}, 50 ${y} C 62.5 ${y+amplitude}, 87.5 ${y-amplitude}, 100 ${y} C 112.5 ${y+amplitude}, 137.5 ${y-amplitude}, 150 ${y} C 162.5 ${y+amplitude}, 187.5 ${y-amplitude}, 200 ${y} L 200 100 L 0 100 Z`}
-                          fill={color}
-                          opacity="0.3"
-                          className="transition-all duration-700 ease-out"
-                        >
-                           <animateTransform 
-                             attributeName="transform" type="translate" from="-100 0" to="0 0" 
-                             dur={`${dur + 1.5}s`} repeatCount="indefinite" 
-                           />
-                        </path>
-                        {/* Front wave */}
-                        <path 
-                          d={`M 0 ${y} C 12.5 ${y-amplitude}, 37.5 ${y+amplitude}, 50 ${y} C 62.5 ${y-amplitude}, 87.5 ${y+amplitude}, 100 ${y} C 112.5 ${y-amplitude}, 137.5 ${y+amplitude}, 150 ${y} C 162.5 ${y-amplitude}, 187.5 ${y+amplitude}, 200 ${y} L 200 100 L 0 100 Z`}
-                          fill={color}
-                          opacity="0.95"
-                          className="transition-all duration-700 ease-out"
-                        >
-                           <animateTransform 
-                             attributeName="transform" type="translate" from="0 0" to="-100 0" 
-                             dur={`${dur}s`} repeatCount="indefinite" 
-                           />
-                        </path>
-                      </g>
-                    );
-                  })}
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-10 pointer-events-none">
-                  <div className="bg-surface-container-lowest/90 backdrop-blur-md px-6 py-4 rounded-[32px] border border-outline-variant/30 shadow-xl flex flex-col items-center">
-                    <span className="text-3xl font-black text-on-surface leading-none transition-all">{activeComposition.total}</span>
-                    <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest mt-1 transition-all">{activeComposition.label}</span>
-                  </div>
+            <div className="flex flex-col xl:flex-row items-center xl:items-start gap-12 xl:gap-16 relative z-10 w-full">
+              {/* SVG Donut Chart */}
+              <div className="relative w-56 h-56 md:w-64 md:h-64 flex-shrink-0 flex items-center justify-center select-none">
+                {hasData ? (
+                  <svg 
+                    viewBox="0 0 100 100" 
+                    className="w-full h-full transform -rotate-90 origin-center filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.04)] dark:drop-shadow-[0_8px_16px_rgba(0,0,0,0.25)]"
+                  >
+                    {/* Background track circle for depth */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r={radius}
+                      fill="transparent"
+                      stroke="var(--color-surface-container-high)"
+                      strokeWidth="8"
+                      className="opacity-40"
+                    />
+                    {donutSlices.map((slice) => {
+                      const color = chartColors[slice.index % chartColors.length];
+                      const isHovered = hoveredIndex === slice.index;
+                      const isAnyHovered = hoveredIndex !== null;
+                      
+                      return (
+                        <circle
+                          key={`${selectedComposition}-${slice.name}`}
+                          cx="50"
+                          cy="50"
+                          r={radius}
+                          fill="transparent"
+                          stroke={color}
+                          strokeWidth={isHovered ? 12 : 8.5}
+                          strokeDasharray={`${slice.strokeLength} ${circumference}`}
+                          strokeDashoffset={slice.strokeOffset}
+                          strokeLinecap="round"
+                          className="transition-all duration-300 cursor-pointer ease-out"
+                          style={{
+                            opacity: isAnyHovered ? (isHovered ? 1 : 0.35) : 0.95,
+                            transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+                            transformOrigin: 'center'
+                          }}
+                          onMouseEnter={() => setHoveredIndex(slice.index)}
+                          onMouseLeave={() => setHoveredIndex(null)}
+                        />
+                      );
+                    })}
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 100 100" className="w-full h-full">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r={radius}
+                      fill="transparent"
+                      stroke="var(--color-outline-variant)"
+                      strokeWidth="6"
+                      strokeDasharray="4 4"
+                      className="opacity-40"
+                    />
+                  </svg>
+                )}
+                
+                {/* Dynamic Center Text Container */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                  {hoveredIndex === null ? (
+                    <div className="transition-all duration-300 transform scale-100 opacity-100 flex flex-col items-center">
+                      <span className="text-3.5xl font-black text-on-surface leading-none tracking-tight">{activeComposition.total}</span>
+                      <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mt-2">{activeComposition.label}</span>
+                    </div>
+                  ) : (
+                    <div className="transition-all duration-300 transform scale-105 opacity-100 flex flex-col items-center px-4 max-w-full">
+                      <span 
+                        className="text-4xl font-black leading-none transition-colors" 
+                        style={{ color: chartColors[hoveredIndex % chartColors.length] }}
+                      >
+                        {Number(activeComposition.data[hoveredIndex]?.percentage || 0).toFixed(
+                          (activeComposition.data[hoveredIndex]?.percentage || 0) % 1 === 0 ? 0 : 1
+                        )}%
+                      </span>
+                      <span className="text-[10px] font-black text-on-surface uppercase tracking-widest mt-2 truncate w-[130px] text-center">
+                        {activeComposition.data[hoveredIndex]?.name}
+                      </span>
+                      <span className="text-[11px] font-bold text-on-surface-variant/80 mt-0.5">
+                        {activeComposition.data[hoveredIndex]?.count} {activeComposition.label}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-1 xl:grid-cols-1 gap-4 w-full">
+              {/* Composition Cards Grid (Legend) */}
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4 w-full">
                 {activeComposition.data.map((item, index) => {
-                    const chartColors = ['#0ea5e9', '#f97316', '#10b981', '#8b5cf6', '#f43f5e'];
                     const color = chartColors[index % chartColors.length];
                     const icon = activeComposition.iconGetter(item.name);
                     const percentageStr = Number(item.percentage).toFixed(item.percentage % 1 === 0 ? 0 : 1);
+                    const isHovered = hoveredIndex === index;
+                    const isAnyHovered = hoveredIndex !== null;
 
                     return (
-                      <div key={item.name} className="flex items-center justify-between p-5 rounded-[24px] bg-surface-container-lowest border border-outline-variant/40 hover:border-primary/40 hover:shadow-lg transition-all group/item min-w-0">
-                        <div className="flex items-center gap-4 min-w-0 flex-1">
-                           <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: `${color}1A`, color: color }}>
-                              <span className="material-symbols-outlined text-[28px]">{icon}</span>
-                           </div>
-                           <div className="flex flex-col min-w-0 flex-1">
-                             <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }}></div>
-                                <span className="text-sm md:text-base font-black text-on-surface tracking-tight leading-none truncate" title={item.name}>{item.name}</span>
-                             </div>
-                             <span className="text-[11px] md:text-xs font-bold text-on-surface-variant mt-2 uppercase tracking-wide opacity-70">{item.count} {activeComposition.label}</span>
-                           </div>
+                      <div 
+                        key={item.name} 
+                        onMouseEnter={() => setHoveredIndex(index)}
+                        onMouseLeave={() => setHoveredIndex(null)}
+                        className={`flex flex-col p-4 rounded-[22px] bg-surface-container-lowest border transition-all duration-300 cursor-pointer min-w-0 ${
+                          isHovered 
+                            ? 'border-primary/50 shadow-md translate-x-1' 
+                            : 'border-outline-variant/30 hover:border-outline-variant/60 shadow-sm'
+                        }`}
+                        style={{
+                          opacity: isAnyHovered && !isHovered ? 0.6 : 1,
+                          transform: isHovered ? 'scale(1.015) translateX(3px)' : 'scale(1) translateX(0px)'
+                        }}
+                      >
+                        <div className="flex items-center justify-between min-w-0">
+                          <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                            {/* Styled Icon Container */}
+                            <div 
+                              className="w-11 h-11 rounded-xl flex items-center justify-center shadow-inner flex-shrink-0 transition-transform duration-500"
+                              style={{ 
+                                backgroundColor: `${color}15`, 
+                                color: color,
+                                transform: isHovered ? 'rotate(-6deg) scale(1.1)' : 'none'
+                              }}
+                            >
+                              <span className="material-symbols-outlined text-[22px]">{icon}</span>
+                            </div>
+                            
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }}></span>
+                                <span className="text-sm font-black text-on-surface tracking-tight truncate" title={item.name}>
+                                  {item.name}
+                                </span>
+                              </div>
+                              <span className="text-[11px] font-bold text-on-surface-variant/80 mt-1 uppercase tracking-wider">
+                                {item.count} {activeComposition.label}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center pl-4 ml-2 border-l border-outline-variant/20 flex-shrink-0">
+                            <span className="text-lg font-black tracking-tight" style={{ color: color }}>
+                              {percentageStr}%
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end flex-shrink-0 pl-6 border-l border-outline-variant/30 ml-4">
-                          <span className="text-xl md:text-2xl font-black leading-none" style={{ color: color }}>{percentageStr}%</span>
+                        
+                        {/* Inline progress bar */}
+                        <div className="w-full bg-surface-container rounded-full h-1.5 mt-3 overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all duration-700 ease-out" 
+                            style={{ 
+                              width: `${item.percentage}%`,
+                              backgroundColor: color
+                            }}
+                          />
                         </div>
                       </div>
                     );
@@ -296,34 +442,98 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Second Block: Territorial Axis (New Coherent Data) */}
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-[40px] p-10 flex flex-col shadow-sm relative overflow-hidden">
-            <div className="flex items-center justify-between mb-8">
+          {/* Second Block: Territorial Axis */}
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-[40px] p-8 md:p-10 flex flex-col shadow-sm relative overflow-hidden">
+            <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--color-primary) 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
+            
+            <div className="flex items-center justify-between mb-6 relative z-10">
               <div>
                 <h3 className="text-xl font-black text-on-surface">Distribución por Eje Territorial</h3>
-                <p className="text-sm text-on-surface-variant font-medium">Concentración de rutas por zona del estado Aragua</p>
+                <p className="text-sm text-on-surface-variant font-medium">Concentración de rutas en el estado Aragua</p>
               </div>
-              <span className="material-symbols-outlined text-primary">map</span>
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-primary">map</span>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {(stats.axis_distribution || []).map((axis, i) => {
-                const colors = ['primary', 'secondary', 'tertiary', 'error'];
-                const color = colors[i % colors.length];
-                return (
-                  <div key={i} className="bg-surface-container p-6 rounded-3xl border border-outline-variant/30 hover:border-primary/50 transition-all group">
-                    <div className="flex justify-between items-start mb-4">
-                      <span className={`text-${color} font-black text-xs uppercase tracking-widest`}>{axis.name}</span>
-                      <span className="text-on-surface-variant text-xs font-bold">{axis.percentage}%</span>
-                    </div>
-                    <div className="text-2xl font-black text-on-surface mb-3">{axis.count} <span className="text-xs font-medium text-on-surface-variant">Rutas</span></div>
-                    <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
-                      <div className={`h-full bg-${color} rounded-full transition-all duration-1000`} style={{ width: `${axis.percentage}%` }}></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+
+            {stats.axis_distribution && stats.axis_distribution.length > 0 && (
+              <div className="space-y-6 relative z-10">
+                {/* Single, Sleek Unified Stacked Bar */}
+                <div className="h-4 w-full rounded-full overflow-hidden flex shadow-inner bg-surface-container-high/40 border border-outline-variant/20">
+                  {stats.axis_distribution.map((axis, i) => {
+                    const colors = [
+                      'var(--color-primary)',      // Deep Blue
+                      'var(--color-secondary)',    // Secondary Slate
+                      'var(--color-tertiary)',     // Violet / Green
+                      'var(--color-error)'         // Red
+                    ];
+                    const color = colors[i % colors.length];
+                    return (
+                      <div 
+                        key={i} 
+                        style={{ width: `${axis.percentage}%`, backgroundColor: color }}
+                        className="h-full first:rounded-l-full last:rounded-r-full transition-all duration-500 group relative cursor-pointer"
+                        title={`${axis.name}: ${axis.count} rutas (${axis.percentage}%)`}
+                      >
+                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Minimalist Legend Cards Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {stats.axis_distribution.map((axis, i) => {
+                    const colors = [
+                      'var(--color-primary)',
+                      'var(--color-secondary)',
+                      'var(--color-tertiary)',
+                      'var(--color-error)'
+                    ];
+                    const color = colors[i % colors.length];
+                    const borderColors = [
+                      'border-primary/20 hover:border-primary/45',
+                      'border-secondary/20 hover:border-secondary/45',
+                      'border-tertiary/20 hover:border-tertiary/45',
+                      'border-error/20 hover:border-error/45'
+                    ];
+                    const textColors = [
+                      'text-primary',
+                      'text-secondary',
+                      'text-tertiary',
+                      'text-error'
+                    ];
+
+                    return (
+                      <div 
+                        key={i} 
+                        className={`flex flex-col p-4 rounded-2xl bg-surface-container-lowest border ${borderColors[i % borderColors.length]} transition-all duration-300 hover:shadow-sm`}
+                      >
+                        {/* Bullet color + Axis name */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }}></span>
+                          <span className="text-[11px] font-black text-on-surface-variant uppercase tracking-widest truncate" title={axis.name}>
+                            {axis.name}
+                          </span>
+                        </div>
+                        {/* Compact unified numbers */}
+                        <div className="flex items-baseline gap-1.5 mt-0.5">
+                          <span className="text-xl font-black text-on-surface leading-none">
+                            {axis.count}
+                          </span>
+                          <span className="text-[11px] font-bold text-on-surface-variant">
+                            rutas
+                          </span>
+                          <span className={`text-[12px] font-black ml-auto ${textColors[i % textColors.length]}`}>
+                            {Number(axis.percentage).toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -340,7 +550,7 @@ const Dashboard = () => {
                    <div className="flex items-center gap-2">
                       {stats.alerts.length > 0 && (
                         <span className="bg-error text-on-error text-[12px] font-black px-3 py-1 rounded-full animate-pulse shadow-sm">
-                          {stats.alerts.length}
+                           {stats.alerts.length}
                         </span>
                       )}
                    </div>
@@ -379,7 +589,7 @@ const Dashboard = () => {
                    ) : (
                      <div className="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-outline-variant/50 rounded-[32px] opacity-40">
                         <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mb-4">
-                          <span className="material-symbols-outlined text-[40px] text-on-surface-variant">verified</span>
+                           <span className="material-symbols-outlined text-[40px] text-on-surface-variant">verified</span>
                         </div>
                         <p className="font-black text-on-surface text-lg">Estabilidad Total</p>
                         <p className="text-sm font-medium mt-1">No hay alertas críticas.</p>
@@ -388,15 +598,15 @@ const Dashboard = () => {
                 </div>
                 
                  <div className="mt-6 pt-6 border-t border-outline-variant/30 flex-shrink-0">
-                   <button 
-                     onClick={() => navigate('/alertas')} 
-                     className="w-full py-4 bg-surface-container border border-outline-variant/50 rounded-[20px] text-xs font-black text-on-surface-variant uppercase tracking-widest hover:bg-surface-container-highest hover:text-primary transition-all flex items-center justify-center gap-2 group"
-                   >
-                     Ver Historial Completo
-                     <span className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
-                   </button>
+                    <button 
+                      onClick={() => navigate('/alertas')} 
+                      className="w-full py-4 bg-surface-container border border-outline-variant/50 rounded-[20px] text-xs font-black text-on-surface-variant uppercase tracking-widest hover:bg-surface-container-highest hover:text-primary transition-all flex items-center justify-center gap-2 group"
+                    >
+                      Ver Historial Completo
+                      <span className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
+                    </button>
                  </div>
-             </div>
+              </div>
           </div>
         )}
 
