@@ -346,6 +346,7 @@ export default function RouteMap() {
               .map(route => (
                 route.path && route.path.length > 0 && (
                   <React.Fragment key={`route-layer-${route.id}`}>
+                    {/* Main Route Path */}
                     <Polyline 
                       path={route.path} 
                       options={{ 
@@ -355,6 +356,48 @@ export default function RouteMap() {
                         zIndex: 100 
                       }} 
                     />
+                    {/* Directional Trace (Trazado con flechas) para guiar la ruta */}
+                    <Polyline 
+                      path={route.path} 
+                      options={{ 
+                        strokeOpacity: 0,
+                        zIndex: 101,
+                        icons: [{
+                          icon: {
+                            path: window.google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                            fillColor: '#FFFFFF',
+                            fillOpacity: 1,
+                            strokeColor: '#1D4ED8',
+                            strokeWeight: 1,
+                            scale: 2.5
+                          },
+                          offset: '50px',
+                          repeat: '150px'
+                        }]
+                      }} 
+                    />
+
+                    {/* Línea punteada que conecta las paradas en secuencia para rutas con múltiples paradas */}
+                    {route.paradas && route.paradas.length > 1 && (
+                      <Polyline
+                        path={route.paradas.filter(p => p.coord).map(p => ({ lat: p.coord[0], lng: p.coord[1] }))}
+                        options={{
+                          strokeColor: '#F59E0B',
+                          strokeOpacity: 0,
+                          strokeWeight: 2,
+                          zIndex: 99,
+                          icons: [{
+                            icon: {
+                              path: 'M 0,-1 0,1',
+                              strokeOpacity: 0.8,
+                              scale: 3
+                            },
+                            offset: '0',
+                            repeat: '15px'
+                          }]
+                        }}
+                      />
+                    )}
                     
                     {/* Render all stops (paradas) */}
                     {route.paradas && route.paradas.map((stop, idx) => {
