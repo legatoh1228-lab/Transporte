@@ -7,3 +7,5 @@ djangorestframework
 django-cors-headers
 Pillow>=10.0.0
 openpyxl
+django-filter
+djangorestframework-simplejwt
