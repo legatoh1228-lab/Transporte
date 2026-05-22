@@ -25,6 +25,7 @@ const RouteDesigner = ({ points, setPoints, stops, setStops, onDistanceUpdate, s
   const [map, setMap] = useState(null);
   const [directions, setDirections] = useState(null);
   const [geocoderResults, setGeocoderResults] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
   const [activeStopId, setActiveStopId] = useState(null);
 
   const onLoad = useCallback(mapInstance => setMap(mapInstance), []);
@@ -276,8 +277,41 @@ const RouteDesigner = ({ points, setPoints, stops, setStops, onDistanceUpdate, s
     });
   };
 
+  const handleDetectLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const pos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserLocation(pos);
+          if (map) {
+            map.panTo(pos);
+            map.setZoom(16);
+          }
+        },
+        (error) => {
+          console.error("Error al obtener ubicación:", error);
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      console.warn("Geolocalización no soportada.");
+    }
+  };
+
   return (
     <div className="relative h-full w-full">
+      <button
+        type="button"
+        onClick={handleDetectLocation}
+        className="absolute bottom-6 right-16 z-[20] bg-surface-container-lowest hover:bg-surface-container-high text-primary p-3 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-outline-variant transition-colors flex items-center justify-center group"
+        title="Detectar mi ubicación actual"
+      >
+        <span className="material-symbols-outlined text-[24px] group-active:scale-90 transition-transform">my_location</span>
+      </button>
+
       <div className="absolute top-4 left-4 z-[20] w-80 bg-surface-container-lowest/95 backdrop-blur-md rounded-2xl shadow-xl overflow-visible border border-outline-variant">
         <div className="p-4 flex flex-col gap-3">
           {stops.map((stop, index) => {
@@ -421,6 +455,23 @@ const RouteDesigner = ({ points, setPoints, stops, setStops, onDistanceUpdate, s
             />
           );
         })}
+
+        {/* User Location Marker */}
+        {userLocation && (
+          <Marker
+            position={userLocation}
+            icon={{
+              path: window.google.maps.SymbolPath.CIRCLE,
+              fillColor: '#10B981', // Verde para indicar ubicación actual
+              fillOpacity: 1,
+              strokeWeight: 3,
+              strokeColor: '#FFFFFF',
+              scale: 8,
+            }}
+            title="Tu ubicación actual"
+            zIndex={1000}
+          />
+        )}
       </GoogleMap>
     </div>
   );
