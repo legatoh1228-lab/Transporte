@@ -55,6 +55,7 @@ class UserViewSet(viewsets.ModelViewSet):
     # permission_classes = [IsAuthenticated] # Activar en producción
 
     def update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
         response = super().update(request, *args, **kwargs)
         # Register activity
         user = self.get_object()

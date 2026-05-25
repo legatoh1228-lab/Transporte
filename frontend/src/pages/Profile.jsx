@@ -88,8 +88,8 @@ const Profile = () => {
         data.append('avatar', avatarFile);
       }
 
-      const response = await api.patch(`users/users/${user.id}/`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await api.put(`users/users/${user.id}/?_t=${Date.now()}`, data, {
+        headers: { 'Content-Type': undefined }
       });
       
       const updatedUser = response.data;

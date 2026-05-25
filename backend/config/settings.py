@@ -136,6 +136,25 @@ AUTH_USER_MODEL = 'users.User'
 
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = True # Only for development
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # Django REST Framework
 REST_FRAMEWORK = {
