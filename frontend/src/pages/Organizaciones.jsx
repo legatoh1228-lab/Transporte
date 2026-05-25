@@ -198,7 +198,14 @@ const Organizaciones = () => {
       resetForm();
     } catch (err) {
       console.error("Error saving organization:", err);
-      setError("Error al guardar la organización. Verifique los campos y que el RIF sea único.");
+      const serverError = err.response?.data;
+      let errorMsg = "Error al guardar la organización.";
+      if (serverError && typeof serverError === 'object') {
+        errorMsg = Object.entries(serverError)
+          .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`)
+          .join(' | ');
+      }
+      setError(errorMsg);
     }
   };
 

@@ -7,14 +7,18 @@ from .serializers import VialidadRutaSerializer, GestionPermisoSerializer, Horar
 class VialidadRutaViewSet(viewsets.ModelViewSet):
     queryset = VialidadRuta.objects.all()
     serializer_class = VialidadRutaSerializer
+    filterset_fields = ['tipo', 'municipio_or', 'municipio_des']
+    search_fields = ['nombre']
 
 class HorarioRutaViewSet(viewsets.ModelViewSet):
     queryset = HorarioRuta.objects.all()
     serializer_class = HorarioRutaSerializer
+    filterset_fields = ['permiso', 'sentido']
 
 class GestionPermisoViewSet(viewsets.ModelViewSet):
     queryset = GestionPermiso.objects.all()
     serializer_class = GestionPermisoSerializer
+    filterset_fields = ['org', 'ruta', 'estatus']
 
     @action(detail=True, methods=['get', 'post'])
     def horarios(self, request, pk=None):

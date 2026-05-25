@@ -5,7 +5,9 @@ from .serializers import PersonalOperadorSerializer, OperadorOrganizacionSeriali
 class PersonalOperadorViewSet(viewsets.ModelViewSet):
     queryset = PersonalOperador.objects.all()
     serializer_class = PersonalOperadorSerializer
+    search_fields = ['cedula', 'nombres', 'apellidos', 'codigo_op']
 
 class OperadorOrganizacionViewSet(viewsets.ModelViewSet):
     queryset = OperadorOrganizacion.objects.all()
     serializer_class = OperadorOrganizacionSerializer
+    filterset_fields = ['organizacion', 'operador']

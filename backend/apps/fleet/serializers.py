@@ -63,7 +63,9 @@ class VehiculoOrganizacionSerializer(serializers.ModelSerializer):
 class AsignacionRutaSerializer(serializers.ModelSerializer):
     operador_nombre = serializers.SerializerMethodField()
     vehiculo_placa = serializers.ReadOnlyField(source='vehiculo.placa')
-    ruta_nombre = serializers.ReadOnlyField(source='ruta.nombre')
+    ruta_nombre = serializers.ReadOnlyField(source='horario.permiso.ruta.nombre')
+    organizacion_nombre = serializers.ReadOnlyField(source='horario.permiso.org.razon_social')
+    horario_detalle = serializers.SerializerMethodField()
 
     class Meta:
         model = AsignacionRuta
@@ -71,3 +73,10 @@ class AsignacionRutaSerializer(serializers.ModelSerializer):
 
     def get_operador_nombre(self, obj):
         return f"{obj.operador.nombres} {obj.operador.apellidos}"
+
+    def get_horario_detalle(self, obj):
+        if obj.horario:
+            inicio = obj.horario.hora_inicio.strftime('%I:%M %p') if obj.horario.hora_inicio else '--:--'
+            fin = obj.horario.hora_fin.strftime('%I:%M %p') if obj.horario.hora_fin else '--:--'
+            return f"{obj.horario.get_sentido_display()}: {inicio} - {fin} ({obj.horario.frecuencia_minutos} min)"
+        return "Sin Horario"
