@@ -62,7 +62,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   ];
 
   const [branding, setBranding] = useState({
-    nombre_sistema: 'Gestión Aragua',
+    nombre_sistema: 'Transporte Aragua Digital',
     logo: null
   });
 
@@ -71,7 +71,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       try {
         const response = await api.get('catalogs/configuracion-visual/');
         setBranding({
-          nombre_sistema: response.data.nombre_sistema || 'Gestión Aragua',
+          nombre_sistema: response.data.nombre_sistema || 'Transporte Aragua Digital',
           logo: response.data.logo
         });
       } catch (err) {

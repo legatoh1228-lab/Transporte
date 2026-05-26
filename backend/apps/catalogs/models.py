@@ -98,7 +98,7 @@ class RolPermiso(models.Model):
         unique_together = ('rol', 'modulo', 'accion')
 
 class ConfiguracionVisual(models.Model):
-    nombre_sistema = models.CharField(max_length=100, default="Sistema de Transporte Aragua")
+    nombre_sistema = models.CharField(max_length=100, default="Transporte Aragua Digital")
     logo = models.ImageField(upload_to='branding/', null=True, blank=True)
     login_bg = models.ImageField(upload_to='branding/', null=True, blank=True, verbose_name="Fondo de Login")
     primary_color = models.CharField(max_length=7, default="#032448") # HEX

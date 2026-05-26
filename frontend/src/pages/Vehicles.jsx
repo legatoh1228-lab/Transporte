@@ -22,6 +22,161 @@ const Vehicles = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
 
+  // Excel Import States
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [importError, setImportError] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [currentLoaderStep, setCurrentLoaderStep] = useState(0);
+  const [errorSearch, setErrorSearch] = useState('');
+  const [toast, setToast] = useState(null); // { message: '', type: 'success' | 'error' | 'warning' }
+  
+  // Advanced Filter States
+  const [filterModalidad, setFilterModalidad] = useState('');
+  const [filterCombustible, setFilterCombustible] = useState('');
+  const [filterCps, setFilterCps] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Sorting States
+  const [sortField, setSortField] = useState('placa'); // 'placa' | 'anio' | 'capacidad' | 'cps'
+  const [sortDirection, setSortDirection] = useState('asc'); // 'asc' | 'desc'
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const loaderSteps = [
+    "Estableciendo conexión segura y subiendo archivo Excel...",
+    "Analizando estructura de columnas e identificando hoja 'REGISTRO FLOTA'...",
+    "Procesando registros de la flota y aislando filas de forma atómica...",
+    "Comprobando organizaciones asociadas y números de RIF...",
+    "Validando números de placa y modalidades activas...",
+    "Asociando vehículos bajo sus códigos CPS correspondientes...",
+    "Estableciendo transacciones seguras en la base de datos...",
+    "Finalizando importación de flota masiva. ¡Casi listo!"
+  ];
+
+  useEffect(() => {
+    let progressInterval;
+    let stepInterval;
+
+    if (importing) {
+      setImportProgress(2);
+      setCurrentLoaderStep(0);
+
+      progressInterval = setInterval(() => {
+        setImportProgress(prev => {
+          if (prev < 30) {
+            return prev + Math.floor(Math.random() * 8) + 4;
+          } else if (prev < 85) {
+            return prev + Math.floor(Math.random() * 3) + 1;
+          } else if (prev < 98) {
+            return prev + (Math.random() > 0.6 ? 1 : 0);
+          }
+          return prev;
+        });
+      }, 800);
+
+      stepInterval = setInterval(() => {
+        setCurrentLoaderStep(prev => {
+          if (prev < loaderSteps.length - 1) {
+            return prev + 1;
+          }
+          return prev;
+        });
+      }, 4000);
+    } else {
+      setImportProgress(0);
+      setCurrentLoaderStep(0);
+    }
+
+    return () => {
+      clearInterval(progressInterval);
+      clearInterval(stepInterval);
+    };
+  }, [importing]);
+
+  const handleCopyErrors = () => {
+    if (!importResult?.errors) return;
+    const text = `Reporte de Importación de Flota\nCreados: ${importResult.created}\nActualizados: ${importResult.updated}\n\nErrores/Alertas:\n` + importResult.errors.join('\n');
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('¡Reporte copiado al portapapeles!', 'success'))
+      .catch(err => console.error('Error al copiar:', err));
+  };
+
+  // Bulk Selection States
+  const [selectedPlacas, setSelectedPlacas] = useState([]);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [bulkDeleteType, setBulkDeleteType] = useState('selected'); // 'selected' | 'all'
+  const [bulkConfirmText, setBulkConfirmText] = useState('');
+  const [deletingBulk, setDeletingBulk] = useState(false);
+
+  const handleToggleSelect = (placa) => {
+    setSelectedPlacas(prev => 
+      prev.includes(placa) 
+        ? prev.filter(p => p !== placa) 
+        : [...prev, placa]
+    );
+  };
+
+  const handleToggleSelectAllCurrentPage = () => {
+    const currentPagePlacas = paginatedData.map(v => v.placa);
+    const allSelected = currentPagePlacas.every(p => selectedPlacas.includes(p));
+    
+    if (allSelected) {
+      setSelectedPlacas(prev => prev.filter(p => !currentPagePlacas.includes(p)));
+    } else {
+      setSelectedPlacas(prev => {
+        const newPlacas = currentPagePlacas.filter(p => !prev.includes(p));
+        return [...prev, ...newPlacas];
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (bulkConfirmText.toUpperCase() !== 'ELIMINAR') return;
+    setDeletingBulk(true);
+    try {
+      const payload = bulkDeleteType === 'all' 
+        ? { all: true } 
+        : { placas: selectedPlacas };
+
+      const response = await api.post('fleet/vehicles/bulk-delete/', payload);
+      
+      setSelectedPlacas([]);
+      setIsBulkDeleteOpen(false);
+      setBulkConfirmText('');
+      fetchVehicles();
+      showToast(response.data?.message || '¡Unidades eliminadas exitosamente!', 'success');
+    } catch (err) {
+      console.error("Error in bulk delete:", err);
+      showToast(err.response?.data?.error || "Error al realizar la eliminación masiva.", 'error');
+    } finally {
+      setDeletingBulk(false);
+    }
+  };
+
     // Catalogs
     const [modalidades, setModalidades] = useState([]);
     const [subModalidades, setSubModalidades] = useState([]);
@@ -188,14 +343,70 @@ const Vehicles = () => {
     }
   };
 
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      dragActive || setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.name.endsWith('.xlsx')) {
+        setImportFile(file);
+        setImportResult(null);
+        setImportError(null);
+      } else {
+        setImportError("Solo se admiten archivos de Excel (.xlsx)");
+      }
+    }
+  };
+
+  const handleImportExcel = async (e) => {
+    e.preventDefault();
+    if (!importFile) return;
+    setImporting(true);
+    setImportError(null);
+    setImportResult(null);
+
+    const data = new FormData();
+    data.append('file', importFile);
+
+    try {
+      const response = await api.post('fleet/vehicles/import-excel/', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000 // 2 minutes timeout
+      });
+      
+      setImportProgress(100);
+      setTimeout(() => {
+        setImportResult(response.data);
+        setImporting(false);
+        fetchVehicles();
+      }, 600);
+    } catch (err) {
+      console.error("Error importing vehicles:", err);
+      setImportError(err.response?.data?.error || "Error al conectar con el servidor para importar la flota.");
+      setImporting(false);
+    }
+  };
+
   const handleDelete = async (placa) => {
     if (window.confirm(`¿Está seguro de eliminar permanentemente la unidad ${placa}?`)) {
       try {
         await api.delete(`fleet/vehicles/${placa}/`);
         fetchVehicles();
+        showToast(`Vehículo ${placa} eliminado correctamente`, 'success');
       } catch (err) {
         console.error("Error deleting vehicle:", err);
-        alert("No se pudo eliminar el vehículo.");
+        showToast("No se pudo eliminar el vehículo.", 'error');
       }
     }
   };
@@ -221,11 +432,50 @@ const Vehicles = () => {
     }));
   };
 
-  const filteredVehicles = vehicles.filter(v => 
-    v.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.modelo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredVehicles = vehicles.filter(v => {
+    // 1. Search term filter
+    const matchesSearch = 
+      v.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.modelo.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // 2. Modalidad filter
+    const matchesModalidad = filterModalidad === '' || String(v.modalidad) === String(filterModalidad);
+
+    // 3. Combustible filter
+    const matchesCombustible = filterCombustible === '' || String(v.combustible) === String(filterCombustible);
+
+    // 4. CPS filter
+    let matchesCps = true;
+    if (filterCps !== '') {
+      if (filterCps === 'SIN_CPS') {
+        matchesCps = !v.cps || v.cps.trim() === '' || v.cps === '-';
+      } else {
+        matchesCps = v.cps && v.cps.toUpperCase().includes(filterCps);
+      }
+    }
+
+    return matchesSearch && matchesModalidad && matchesCombustible && matchesCps;
+  });
+
+  const sortedAndFilteredVehicles = [...filteredVehicles].sort((a, b) => {
+    if (!sortField) return 0;
+
+    let valA = a[sortField];
+    let valB = b[sortField];
+
+    if (typeof valA === 'string') {
+      valA = valA.toLowerCase();
+      valB = (valB || '').toLowerCase();
+    } else {
+      valA = valA || 0;
+      valB = valB || 0;
+    }
+
+    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const {
     paginatedData,
@@ -239,10 +489,10 @@ const Vehicles = () => {
     goToPage,
     nextPage,
     prevPage
-  } = usePagination(filteredVehicles, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
+  } = usePagination(sortedAndFilteredVehicles, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
 
   return (
-    <div className="space-y-6 font-public-sans pb-10">
+    <div className={`space-y-6 font-public-sans transition-all duration-300 ${selectedPlacas.length > 0 ? 'pb-32' : 'pb-10'}`}>
       {/* Header Block */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-outline-variant pb-6">
         <div>
@@ -273,19 +523,134 @@ const Vehicles = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-        </div>
-        <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-          {canCreate && (
-            <button 
-              onClick={handleOpenCreate}
-              className="px-8 py-3.5 bg-primary text-on-primary rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 active:scale-95"
+          {canDelete && vehicles.length > 0 && (
+            <button
+              onClick={() => {
+                const allPlacas = vehicles.map(v => v.placa);
+                const allSelected = allPlacas.every(p => selectedPlacas.includes(p));
+                if (allSelected) {
+                  setSelectedPlacas([]);
+                } else {
+                  setSelectedPlacas(allPlacas);
+                }
+              }}
+              className={`px-5 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 border ${
+                vehicles.length > 0 && vehicles.every(v => selectedPlacas.includes(v.placa))
+                  ? 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
+                  : 'bg-surface-container-high hover:bg-outline-variant text-on-surface border-outline-variant/30'
+              }`}
+              title={vehicles.length > 0 && vehicles.every(v => selectedPlacas.includes(v.placa)) ? 'Deseleccionar todas las unidades' : 'Seleccionar todas las unidades de la flota'}
             >
-              <span className="material-symbols-outlined text-[20px]">add</span>
-              Registrar Unidad
+              <span className="material-symbols-outlined text-[18px]">
+                {vehicles.length > 0 && vehicles.every(v => selectedPlacas.includes(v.placa)) ? 'check_box' : 'check_box_outline_blank'}
+              </span>
+              {vehicles.length > 0 && vehicles.every(v => selectedPlacas.includes(v.placa)) ? 'Deseleccionar Todo' : 'Seleccionar Todo'}
+            </button>
+          )}
+          {vehicles.length > 0 && (
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className={`px-5 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 border ${
+                showAdvancedFilters || filterModalidad || filterCombustible || filterCps
+                  ? 'bg-primary text-on-primary border-primary hover:bg-primary/90 shadow-lg shadow-primary/10'
+                  : 'bg-surface-container-high hover:bg-outline-variant text-on-surface border-outline-variant/30'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {filterModalidad || filterCombustible || filterCps ? 'filter_alt' : 'filter_list'}
+              </span>
+              <span>Filtros</span>
+              {(filterModalidad || filterCombustible || filterCps) && (
+                <span className="w-5 h-5 bg-white text-primary rounded-full flex items-center justify-center text-[10px] font-black shadow-sm">
+                  {[filterModalidad, filterCombustible, filterCps].filter(Boolean).length}
+                </span>
+              )}
             </button>
           )}
         </div>
+        <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
+          {canCreate && (
+            <>
+              <button 
+                onClick={() => setIsImportOpen(true)}
+                className="px-6 py-3.5 bg-surface-container-highest text-on-surface hover:bg-outline-variant rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[20px]">upload_file</span>
+                Importar Excel
+              </button>
+              <button 
+                onClick={handleOpenCreate}
+                className="px-8 py-3.5 bg-primary text-on-primary rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[20px]">add</span>
+                Registrar Unidad
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Advanced Filters Collapsible Panel */}
+      {showAdvancedFilters && (
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-3xl p-6 grid grid-cols-1 sm:grid-cols-4 gap-6 animate-in fade-in slide-in-from-top-4 duration-250 shadow-sm">
+          {/* Modalidad Filter */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Modalidad de Servicio</label>
+            <select
+              value={filterModalidad}
+              onChange={(e) => setFilterModalidad(e.target.value)}
+              className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all cursor-pointer"
+            >
+              <option value="">Todas las modalidades</option>
+              {modalidades.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+            </select>
+          </div>
+
+          {/* Combustible Filter */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Combustible</label>
+            <select
+              value={filterCombustible}
+              onChange={(e) => setFilterCombustible(e.target.value)}
+              className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all cursor-pointer"
+            >
+              <option value="">Todos los combustibles</option>
+              {combustibles.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </select>
+          </div>
+
+          {/* Estatus CPS Filter */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Código CPS</label>
+            <select
+              value={filterCps}
+              onChange={(e) => setFilterCps(e.target.value)}
+              className="w-full bg-surface-container-low border border-outline-variant/40 rounded-2xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all cursor-pointer"
+            >
+              <option value="">Todos los CPS</option>
+              <option value="DT9">DT9</option>
+              <option value="DT10">DT10</option>
+              <option value="SIN_CPS">Sin registro CPS</option>
+            </select>
+          </div>
+
+          {/* Reset Action */}
+          <div className="flex items-end justify-start">
+            <button
+              onClick={() => {
+                setFilterModalidad('');
+                setFilterCombustible('');
+                setFilterCps('');
+                setSearchTerm('');
+              }}
+              className="px-5 py-3 bg-surface-container-high hover:bg-outline-variant text-on-surface rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all w-full flex items-center justify-center gap-1.5 border border-outline-variant/30 active:scale-95 shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[16px]">filter_alt_off</span>
+              Restablecer Filtros
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Data Table Container */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-[32px] overflow-hidden flex flex-col shadow-sm border-b-4 border-b-primary/10">
@@ -299,17 +664,118 @@ const Vehicles = () => {
             <table className="w-full text-left border-separate border-spacing-0 min-w-[1000px]">
               <thead>
                 <tr className="bg-surface-container-high">
-                  <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50">Unidad / Identificación</th>
-                  <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50">Especificaciones</th>
-                  <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50">Modalidad / CPS</th>
-                  <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50">Capacidad</th>
+                  {canDelete && (
+                    <th className="pl-8 pr-4 py-5 w-12 text-center border-b border-outline-variant/50">
+                      <label className="flex items-center justify-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={paginatedData.length > 0 && paginatedData.every(v => selectedPlacas.includes(v.placa))}
+                          onChange={handleToggleSelectAllCurrentPage}
+                          className="w-4.5 h-4.5 rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer"
+                        />
+                      </label>
+                    </th>
+                  )}
+                  <th 
+                    onClick={() => handleSort('placa')}
+                    className={`${canDelete ? 'pl-4' : 'pl-8'} pr-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50 cursor-pointer select-none group/hdr hover:bg-primary/[0.02] transition-colors w-1/4`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Unidad / Identificación</span>
+                      <span className={`material-symbols-outlined text-[16px] transition-all ${
+                        sortField === 'placa' ? 'text-primary opacity-100' : 'text-outline-variant opacity-0 group-hover/hdr:opacity-100'
+                      }`}>
+                        {sortField === 'placa' && sortDirection === 'desc' ? 'arrow_downward' : 'arrow_upward'}
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('anio')}
+                    className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50 cursor-pointer select-none group/hdr hover:bg-primary/[0.02] transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Especificaciones</span>
+                      <span className={`material-symbols-outlined text-[16px] transition-all ${
+                        sortField === 'anio' ? 'text-primary opacity-100' : 'text-outline-variant opacity-0 group-hover/hdr:opacity-100'
+                      }`}>
+                        {sortField === 'anio' && sortDirection === 'desc' ? 'arrow_downward' : 'arrow_upward'}
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('cps')}
+                    className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50 cursor-pointer select-none group/hdr hover:bg-primary/[0.02] transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Modalidad / CPS</span>
+                      <span className={`material-symbols-outlined text-[16px] transition-all ${
+                        sortField === 'cps' ? 'text-primary opacity-100' : 'text-outline-variant opacity-0 group-hover/hdr:opacity-100'
+                      }`}>
+                        {sortField === 'cps' && sortDirection === 'desc' ? 'arrow_downward' : 'arrow_upward'}
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    onClick={() => handleSort('capacidad')}
+                    className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50 cursor-pointer select-none group/hdr hover:bg-primary/[0.02] transition-colors"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Capacidad</span>
+                      <span className={`material-symbols-outlined text-[16px] transition-all ${
+                        sortField === 'capacidad' ? 'text-primary opacity-100' : 'text-outline-variant opacity-0 group-hover/hdr:opacity-100'
+                      }`}>
+                        {sortField === 'capacidad' && sortDirection === 'desc' ? 'arrow_downward' : 'arrow_upward'}
+                      </span>
+                    </div>
+                  </th>
                   <th className="px-8 py-5 text-[11px] font-black text-on-surface-variant uppercase tracking-widest border-b border-outline-variant/50 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/20">
+                {selectedPlacas.length > 0 && (
+                  <tr className="bg-primary/[0.03] border-b border-primary/20 animate-in fade-in duration-300">
+                    <td colSpan={canDelete ? 6 : 5} className="px-8 py-3 text-center text-xs font-bold text-primary">
+                      {selectedPlacas.length === vehicles.length ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <span>Todas las <strong className="font-black text-primary">{vehicles.length}</strong> unidades de la flota están seleccionadas.</span>
+                          <button 
+                            type="button"
+                            onClick={() => setSelectedPlacas([])} 
+                            className="text-error hover:underline font-black uppercase tracking-wider ml-1 text-[10px] bg-error/5 px-3 py-1 rounded-lg border border-error/20 hover:bg-error/10 transition-colors"
+                          >
+                            Desactivar Selección
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          <span>Se han seleccionado <strong className="font-black text-primary">{selectedPlacas.length}</strong> unidades de esta página.</span>
+                          <button 
+                            type="button"
+                            onClick={() => setSelectedPlacas(vehicles.map(v => v.placa))} 
+                            className="text-primary hover:underline font-black uppercase tracking-wider ml-1 text-[10px] bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 hover:bg-primary/20 transition-all active:scale-95"
+                          >
+                            Seleccionar las {vehicles.length} unidades de la flota
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
                 {paginatedData.length > 0 ? paginatedData.map((v) => (
-                  <tr key={v.placa} className="hover:bg-primary/[0.02] transition-colors group">
-                    <td className="px-8 py-5">
+                  <tr key={v.placa} className={`hover:bg-primary/[0.02] transition-colors group ${selectedPlacas.includes(v.placa) ? 'bg-primary/[0.01]' : ''}`}>
+                    {canDelete && (
+                      <td className="pl-8 pr-4 py-5 text-center">
+                        <label className="flex items-center justify-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedPlacas.includes(v.placa)}
+                            onChange={() => handleToggleSelect(v.placa)}
+                            className="w-4.5 h-4.5 rounded border-outline-variant text-primary focus:ring-primary/20 cursor-pointer"
+                          />
+                        </label>
+                      </td>
+                    )}
+                    <td className={`${canDelete ? 'pl-4' : 'pl-8'} pr-8 py-5`}>
                        <div className="flex items-center gap-4">
                           <div className="w-16 h-12 rounded-xl bg-surface-container-high overflow-hidden border border-outline-variant/50 flex-shrink-0 relative">
                              {v.foto ? (
@@ -383,7 +849,7 @@ const Vehicles = () => {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan="5" className="px-8 py-20 text-center">
+                    <td colSpan={canDelete ? 6 : 5} className="px-8 py-20 text-center">
                        <div className="flex flex-col items-center opacity-30">
                           <span className="material-symbols-outlined text-[64px] mb-4">no_transportation</span>
                           <p className="font-black text-lg">No se encontraron vehículos</p>
@@ -825,6 +1291,521 @@ const Vehicles = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Excel Import Modal */}
+      <Modal
+        isOpen={isImportOpen}
+        onClose={() => {
+          if (!importing) {
+            setIsImportOpen(false);
+            setImportResult(null);
+            setImportError(null);
+            setImportFile(null);
+            setErrorSearch('');
+          }
+        }}
+        title="Importación de Flota Masiva"
+        icon="upload_file"
+        maxWidthClass="max-w-3xl"
+        actions={
+          importing ? (
+            <div className="flex items-center gap-3 w-full justify-between">
+              <span className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest animate-pulse">
+                Procesando transacción atómica...
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-black text-primary bg-primary/10 px-3 py-1 rounded-lg">
+                  {importProgress}%
+                </span>
+              </div>
+            </div>
+          ) : importResult ? (
+            <div className="flex gap-4 w-full justify-end">
+              <button 
+                onClick={handleCopyErrors}
+                disabled={!importResult.errors || importResult.errors.length === 0}
+                className="px-6 py-2.5 text-xs font-black text-primary hover:bg-primary/10 border border-primary/20 rounded-xl transition-all uppercase tracking-widest flex items-center gap-2 disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                Copiar Reporte
+              </button>
+              <button 
+                onClick={() => {
+                  setImportResult(null);
+                  setImportFile(null);
+                  setErrorSearch('');
+                }}
+                className="px-6 py-2.5 text-xs font-black text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all uppercase tracking-widest border border-outline-variant/30"
+              >
+                Cargar Otro
+              </button>
+              <button 
+                onClick={() => {
+                  setIsImportOpen(false);
+                  setImportResult(null);
+                  setImportFile(null);
+                  setErrorSearch('');
+                }}
+                className="px-8 py-2.5 text-xs font-black text-on-primary bg-primary hover:bg-primary/90 rounded-xl shadow-md transition-all uppercase tracking-widest active:scale-95 shadow-primary/20"
+              >
+                Listo
+              </button>
+            </div>
+          ) : importError ? (
+            <div className="flex gap-4 w-full justify-end">
+              <button 
+                onClick={() => {
+                  setImportError(null);
+                  setImportFile(null);
+                }}
+                className="px-8 py-2.5 text-xs font-black text-on-primary bg-primary hover:bg-primary/95 transition-all rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/20 active:scale-95"
+              >
+                Cargar Otro Archivo
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-4 w-full justify-end">
+              <button 
+                onClick={() => setIsImportOpen(false)} 
+                disabled={importing}
+                className="px-6 py-2.5 text-xs font-black text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all uppercase tracking-widest disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleImportExcel} 
+                disabled={!importFile}
+                className="px-8 py-2.5 text-xs font-black text-on-primary bg-primary hover:bg-primary/90 rounded-xl shadow-md transition-all uppercase tracking-widest disabled:opacity-50 active:scale-95 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">publish</span>
+                <span>Iniciar Importación</span>
+              </button>
+            </div>
+          )
+        }
+      >
+        <div className="space-y-6 py-4 font-public-sans text-on-surface">
+          {importing ? (
+            /* Premium Pulsing Loader View */
+            <div className="text-center py-10 space-y-8 animate-in fade-in duration-300">
+              <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
+                {/* Simulated spinning loader circles */}
+                <div className="absolute inset-0 rounded-full border-4 border-primary/10"></div>
+                <div 
+                  className="absolute inset-0 rounded-full border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin"
+                  style={{ animationDuration: '1.2s' }}
+                ></div>
+                <div 
+                  className="absolute inset-2 rounded-full border-2 border-secondary/15 border-b-secondary border-t-transparent border-r-transparent border-l-transparent animate-spin"
+                  style={{ animationDuration: '0.8s', animationDirection: 'reverse' }}
+                ></div>
+                <span className="material-symbols-outlined text-[48px] text-primary animate-pulse">database</span>
+              </div>
+              
+              <div className="space-y-4 max-w-lg mx-auto">
+                <div className="space-y-1">
+                  <h5 className="text-base font-black text-primary uppercase tracking-widest">
+                    Procesando Flota de Transporte
+                  </h5>
+                  <p className="text-xs font-black text-secondary tracking-wider uppercase animate-pulse">
+                    {loaderSteps[currentLoaderStep]}
+                  </p>
+                </div>
+                
+                {/* Glow progress bar */}
+                <div className="relative w-full h-3 bg-surface-container-high rounded-full overflow-hidden border border-outline-variant/30 shadow-inner">
+                  <div 
+                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500 ease-out shadow-[0_0_8px_rgba(3,36,72,0.5)]"
+                    style={{ width: `${importProgress}%` }}
+                  ></div>
+                </div>
+                
+                <p className="text-[11px] text-on-surface-variant/70 font-medium leading-relaxed">
+                  Estamos analizando el Excel, comprobando identidades, registrando CPS activos y aislando transacciones de forma atómica para prevenir pérdidas de datos. Por favor, mantenga la pestaña abierta.
+                </p>
+              </div>
+            </div>
+          ) : importResult ? (
+            /* Gorgeous Success Dashboard View */
+            <div className="space-y-6 animate-in zoom-in duration-300">
+              <div className="text-center space-y-4 border-b border-outline-variant/30 pb-6">
+                <div className="w-20 h-20 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto shadow-lg shadow-success/10 border border-success/20 animate-in zoom-in duration-500">
+                  <span className="material-symbols-outlined text-[44px]">check_circle</span>
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-2xl font-black text-primary tracking-tight">¡Procesamiento Completado!</h4>
+                  <p className="text-xs text-on-surface-variant font-medium max-w-md mx-auto">
+                    El servidor ha procesado el archivo Excel de forma atómica a nivel de fila de manera exitosa.
+                  </p>
+                </div>
+              </div>
+
+              {/* Bento Grid Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                <div className="bg-success/[0.03] border border-success/20 px-5 py-4 rounded-2xl flex flex-col items-center justify-center shadow-sm hover:scale-[1.02] transition-transform">
+                  <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center text-success mb-2">
+                    <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                  </div>
+                  <span className="text-[10px] font-black text-success uppercase tracking-widest block mb-1">Creadas</span>
+                  <span className="text-3xl font-mono font-black text-success">{importResult.created}</span>
+                </div>
+                
+                <div className="bg-primary/[0.03] border border-primary/20 px-5 py-4 rounded-2xl flex flex-col items-center justify-center shadow-sm hover:scale-[1.02] transition-transform">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
+                    <span className="material-symbols-outlined text-[18px]">update</span>
+                  </div>
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest block mb-1">Actualizadas</span>
+                  <span className="text-3xl font-mono font-black text-primary">{importResult.updated}</span>
+                </div>
+
+                <div className={`${importResult.errors && importResult.errors.length > 0 ? 'bg-warning/[0.03] border-warning/30 text-warning' : 'bg-surface-container border-outline-variant/30 text-on-surface-variant/40'} border px-5 py-4 rounded-2xl flex flex-col items-center justify-center shadow-sm hover:scale-[1.02] transition-transform`}>
+                  <div className={`w-8 h-8 rounded-full ${importResult.errors && importResult.errors.length > 0 ? 'bg-warning/10 text-warning' : 'bg-outline-variant/20'} flex items-center justify-center mb-2`}>
+                    <span className="material-symbols-outlined text-[18px]">{importResult.errors && importResult.errors.length > 0 ? 'warning' : 'verified'}</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest block mb-1">Alertas/Omisiones</span>
+                  <span className="text-3xl font-mono font-black">{importResult.errors ? importResult.errors.length : 0}</span>
+                </div>
+              </div>
+
+              {/* Warnings & Omission Details Dashboard */}
+              {importResult.errors && importResult.errors.length > 0 && (
+                <div className="space-y-3 bg-surface-container/30 border border-outline-variant/30 p-5 rounded-3xl animate-in slide-in-from-bottom-4 duration-300">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-warning text-[20px]">warning</span>
+                      <span className="text-[11px] font-black text-primary uppercase tracking-widest">
+                        Reporte de Alertas ({importResult.errors.length})
+                      </span>
+                    </div>
+                    
+                    {/* Inline Search Bar for Errors */}
+                    <div className="relative group shrink-0">
+                      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[16px] group-focus-within:text-primary transition-colors">search</span>
+                      <input 
+                        type="text" 
+                        value={errorSearch}
+                        onChange={(e) => setErrorSearch(e.target.value)}
+                        placeholder="Buscar alerta por fila..."
+                        className="pl-8 pr-3 py-1.5 bg-surface border border-outline-variant/50 rounded-xl text-[10px] font-bold text-on-surface focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none w-full sm:w-48 transition-all"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="max-h-48 overflow-y-auto pr-1 space-y-2 scrollbar-thin select-text">
+                    {importResult.errors
+                      .filter(err => err.toLowerCase().includes(errorSearch.toLowerCase()))
+                      .map((err, i) => {
+                        const rowMatch = err.match(/^Fila\s+(\d+)\s*:/i) || err.match(/^Error en fila\s+(\d+)\s*:/i);
+                        const rowNum = rowMatch ? rowMatch[1] : null;
+                        const cleanMsg = rowNum ? err.replace(/^Fila\s+\d+\s*:\s*/i, '').replace(/^Error en fila\s+\d+\s*:\s*/i, '') : err;
+
+                        return (
+                          <div key={i} className="flex gap-3 p-3 bg-surface border border-outline-variant/30 rounded-xl items-start hover:border-warning/30 transition-colors">
+                            {rowNum ? (
+                              <span className="px-2 py-0.5 bg-warning/10 text-warning border border-warning/20 text-[9px] font-black font-mono uppercase tracking-tighter rounded-md mt-0.5 shrink-0">
+                                Fila {rowNum}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-warning/10 text-warning border border-warning/20 text-[9px] font-black font-mono uppercase tracking-tighter rounded-md mt-0.5 shrink-0">
+                                Info
+                              </span>
+                            )}
+                            <p className="text-[11px] font-medium text-on-surface-variant leading-relaxed">
+                              {cleanMsg}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    {importResult.errors.filter(err => err.toLowerCase().includes(errorSearch.toLowerCase())).length === 0 && (
+                      <div className="p-8 text-center text-on-surface-variant/40 text-xs font-bold uppercase tracking-wider">
+                        No se encontraron alertas para "{errorSearch}"
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : importError ? (
+            /* Gorgeous Full Error / Connection Failure Screen */
+            <div className="text-center py-6 space-y-6 animate-in zoom-in duration-300">
+              <div className="w-20 h-20 bg-error/10 text-error rounded-full flex items-center justify-center mx-auto shadow-lg shadow-error/10 border border-error/20 animate-pulse">
+                <span className="material-symbols-outlined text-[44px]">error</span>
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-xl font-black text-primary uppercase tracking-wider">Error en la Importación</h4>
+                <p className="text-[11px] text-on-surface-variant font-medium max-w-md mx-auto">
+                  No se pudo procesar el archivo de flota debido a un conflicto o interrupción del servidor.
+                </p>
+              </div>
+
+              <div className="bg-error/[0.02] border border-error/15 p-5 rounded-2xl max-w-2xl mx-auto text-left space-y-3 shadow-inner">
+                <div className="flex items-center gap-2 text-error">
+                  <span className="material-symbols-outlined text-[18px]">terminal</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Detalle técnico devuelto:</span>
+                </div>
+                <div className="bg-surface-container-lowest border border-outline-variant/50 p-4 rounded-xl max-h-36 overflow-y-auto font-mono text-[10.5px] text-on-surface select-text leading-relaxed whitespace-pre-wrap">
+                  {typeof importError === 'object' 
+                    ? JSON.stringify(importError, null, 2) 
+                    : String(importError)}
+                </div>
+              </div>
+
+              {/* Troubleshooting Card */}
+              <div className="bg-surface-container border border-outline-variant/40 p-5 rounded-2xl max-w-2xl mx-auto text-left space-y-3">
+                <h5 className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-primary">lightbulb</span>
+                  Guía rápida para solucionar el error:
+                </h5>
+                <ul className="text-[11px] text-on-surface-variant/80 space-y-2 list-inside list-disc font-medium">
+                  <li>Compruebe que el libro Excel tenga una pestaña nombrada exactamente <strong className="text-primary">"REGISTRO FLOTA"</strong>.</li>
+                  <li>Verifique que no haya celdas con fórmulas rotas o columnas con nombres modificados.</li>
+                  <li>El tamaño recomendado de la planilla es de hasta 1,000 registros para evitar sobrecargar los límites.</li>
+                  <li>Asegúrese de que el servidor esté encendido y que su conexión de red sea estable.</li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            /* Interactive Uploader View */
+            <div className="space-y-6 animate-in fade-in duration-300">
+               {/* Elegant Header Info Card */}
+               <div className="bg-primary/5 border border-primary/20 p-5 rounded-3xl flex gap-4 shadow-sm">
+                  <span className="material-symbols-outlined text-primary text-[28px] shrink-0 mt-0.5">info</span>
+                  <div className="space-y-1">
+                     <h5 className="text-xs font-black text-primary uppercase tracking-wider">Formato y Estructura Requerida</h5>
+                     <p className="text-[11px] text-on-surface-variant/80 font-medium leading-relaxed">
+                        El importador analizará únicamente la hoja llamada <strong className="text-primary">"REGISTRO FLOTA"</strong>. Las filas se procesarán a partir de la <strong>Fila 8</strong>, buscando columnas técnicas como: Municipio, Empresa/Organización, RIF, Placa, Código CPS (ej. DT9, DT10), y la modalidad (marcada bajo Minibús, Bus, u Otro).
+                     </p>
+                  </div>
+               </div>
+
+               <div 
+                 onDragEnter={handleDrag}
+                 onDragOver={handleDrag}
+                 onDragLeave={handleDrag}
+                 onDrop={handleDrop}
+                 className={`relative flex flex-col items-center justify-center border-2 border-dashed rounded-[32px] p-12 transition-all duration-300 ${
+                   dragActive 
+                     ? 'border-primary bg-primary/5 scale-[0.99] shadow-inner shadow-primary/10' 
+                     : importFile 
+                       ? 'border-success/60 bg-success/[0.02] shadow-sm' 
+                       : 'border-outline-variant hover:border-primary/50 hover:bg-surface-container-low/20'
+                 }`}
+               >
+                  <span className={`material-symbols-outlined text-[64px] mb-4 transition-all duration-300 ${importFile ? 'text-success animate-bounce' : dragActive ? 'text-primary scale-110' : 'text-outline-variant'}`}>
+                     {importFile ? 'task' : dragActive ? 'downloading' : 'upload_file'}
+                  </span>
+                  
+                  <p className="text-sm text-on-surface font-black text-center max-w-sm overflow-hidden text-ellipsis whitespace-nowrap px-4">
+                     {importFile ? importFile.name : dragActive ? "¡Suelta el archivo aquí!" : "Arrastra tu planilla de Excel (.xlsx)"}
+                  </p>
+                  
+                  <p className="text-[10px] text-on-surface-variant/60 font-bold text-center mt-1">
+                     {importFile ? `${(importFile.size / 1024).toFixed(1)} KB` : "O selecciona el archivo desde tu explorador"}
+                  </p>
+                  
+                  {!importFile ? (
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('excel-file-input').click()}
+                      className="mt-6 px-6 py-3 bg-primary text-on-primary hover:bg-primary/95 transition-all rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/20 active:scale-95"
+                    >
+                       Seleccionar Archivo Excel
+                    </button>
+                  ) : (
+                    <div className="flex gap-3 mt-6">
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('excel-file-input').click()}
+                        className="px-5 py-2.5 bg-surface-container-highest text-on-surface hover:bg-outline-variant transition-colors rounded-xl text-[9px] font-black uppercase tracking-widest border border-outline-variant/30"
+                      >
+                         Cambiar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImportFile(null);
+                          setImportError(null);
+                        }}
+                        className="px-5 py-2.5 bg-error/10 text-error hover:bg-error/20 transition-colors rounded-xl text-[9px] font-black uppercase tracking-widest border border-error/20"
+                      >
+                         Eliminar
+                      </button>
+                    </div>
+                  )}
+                  
+                  <input 
+                    id="excel-file-input" 
+                    type="file" 
+                    accept=".xlsx" 
+                    className="hidden" 
+                    onChange={(e) => {
+                      if (e.target.files[0]) {
+                        setImportFile(e.target.files[0]);
+                        setImportResult(null);
+                        setImportError(null);
+                      }
+                    }}
+                  />
+               </div>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Bulk Actions Floating Bar */}
+      {selectedPlacas.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-[1000] bg-slate-900/95 text-white backdrop-blur-md px-6 py-4 rounded-2xl flex items-center gap-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-slate-800/80 animate-in slide-in-from-bottom-8 duration-300">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[20px] text-sky-400">check_box</span>
+            <span className="text-xs font-black uppercase tracking-wider text-slate-100">
+              {selectedPlacas.length} {selectedPlacas.length === 1 ? 'unidad seleccionada' : 'unidades seleccionadas'}
+            </span>
+          </div>
+          <div className="w-px h-6 bg-slate-700/50"></div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setBulkDeleteType('selected');
+                setBulkConfirmText('');
+                setIsBulkDeleteOpen(true);
+              }}
+              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-1.5 hover:shadow-lg hover:shadow-rose-600/10 active:scale-95 transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[14px]">delete</span>
+              Eliminar Selección
+            </button>
+            <button
+              onClick={() => {
+                setBulkDeleteType('all');
+                setBulkConfirmText('');
+                setIsBulkDeleteOpen(true);
+              }}
+              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-100 hover:text-white border border-slate-700/60 hover:border-slate-500 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-1.5 hover:shadow-lg hover:shadow-slate-800/10 active:scale-95 transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[14px]">delete_forever</span>
+              Eliminar Toda la Flota
+            </button>
+            <button
+              onClick={() => setSelectedPlacas([])}
+              className="px-4 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
+            >
+              Desactivar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Safety Confirmation Modal */}
+      <Modal
+        isOpen={isBulkDeleteOpen}
+        onClose={() => {
+          if (!deletingBulk) {
+            setIsBulkDeleteOpen(false);
+            setBulkConfirmText('');
+          }
+        }}
+        title="Confirmación de Seguridad"
+        icon="warning"
+        maxWidthClass="max-w-md"
+        actions={
+          <div className="flex gap-3 w-full justify-end">
+            <button 
+              disabled={deletingBulk}
+              onClick={() => {
+                setIsBulkDeleteOpen(false);
+                setBulkConfirmText('');
+              }} 
+              className="px-6 py-2.5 text-xs font-black text-on-surface-variant hover:bg-surface-container-highest rounded-xl transition-all uppercase tracking-widest border border-outline-variant/30 disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button 
+              disabled={deletingBulk || bulkConfirmText.toUpperCase() !== 'ELIMINAR'}
+              onClick={handleBulkDelete}
+              className="px-8 py-2.5 text-xs font-black text-on-error bg-error hover:bg-error/90 rounded-xl shadow-md transition-all uppercase tracking-widest disabled:opacity-30 disabled:pointer-events-none active:scale-95 flex items-center gap-2"
+            >
+              {deletingBulk ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Eliminando...</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                  <span>Confirmar Eliminación</span>
+                </>
+              )}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-6 py-2 font-public-sans text-on-surface">
+          <div className="bg-error/5 border border-error/25 p-5 rounded-2xl flex gap-4 text-error">
+            <span className="material-symbols-outlined text-[32px] shrink-0 mt-0.5 animate-pulse">warning</span>
+            <div className="space-y-1">
+              <h5 className="text-xs font-black uppercase tracking-wider">Operación Altamente Destructiva</h5>
+              <p className="text-[11px] text-on-surface-variant/80 font-medium leading-relaxed">
+                {bulkDeleteType === 'all' 
+                  ? `Está a punto de vaciar por completo la base de datos de la flota. Se eliminarán permanentemente todas las ${vehicles.length} unidades y sus asignaciones asociadas.`
+                  : `Está a punto de eliminar permanentemente las ${selectedPlacas.length} unidades seleccionadas y todas sus relaciones operativas asociadas en cascada.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs text-on-surface-variant font-bold leading-relaxed">
+              Esta acción es completamente irreversible. Para confirmar la eliminación de seguridad, por favor escriba la palabra clave <strong className="text-error font-mono">ELIMINAR</strong> a continuación:
+            </p>
+            <input 
+              type="text" 
+              value={bulkConfirmText}
+              onChange={(e) => setBulkConfirmText(e.target.value)}
+              placeholder="Escribe ELIMINAR para confirmar..."
+              className="w-full bg-surface-container border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-mono font-black text-center text-error outline-none focus:border-error focus:ring-4 focus:ring-error/10 uppercase tracking-widest transition-all"
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Premium Floating Toast Notification */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-[3000] animate-in slide-in-from-top-6 fade-in duration-300">
+          <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.15)] border backdrop-blur-md max-w-sm ${
+            toast.type === 'error'
+              ? 'bg-rose-950/95 border-rose-800 text-rose-200 shadow-rose-950/20'
+              : toast.type === 'warning'
+                ? 'bg-amber-950/95 border-amber-800 text-amber-200 shadow-amber-950/20'
+                : 'bg-emerald-950/95 border-emerald-800 text-emerald-200 shadow-emerald-950/20'
+          }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+              toast.type === 'error' ? 'bg-rose-500/20' : toast.type === 'warning' ? 'bg-amber-500/20' : 'bg-emerald-500/20'
+            }`}>
+              <span className={`material-symbols-outlined text-[20px] ${
+                toast.type === 'error' ? 'text-rose-400' : toast.type === 'warning' ? 'text-amber-400' : 'text-emerald-400'
+              }`}>
+                {toast.type === 'error' ? 'cancel' : toast.type === 'warning' ? 'warning' : 'check_circle'}
+              </span>
+            </div>
+            <div className="flex-1 space-y-0.5 min-w-0">
+              <h5 className={`text-[10px] font-black uppercase tracking-widest ${
+                toast.type === 'error' ? 'text-rose-300/70' : toast.type === 'warning' ? 'text-amber-300/70' : 'text-emerald-300/70'
+              }`}>
+                {toast.type === 'error' ? 'Error' : toast.type === 'warning' ? 'Atención' : 'Transacción Exitosa'}
+              </h5>
+              <p className="text-xs font-bold leading-relaxed text-white break-words">
+                {toast.message}
+              </p>
+            </div>
+            <button 
+              onClick={() => setToast(null)}
+              className="text-white/40 hover:text-white transition-colors shrink-0 ml-2"
+              title="Cerrar"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

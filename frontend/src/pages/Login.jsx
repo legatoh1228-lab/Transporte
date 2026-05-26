@@ -11,7 +11,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [bgImage, setBgImage] = useState(uiSettings.loginBackground);
   const [logo, setLogo] = useState(null);
-  const [systemName, setSystemName] = useState('Gestión de Transporte');
+  const [systemName, setSystemName] = useState('Transporte Aragua Digital');
   const navigate = useNavigate();
 
   useEffect(() => {

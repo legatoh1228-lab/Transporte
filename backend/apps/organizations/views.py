@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.http import HttpResponse
+from django.db import transaction
 import openpyxl
 from io import BytesIO
 from .models import EmpresaOrganizacion, Gremio, OrganizacionCps
@@ -19,6 +20,22 @@ class OrganizacionCpsViewSet(viewsets.ModelViewSet):
 class EmpresaOrganizacionViewSet(viewsets.ModelViewSet):
     queryset = EmpresaOrganizacion.objects.all()
     serializer_class = EmpresaOrganizacionSerializer
+
+    @action(detail=False, methods=['post'], url_path='bulk-delete')
+    @transaction.atomic
+    def bulk_delete(self, request):
+        rifs = request.data.get('rifs', [])
+        delete_all = request.data.get('all', False)
+        
+        if delete_all:
+            count, _ = EmpresaOrganizacion.objects.all().delete()
+            return Response({'message': f'Se han eliminado todas las {count} organizaciones correctamente.'}, status=status.HTTP_200_OK)
+            
+        if not rifs:
+            return Response({'error': 'No se proporcionaron RIFs para eliminar.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        deleted_count, _ = EmpresaOrganizacion.objects.filter(rif__in=rifs).delete()
+        return Response({'message': f'Se han eliminado {deleted_count} organizaciones correctamente.'}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get', 'post'])
     def cps(self, request, pk=None):
@@ -125,7 +142,14 @@ class EmpresaOrganizacionViewSet(viewsets.ModelViewSet):
             def get_idx(keywords):
                 for kw in keywords:
                     for i, h in enumerate(headers):
-                        if kw.upper() in h.upper(): return i
+                        h_upper = h.upper()
+                        kw_upper = kw.upper()
+                        if kw_upper == 'BUS' and 'MINIBUS' in h_upper:
+                            continue
+                        if kw_upper == 'URBANAS' and 'SUBURBANAS' in h_upper:
+                            continue
+                        if kw_upper in h_upper: 
+                            return i
                 return None
 
             idx_rif = get_idx(["RIF", "REGISTRO"])

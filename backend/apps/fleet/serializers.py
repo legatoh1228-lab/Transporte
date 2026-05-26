@@ -26,6 +26,7 @@ class FlotaVehiculoSerializer(serializers.ModelSerializer):
     combustible_nombre = serializers.ReadOnlyField(source='combustible.nombre')
     cps_tipo_codigo = serializers.ReadOnlyField(source='cps_tipo.codigo')
     operador_asignado = serializers.SerializerMethodField()
+    organizacion = serializers.SerializerMethodField()
     
     class Meta:
         model = FlotaVehiculo
@@ -40,6 +41,12 @@ class FlotaVehiculoSerializer(serializers.ModelSerializer):
                 'nombres': asignacion.operador.nombres,
                 'apellidos': asignacion.operador.apellidos,
             }
+        return None
+
+    def get_organizacion(self, obj):
+        rel = obj.organizaciones.filter(fecha_fin__isnull=True).first()
+        if rel:
+            return rel.organizacion.rif
         return None
 
 class VehiculoOrganizacionSerializer(serializers.ModelSerializer):
