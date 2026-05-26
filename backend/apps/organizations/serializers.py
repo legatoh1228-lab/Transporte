@@ -81,44 +81,34 @@ class EmpresaOrganizacionSerializer(serializers.ModelSerializer):
                     numero_resolucion=r_data.get('numero_resolucion', ''),
                     hora_salida_ida=r_data.get('hora_salida_ida') or None,
                     hora_regreso_ida=r_data.get('hora_regreso_ida') or None,
-                    frecuencia_ida_min=int(r_data.get('frecuencia_ida_min')) if r_data.get('frecuencia_ida_min') else None,
-                    hora_salida_vuelta=r_data.get('hora_salida_vuelta') or None,
-                    hora_regreso_vuelta=r_data.get('hora_regreso_vuelta') or None,
-                    frecuencia_vuelta_min=int(r_data.get('frecuencia_vuelta_min')) if r_data.get('frecuencia_vuelta_min') else None,
+                    frecuencia_ida_min=None,
+                    hora_salida_vuelta=None,
+                    hora_regreso_vuelta=None,
+                    frecuencia_vuelta_min=None,
                 )
             else:
                 p.numero_resolucion = r_data.get('numero_resolucion', '')
                 p.hora_salida_ida = r_data.get('hora_salida_ida') or None
                 p.hora_regreso_ida = r_data.get('hora_regreso_ida') or None
-                p.frecuencia_ida_min = int(r_data.get('frecuencia_ida_min')) if r_data.get('frecuencia_ida_min') else None
-                p.hora_salida_vuelta = r_data.get('hora_salida_vuelta') or None
-                p.hora_regreso_vuelta = r_data.get('hora_regreso_vuelta') or None
-                p.frecuencia_vuelta_min = int(r_data.get('frecuencia_vuelta_min')) if r_data.get('frecuencia_vuelta_min') else None
+                p.frecuencia_ida_min = None
+                p.hora_salida_vuelta = None
+                p.hora_regreso_vuelta = None
+                p.frecuencia_vuelta_min = None
                 p.save()
             
-            # Now create/update the HorarioRuta entries
-            if p.hora_salida_ida and p.hora_regreso_ida and p.frecuencia_ida_min:
+            # Now create/update the SERVICIO HorarioRuta entry
+            if p.hora_salida_ida and p.hora_regreso_ida:
                 HorarioRuta.objects.update_or_create(
                     permiso=p,
-                    sentido='IDA',
+                    sentido='SERVICIO',
                     defaults={
                         'hora_inicio': p.hora_salida_ida,
                         'hora_fin': p.hora_regreso_ida,
-                        'frecuencia_minutos': p.frecuencia_ida_min
+                        'frecuencia_minutos': 0
                     }
                 )
             else:
-                HorarioRuta.objects.filter(permiso=p, sentido='IDA').delete()
+                HorarioRuta.objects.filter(permiso=p, sentido='SERVICIO').delete()
                 
-            if p.hora_salida_vuelta and p.hora_regreso_vuelta and p.frecuencia_vuelta_min:
-                HorarioRuta.objects.update_or_create(
-                    permiso=p,
-                    sentido='VUELTA',
-                    defaults={
-                        'hora_inicio': p.hora_salida_vuelta,
-                        'hora_fin': p.hora_regreso_vuelta,
-                        'frecuencia_minutos': p.frecuencia_vuelta_min
-                    }
-                )
-            else:
-                HorarioRuta.objects.filter(permiso=p, sentido='VUELTA').delete()
+            # Clean up any legacy IDA/VUELTA records
+            HorarioRuta.objects.filter(permiso=p, sentido__in=['IDA', 'VUELTA']).delete()

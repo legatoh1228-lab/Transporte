@@ -4,6 +4,7 @@ import api from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePagination } from '../hooks/usePagination';
 import { PaginationControls } from '../components/common/PaginationControls';
+import { buildPdfHeader, addTableAndSave } from '../utils/pdfExport';
 
 export default function Operadores() {
   const { hasPermission } = usePermissions();
@@ -224,6 +225,27 @@ export default function Operadores() {
     prevPage
   } = usePagination(filteredOperators, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
 
+  const generatePDF = () => {
+    const { doc, startY } = buildPdfHeader(
+      'PERSONAL OPERADOR',
+      'Registro de conductores y personal técnico del sistema de transporte',
+      'Transporte Aragua Digital',
+      operators.length
+    );
+    const head = ['Cédula', 'Nombres', 'Apellidos', 'Código', 'Grado Lic.', 'Vence Lic.', 'Cert. Médico', 'Teléfono'];
+    const body = filteredOperators.map(op => [
+      op.cedula,
+      op.nombres,
+      op.apellidos,
+      op.codigo_op || '—',
+      `Grado ${op.licencia_grado}`,
+      op.vence_lic || '—',
+      op.certificado_medico_vence || '—',
+      op.telefono || '—',
+    ]);
+    addTableAndSave(doc, startY, head, body, `Operadores_${Date.now()}.pdf`);
+  };
+
   return (
     <div className="flex flex-col gap-6 font-public-sans pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -231,15 +253,25 @@ export default function Operadores() {
           <h1 className="text-3xl font-black text-on-surface tracking-tight">Personal Operador</h1>
           <p className="text-sm text-on-surface-variant font-medium mt-1">Gestión integral de conductores y personal técnico</p>
         </div>
-        {canCreate && (
-          <button 
-            onClick={handleOpenCreate}
-            className="bg-primary text-on-primary px-6 py-3 rounded-2xl text-sm font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2"
+        <div className="flex items-center gap-3">
+          <button
+            onClick={generatePDF}
+            className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors flex items-center gap-2 border border-outline-variant shadow-sm"
+            title="Exportar a PDF"
           >
-            <span className="material-symbols-outlined text-[20px]">person_add</span>
-            Añadir Operador
+            <span className="material-symbols-outlined text-[18px] text-error">picture_as_pdf</span>
+            Exportar PDF
           </button>
-        )}
+          {canCreate && (
+            <button 
+              onClick={handleOpenCreate}
+              className="bg-primary text-on-primary px-6 py-3 rounded-2xl text-sm font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[20px]">person_add</span>
+              Añadir Operador
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Content Card */}

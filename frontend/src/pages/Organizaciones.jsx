@@ -5,6 +5,7 @@ import { Modal } from '../components/common/Modal';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePagination } from '../hooks/usePagination';
 import { PaginationControls } from '../components/common/PaginationControls';
+import { buildPdfHeader, addTableAndSave } from '../utils/pdfExport';
 
 const Organizaciones = () => {
   const { hasPermission } = usePermissions();
@@ -132,11 +133,7 @@ const Organizaciones = () => {
         ruta_id: '',
         numero_resolucion: '',
         hora_salida_ida: '',
-        hora_regreso_ida: '',
-        frecuencia_ida_min: '',
-        hora_salida_vuelta: '',
-        hora_regreso_vuelta: '',
-        frecuencia_vuelta_min: ''
+        hora_regreso_ida: ''
       }]
     }));
   };
@@ -180,8 +177,8 @@ const Organizaciones = () => {
     
     // Validate required fields in rutas
     for (const r of formData.rutas) {
-      if (!r.ruta_id || !r.hora_salida_ida || !r.hora_regreso_ida || !r.frecuencia_ida_min || !r.hora_salida_vuelta || !r.hora_regreso_vuelta || !r.frecuencia_vuelta_min) {
-        setError("Todos los campos de horario son obligatorios en las rutas agregadas.");
+      if (!r.ruta_id || !r.hora_salida_ida || !r.hora_regreso_ida) {
+        setError("Todos los campos de horario de servicio son obligatorios en las rutas agregadas.");
         setActiveTab('rutas');
         return;
       }
@@ -297,6 +294,28 @@ const Organizaciones = () => {
     prevPage
   } = usePagination(filteredOrgs, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
 
+  const generatePDF = () => {
+    const { doc, startY } = buildPdfHeader(
+      'ORGANIZACIONES AUTORIZADAS',
+      'Registro legal de líneas, cooperativas y empresas de transporte público',
+      'Transporte Aragua Digital',
+      organizations.length
+    );
+    const head = ['RIF', 'Razón Social', 'Tipo', 'Municipio', 'Gremio', 'Minibús', 'Bus', 'Otro', 'Activa'];
+    const body = filteredOrgs.map(o => [
+      o.rif,
+      o.razon_social,
+      o.tipo_nombre || '—',
+      o.municipio_nombre || '—',
+      o.gremio_nombre || '—',
+      String(o.conteo_minibus || 0),
+      String(o.conteo_bus || 0),
+      String(o.conteo_otro || 0),
+      o.esta_activa ? 'SÍ' : 'NO',
+    ]);
+    addTableAndSave(doc, startY, head, body, `Organizaciones_${Date.now()}.pdf`);
+  };
+
   return (
     <div className="space-y-6 font-public-sans">
       {/* Header Block */}
@@ -381,6 +400,22 @@ const Organizaciones = () => {
             >
               <span className="material-symbols-outlined mr-2 text-[18px]">upload_file</span>
               Importar Excel
+            </button>
+            <button 
+              onClick={handleExport}
+              className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 border border-outline-variant shadow-sm"
+              title="Exportar a Excel"
+            >
+              <span className="material-symbols-outlined text-[18px] text-[#1d6f42]">table_view</span>
+              Excel
+            </button>
+            <button 
+              onClick={generatePDF}
+              className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 border border-outline-variant shadow-sm"
+              title="Exportar a PDF"
+            >
+              <span className="material-symbols-outlined text-[18px] text-error">picture_as_pdf</span>
+              PDF
             </button>
             {canCreate && (
               <button 
@@ -487,12 +522,27 @@ const Organizaciones = () => {
                       <div className="text-[10px] text-on-surface-variant font-medium">C.I. {org.rep_legal_ci}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1 max-w-[200px]">
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-surface-container-highest text-on-surface-variant border border-outline-variant" title="Minibús">M: {org.conteo_minibus}</span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-surface-container-highest text-on-surface-variant border border-outline-variant" title="Bus">B: {org.conteo_bus}</span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-surface-container-highest text-on-surface-variant border border-outline-variant" title="Otro">O: {org.conteo_otro}</span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary border border-primary/20" title="Rutas Urbanas">U: {org.rutas_urbanas}</span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-secondary/10 text-secondary border border-secondary/20" title="Rutas Suburbanas">S: {org.rutas_suburbanas}</span>
+                      <div className="flex flex-col gap-1 w-full min-w-[130px] max-w-[180px]">
+                        <div className="flex items-center justify-between text-[10px] text-on-surface-variant border-b border-outline-variant/20 pb-0.5">
+                          <span className="font-bold">Minibuses</span>
+                          <span className="font-black text-on-surface">{org.conteo_minibus}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-on-surface-variant border-b border-outline-variant/20 pb-0.5">
+                          <span className="font-bold">Buses</span>
+                          <span className="font-black text-on-surface">{org.conteo_bus}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-on-surface-variant border-b border-outline-variant/20 pb-0.5">
+                          <span className="font-bold">Otros</span>
+                          <span className="font-black text-on-surface">{org.conteo_otro}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-primary font-bold mt-0.5">
+                          <span>Rutas Urbanas</span>
+                          <span className="font-black">{org.rutas_urbanas}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-secondary font-bold">
+                          <span>Rutas Suburbanas</span>
+                          <span className="font-black">{org.rutas_suburbanas}</span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -747,7 +797,7 @@ const Organizaciones = () => {
             <div className="flex justify-between items-center bg-surface-container-low p-4 rounded-xl border border-outline-variant">
               <div>
                 <h3 className="font-bold text-on-surface text-sm">Asignación de Rutas y Horarios</h3>
-                <p className="text-xs text-on-surface-variant mt-1">Defina las rutas autorizadas para esta organización y sus respectivos itinerarios operativos.</p>
+                <p className="text-xs text-on-surface-variant mt-1">Defina las rutas autorizadas para esta organización y sus respectivos horarios de servicio.</p>
               </div>
               <button 
                 onClick={handleAddRuta}
@@ -789,45 +839,35 @@ const Organizaciones = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-surface-container-lowest p-4 rounded-lg border border-outline-variant/50">
-                    {/* Ida */}
-                    <div className="space-y-3">
-                      <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px]">trending_up</span> Itinerario de Ida
+                  <div className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/60">
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-black text-primary uppercase tracking-[0.15em] flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px]">schedule</span> Horario de Servicio
                       </h4>
-                      <div className="grid grid-cols-3 gap-2">
+                      <p className="text-[11px] text-on-surface-variant font-medium">Especifique el horario operativo en el que esta organización presta el servicio para la ruta.</p>
+                      
+                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-on-surface-variant">Desde *</label>
-                          <input type="time" value={r.hora_salida_ida} onChange={(e) => handleRutaChange(index, 'hora_salida_ida', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
+                          <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider block ml-0.5">Hora Inicio / Apertura *</label>
+                          <div className="relative">
+                            <input 
+                              type="time" 
+                              value={r.hora_salida_ida || ''} 
+                              onChange={(e) => handleRutaChange(index, 'hora_salida_ida', e.target.value)} 
+                              className="w-full bg-surface border border-outline-variant rounded-lg py-2.5 px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-mono"
+                            />
+                          </div>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-on-surface-variant">Hasta *</label>
-                          <input type="time" value={r.hora_regreso_ida} onChange={(e) => handleRutaChange(index, 'hora_regreso_ida', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-on-surface-variant">Frec. (min) *</label>
-                          <input type="number" placeholder="Ej: 60" value={r.frecuencia_ida_min} onChange={(e) => handleRutaChange(index, 'frecuencia_ida_min', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Vuelta */}
-                    <div className="space-y-3">
-                      <h4 className="text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px]">trending_down</span> Itinerario de Regreso
-                      </h4>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-on-surface-variant">Desde *</label>
-                          <input type="time" value={r.hora_salida_vuelta} onChange={(e) => handleRutaChange(index, 'hora_salida_vuelta', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-on-surface-variant">Hasta *</label>
-                          <input type="time" value={r.hora_regreso_vuelta} onChange={(e) => handleRutaChange(index, 'hora_regreso_vuelta', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-on-surface-variant">Frec. (min) *</label>
-                          <input type="number" placeholder="Ej: 60" value={r.frecuencia_vuelta_min} onChange={(e) => handleRutaChange(index, 'frecuencia_vuelta_min', e.target.value)} className="w-full bg-surface-container border border-outline-variant rounded-md py-1.5 px-2 text-xs outline-none focus:border-primary"/>
+                          <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider block ml-0.5">Hora Fin / Cierre *</label>
+                          <div className="relative">
+                            <input 
+                              type="time" 
+                              value={r.hora_regreso_ida || ''} 
+                              onChange={(e) => handleRutaChange(index, 'hora_regreso_ida', e.target.value)} 
+                              className="w-full bg-surface border border-outline-variant rounded-lg py-2.5 px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-mono"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1039,7 +1079,7 @@ const Organizaciones = () => {
                           </span>
                         </div>
                         <div className="flex flex-col text-right">
-                          <span className="text-[9px] font-bold text-on-surface-variant uppercase opacity-60">Itinerario General</span>
+                          <span className="text-[9px] font-bold text-on-surface-variant uppercase opacity-60">Horario de Servicio</span>
                           <span className="text-[11px] font-black text-secondary uppercase italic">
                             {r.hora_salida_ida?.substring(0,5)} - {r.hora_regreso_ida?.substring(0,5)}
                           </span>

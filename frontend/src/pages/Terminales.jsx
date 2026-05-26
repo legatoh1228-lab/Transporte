@@ -7,6 +7,7 @@ import { GOOGLE_MAPS_API_KEY } from '../config';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePagination } from '../hooks/usePagination';
 import { PaginationControls } from '../components/common/PaginationControls';
+import { buildPdfHeader, addTableAndSave } from '../utils/pdfExport';
 
 
 const LIBRARIES = ['places'];
@@ -100,6 +101,24 @@ export default function Terminales() {
     nextPage,
     prevPage
   } = usePagination(filteredTerminales, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
+
+  const generatePDF = () => {
+    const { doc, startY } = buildPdfHeader(
+      'REGISTRO DE TERMINALES',
+      'Infraestructura y terminales de pasajeros del sistema de transporte',
+      'Transporte Aragua Digital',
+      terminales.length
+    );
+    const head = ['Nombre del Terminal', 'Municipio', 'Tipo', 'Andenes', 'Estado Operativo'];
+    const body = filteredTerminales.map(t => [
+      t.nombre,
+      t.municipio_nombre || '—',
+      t.tipo,
+      String(t.capacidad_andenes),
+      t.estatus,
+    ]);
+    addTableAndSave(doc, startY, head, body, `Terminales_${Date.now()}.pdf`);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -252,16 +271,25 @@ export default function Terminales() {
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">Registro de Terminales</h1>
           <p className="text-sm text-on-surface-variant font-medium mt-1">Gestión y control de la infraestructura de terminales de pasajeros.</p>
         </div>
-        {canCreate && (
-          <button 
-            onClick={handleOpenCreate}
-            className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center shadow-md active:scale-95"
+        <div className="flex items-center gap-3">
+          <button
+            onClick={generatePDF}
+            className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 border border-outline-variant shadow-sm"
+            title="Exportar a PDF"
           >
-            <span className="material-symbols-outlined mr-2 text-[18px]">add</span>
-            Registrar Terminal
+            <span className="material-symbols-outlined text-[18px] text-error">picture_as_pdf</span>
+            Exportar PDF
           </button>
-        )}
-
+          {canCreate && (
+            <button 
+              onClick={handleOpenCreate}
+              className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center shadow-md active:scale-95"
+            >
+              <span className="material-symbols-outlined mr-2 text-[18px]">add</span>
+              Registrar Terminal
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-surface-container-lowest border border-outline-variant shadow-sm rounded-xl overflow-hidden flex flex-col">

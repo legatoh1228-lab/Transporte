@@ -78,5 +78,7 @@ class AsignacionRutaSerializer(serializers.ModelSerializer):
         if obj.horario:
             inicio = obj.horario.hora_inicio.strftime('%I:%M %p') if obj.horario.hora_inicio else '--:--'
             fin = obj.horario.hora_fin.strftime('%I:%M %p') if obj.horario.hora_fin else '--:--'
+            if obj.horario.sentido == 'SERVICIO' or obj.horario.frecuencia_minutos == 0:
+                return f"{obj.horario.get_sentido_display()}: {inicio} - {fin}"
             return f"{obj.horario.get_sentido_display()}: {inicio} - {fin} ({obj.horario.frecuencia_minutos} min)"
         return "Sin Horario"

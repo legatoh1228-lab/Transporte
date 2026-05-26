@@ -4,6 +4,7 @@ import { Modal } from '../components/common/Modal';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePagination } from '../hooks/usePagination';
 import { PaginationControls } from '../components/common/PaginationControls';
+import { buildPdfHeader, addTableAndSave } from '../utils/pdfExport';
 
 const Gremios = () => {
   const { hasPermission } = usePermissions();
@@ -116,6 +117,25 @@ const Gremios = () => {
     startIndex, endIndex, hasNextPage, hasPrevPage, goToPage, nextPage, prevPage
   } = usePagination(filteredGremios, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
 
+  const generatePDF = () => {
+    const { doc, startY } = buildPdfHeader(
+      'GREMIOS Y FEDERACIONES',
+      'Registro de agremiaciones y federaciones de transporte',
+      'Transporte Aragua Digital',
+      gremios.length
+    );
+    const head = ['RIF', 'Razón Social', 'Teléfono', 'Correo', 'Dirección', 'Año Fund.'];
+    const body = filteredGremios.map(g => [
+      g.rif,
+      g.razon_social,
+      g.telefono || '—',
+      g.correo || '—',
+      g.direccion || '—',
+      g.anio_creacion || '—',
+    ]);
+    addTableAndSave(doc, startY, head, body, `Gremios_${Date.now()}.pdf`);
+  };
+
   return (
     <div className="space-y-6 font-public-sans">
       {/* Header */}
@@ -138,6 +158,14 @@ const Gremios = () => {
               <span className="text-lg font-black text-on-surface leading-tight">{gremios.length}</span>
             </div>
           </div>
+          <button
+            onClick={generatePDF}
+            className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors flex items-center gap-2 border border-outline-variant shadow-sm"
+            title="Exportar a PDF"
+          >
+            <span className="material-symbols-outlined text-[18px] text-error">picture_as_pdf</span>
+            Exportar PDF
+          </button>
           {canCreate && (
             <button
               onClick={handleOpenCreate}

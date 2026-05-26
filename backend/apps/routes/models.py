@@ -48,14 +48,17 @@ class GestionPermiso(models.Model):
 
 class HorarioRuta(models.Model):
     """Horarios de ida y vuelta para un permiso orgá-ruta."""
-    SENTIDO_CHOICES = [('IDA', 'Ida'), ('VUELTA', 'Vuelta')]
+    SENTIDO_CHOICES = [('IDA', 'Ida'), ('VUELTA', 'Vuelta'), ('SERVICIO', 'Servicio')]
     permiso = models.ForeignKey(GestionPermiso, on_delete=models.CASCADE, related_name='horarios')
     sentido = models.CharField(max_length=10, choices=SENTIDO_CHOICES)
     hora_inicio = models.TimeField(verbose_name="Hora de Inicio")
     hora_fin = models.TimeField(verbose_name="Hora de Fin")
     frecuencia_minutos = models.SmallIntegerField(verbose_name="Frecuencia (minutos)")
 
-    def __str__(self): return f"{self.permiso} - {self.sentido} {self.hora_inicio}-{self.hora_fin} c/{self.frecuencia_minutos}min"
+    def __str__(self):
+        if self.sentido == 'SERVICIO' or self.frecuencia_minutos == 0:
+            return f"{self.permiso.ruta.nombre} - {self.get_sentido_display()} {self.hora_inicio}-{self.hora_fin}"
+        return f"{self.permiso} - {self.sentido} {self.hora_inicio}-{self.hora_fin} c/{self.frecuencia_minutos}min"
     class Meta:
         verbose_name = "Horario de Ruta"
         verbose_name_plural = "Horarios de Ruta"

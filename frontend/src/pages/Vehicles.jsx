@@ -4,6 +4,7 @@ import { Modal } from '../components/common/Modal';
 import { usePermissions } from '../hooks/usePermissions';
 import { usePagination } from '../hooks/usePagination';
 import { PaginationControls } from '../components/common/PaginationControls';
+import { buildPdfHeader, addTableAndSave } from '../utils/pdfExport';
 
 const Vehicles = () => {
   const { hasPermission } = usePermissions();
@@ -241,6 +242,27 @@ const Vehicles = () => {
     prevPage
   } = usePagination(filteredVehicles, { itemsPerPage: 10, enableSearch: false, enableFilter: false });
 
+  const generatePDF = () => {
+    const { doc, startY } = buildPdfHeader(
+      'GESTIÓN DE FLOTA VEHICULAR',
+      'Registro técnico de unidades del sistema de transporte público',
+      'Transporte Aragua Digital',
+      vehicles.length
+    );
+    const head = ['Placa', 'Marca / Modelo', 'Año', 'Modalidad', 'Capacidad', 'Combustible', 'Vence RCV', 'Vence Cert.'];
+    const body = filteredVehicles.map(v => [
+      v.placa,
+      `${v.marca} ${v.modelo}`,
+      String(v.anio),
+      v.modalidad_nombre || '—',
+      `${v.capacidad} pax`,
+      v.combustible_nombre || '—',
+      v.rcv_vence || '—',
+      v.certificado_vence || '—',
+    ]);
+    addTableAndSave(doc, startY, head, body, `Flota_Vehicular_${Date.now()}.pdf`);
+  };
+
   return (
     <div className="space-y-6 font-public-sans pb-10">
       {/* Header Block */}
@@ -275,6 +297,14 @@ const Vehicles = () => {
           </div>
         </div>
         <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
+          <button
+            onClick={generatePDF}
+            className="px-6 py-3.5 bg-surface-container-high text-on-surface-variant rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-surface-container-highest transition-all border border-outline-variant shadow-sm"
+            title="Exportar a PDF"
+          >
+            <span className="material-symbols-outlined text-[20px] text-error">picture_as_pdf</span>
+            Exportar PDF
+          </button>
           {canCreate && (
             <button 
               onClick={handleOpenCreate}
