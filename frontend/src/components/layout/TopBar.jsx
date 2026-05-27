@@ -10,7 +10,7 @@ const TopBar = ({ onMenuToggle }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
   const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
-  const [systemName, setSystemName] = useState('Transporte Aragua');
+  const [systemName, setSystemName] = useState('Transporte Aragua Digital');
   
   // Global Search State
   const [searchTerm, setSearchTerm] = useState('');

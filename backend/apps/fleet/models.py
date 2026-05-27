@@ -27,12 +27,12 @@ class FlotaVehiculo(models.Model):
     placa = models.CharField(max_length=15, primary_key=True)
     modalidad = models.ForeignKey(Modalidad, on_delete=models.PROTECT)
     submodalidad = models.ForeignKey(SubModalidad, on_delete=models.PROTECT)
-    marca = models.CharField(max_length=50)
-    modelo = models.CharField(max_length=50)
-    anio = models.SmallIntegerField(verbose_name="Año")
+    marca = models.CharField(max_length=50, default="No especificado", blank=True)
+    modelo = models.CharField(max_length=50, default="No especificado", blank=True)
+    anio = models.SmallIntegerField(verbose_name="Año", default=2026, blank=True, null=True)
     color = models.CharField(max_length=30, blank=True, null=True)
-    transmision = models.ForeignKey(TipoTransmision, on_delete=models.PROTECT)
-    capacidad = models.SmallIntegerField(help_text="Capacidad de pasajeros")
+    transmision = models.ForeignKey(TipoTransmision, on_delete=models.PROTECT, blank=True, null=True)
+    capacidad = models.SmallIntegerField(help_text="Capacidad de pasajeros", default=0, blank=True, null=True)
     combustible = models.ForeignKey(TipoCombustible, on_delete=models.PROTECT)
     aire_acondicionado = models.BooleanField(default=False)
     accesibilidad = models.BooleanField(default=False, verbose_name="Rampa/Accesibilidad")
@@ -46,6 +46,7 @@ class FlotaVehiculo(models.Model):
     propietario_identificacion = models.CharField(max_length=15, blank=True, null=True, verbose_name="Identificación Propietario")
     serial_carroceria = models.CharField(max_length=50, blank=True, null=True, verbose_name="Serial de Carrocería")
     cps = models.CharField(max_length=50, blank=True, null=True, verbose_name="Tipo de CPS (DT9/DT10)")
+    observaciones = models.TextField(blank=True, null=True, verbose_name="Observaciones")
 
     def __str__(self): return f"{self.placa} - {self.marca} {self.modelo}"
     class Meta:
@@ -76,13 +77,28 @@ class VehiculoOrganizacion(models.Model):
                 })
 
         # 2. Validar coincidencia de modalidad CPS (si existe un CPS activo en la organización)
-        # Buscamos el CPS activo de la organización
-        cps_activo = self.organizacion.cps_registros.filter(activa=True).first()
-        if cps_activo and self.vehiculo.cps:
-            # Comparamos el código del CPS activo con el campo cps del vehículo
-            if str(cps_activo.tipo_cps) != str(self.vehiculo.cps):
+        # Buscamos los CPS activos de la organización
+        cps_activos = self.organizacion.cps_registros.filter(activa=True)
+        if cps_activos.exists() and self.vehiculo.cps:
+            # Si el CPS del vehículo es un guión, vacío o un placeholder de "no aplica", omitimos la validación
+            veh_cps_raw = str(self.vehiculo.cps).strip().upper()
+            if veh_cps_raw in ['', '-', 'N/A', 'NA', 'NO', 'SIN REGISTRO', 'S/R', 'S/C']:
+                return
+
+            # Comparamos el código de los CPS activos con el campo cps del vehículo de forma flexible
+            veh_cps = str(self.vehiculo.cps).replace("-", "").replace("/", "").strip().upper()
+            
+            matches = False
+            for cps_act in cps_activos:
+                org_cps = str(cps_act.tipo_cps.codigo).replace("-", "").replace("/", "").strip().upper()
+                if org_cps in veh_cps:
+                    matches = True
+                    break
+            
+            if not matches:
+                modalidades_list = ", ".join([str(c.tipo_cps.codigo) for c in cps_activos])
                 raise ValidationError({
-                    'vehiculo': f"El vehículo ({self.vehiculo.cps}) no coincide con la modalidad CPS de la organización ({cps_activo.tipo_cps})."
+                    'vehiculo': f"El vehículo ({self.vehiculo.cps}) no coincide con ninguna modalidad CPS de la organización ({modalidades_list})."
                 })
 
     def save(self, *args, **kwargs):

@@ -10,7 +10,7 @@ import { PaginationControls } from '../components/common/PaginationControls';
 import { buildPdfHeader, addTableAndSave } from '../utils/pdfExport';
 
 
-const LIBRARIES = ['places'];
+const LIBRARIES = ['places', 'geometry'];
 
 const mapContainerStyle = {
   width: '100%',

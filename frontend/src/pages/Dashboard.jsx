@@ -25,14 +25,21 @@ const Dashboard = () => {
     route_distribution: [],
     alerts: []
   });
+  const [systemName, setSystemName] = useState('Transporte Aragua Digital');
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await api.get('users/dashboard-stats/');
-        setStats(response.data);
+        const [statsRes, brandingRes] = await Promise.all([
+          api.get('users/dashboard-stats/'),
+          api.get('catalogs/configuracion-visual/')
+        ]);
+        setStats(statsRes.data);
+        if (brandingRes.data && brandingRes.data.nombre_sistema) {
+          setSystemName(brandingRes.data.nombre_sistema);
+        }
       } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
+        console.error("Error fetching dashboard data:", error);
       }
     };
     fetchStats();
@@ -160,7 +167,7 @@ const Dashboard = () => {
           <h2 className="text-4xl font-black text-on-surface tracking-tight mb-2">Panel Ejecutivo</h2>
           <div className="flex items-center gap-2 text-on-surface-variant/80">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            <p className="text-sm font-medium">Sistema de Gestión de Transporte Aragua • Tiempo Real</p>
+            <p className="text-sm font-medium">{systemName} • Tiempo Real</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4">

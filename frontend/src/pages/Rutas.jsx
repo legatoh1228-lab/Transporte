@@ -8,7 +8,7 @@ import { GOOGLE_MAPS_API_KEY } from '../config';
 import { usePermissions } from '../hooks/usePermissions';
 
 
-const LIBRARIES = ['places'];
+const LIBRARIES = ['places', 'geometry'];
 
 const mapContainerStyle = {
   width: '100%',
@@ -27,6 +27,8 @@ const RouteDesigner = ({ points, setPoints, stops, setStops, onDistanceUpdate, s
   const [geocoderResults, setGeocoderResults] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [activeStopId, setActiveStopId] = useState(null);
+  const [alternativeRoutes, setAlternativeRoutes] = useState([]);
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
 
   const onLoad = useCallback(mapInstance => setMap(mapInstance), []);
   const onUnmount = useCallback(() => setMap(null), []);
@@ -90,7 +92,7 @@ const RouteDesigner = ({ points, setPoints, stops, setStops, onDistanceUpdate, s
     }
   }, [stops]);
 
-  // Update directions when points change
+  // Fetch directions from Google Maps when points change
   useEffect(() => {
     if (points.length > 1) {
       const directionsService = new window.google.maps.DirectionsService();
@@ -108,30 +110,19 @@ const RouteDesigner = ({ points, setPoints, stops, setStops, onDistanceUpdate, s
           destination,
           waypoints,
           travelMode: window.google.maps.TravelMode.DRIVING,
+          provideRouteAlternatives: true,
         },
         (result, status) => {
           if (status === window.google.maps.DirectionsStatus.OK) {
+            setAlternativeRoutes(result.routes);
             setDirections(result);
-            
-            // Calculate total distance
-            let totalDist = 0;
-            result.routes[0].legs.forEach(leg => {
-              totalDist += leg.distance.value;
-            });
-            onDistanceUpdate((totalDist / 1000).toFixed(2), points.length);
-
-            // Convert overview_path to WKT
-            const path = result.routes[0].overview_path.map(p => [p.lng(), p.lat()]);
-            const wkt = wellknown.stringify({
-              type: 'LineString',
-              coordinates: path
-            });
-            setGeom(wkt);
+            setSelectedRouteIndex(0); // Reset selection when new points are added
           }
         }
       );
     } else {
       setDirections(null);
+      setAlternativeRoutes([]);
       onDistanceUpdate(0, points.length);
     }
 
@@ -142,6 +133,28 @@ const RouteDesigner = ({ points, setPoints, stops, setStops, onDistanceUpdate, s
       }
     }
   }, [points]);
+
+  // Update form data (geom, distance) when a route is selected
+  useEffect(() => {
+    if (directions && alternativeRoutes.length > 0) {
+      const route = alternativeRoutes[selectedRouteIndex] || alternativeRoutes[0];
+      
+      // Calculate total distance
+      let totalDist = 0;
+      route.legs.forEach(leg => {
+        totalDist += leg.distance.value;
+      });
+      onDistanceUpdate((totalDist / 1000).toFixed(2), points.length);
+
+      // Convert overview_path to WKT
+      const path = route.overview_path.map(p => [p.lng(), p.lat()]);
+      const wkt = wellknown.stringify({
+        type: 'LineString',
+        coordinates: path
+      });
+      setGeom(wkt);
+    }
+  }, [directions, alternativeRoutes, selectedRouteIndex, points.length]);
 
   const detectMunicipality = (location, type) => {
     if (!window.google) return;
@@ -358,6 +371,54 @@ const RouteDesigner = ({ points, setPoints, stops, setStops, onDistanceUpdate, s
             <span className="material-symbols-outlined text-[14px]">add_circle</span>
             Añadir parada
           </button>
+
+          {alternativeRoutes.length > 1 && (
+            <div className="mt-2 pt-3 border-t border-outline-variant/60">
+              <h4 className="text-[10px] font-black text-primary uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">alt_route</span>
+                Rutas Alternativas
+              </h4>
+              <div className="flex flex-col gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                {alternativeRoutes.map((route, idx) => {
+                  const duration = Math.round(route.legs.reduce((acc, leg) => acc + leg.duration.value, 0) / 60);
+                  const distance = (route.legs.reduce((acc, leg) => acc + leg.distance.value, 0) / 1000).toFixed(1);
+                  const isSelected = selectedRouteIndex === idx;
+                  
+                  return (
+                    <button
+                      key={`alt-${idx}`}
+                      type="button"
+                      onClick={() => setSelectedRouteIndex(idx)}
+                      className={`w-full flex items-center justify-between text-left p-2.5 rounded-xl border transition-all ${
+                        isSelected 
+                        ? 'bg-primary text-white border-primary shadow-md ring-2 ring-primary/20' 
+                        : 'bg-surface-container-lowest text-on-surface border-outline-variant hover:border-primary/50 hover:bg-surface-container-low'
+                      }`}
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-on-surface'}`}>
+                          Opción {idx + 1}
+                        </span>
+                        {route.summary && (
+                          <span className={`text-[9px] font-medium truncate max-w-[130px] ${isSelected ? 'text-white/80' : 'text-on-surface-variant'}`}>
+                            Vía {route.summary}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className={`text-xs font-black ${isSelected ? 'text-white' : 'text-primary'}`}>
+                          {duration} min
+                        </span>
+                        <span className={`text-[9px] font-bold ${isSelected ? 'text-white/80' : 'text-on-surface-variant'}`}>
+                          {distance} km
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {activeStopId && geocoderResults.length > 0 && (
@@ -399,6 +460,7 @@ const RouteDesigner = ({ points, setPoints, stops, setStops, onDistanceUpdate, s
         {directions && (
           <DirectionsRenderer 
             directions={directions} 
+            routeIndex={selectedRouteIndex}
             options={{ 
               suppressMarkers: true,
               polylineOptions: {

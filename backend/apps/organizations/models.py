@@ -37,6 +37,7 @@ class EmpresaOrganizacion(models.Model):
     cupo_unidades = models.PositiveIntegerField(default=0, verbose_name="Cupo Unidades")
     cupo_maximo_unidades = models.SmallIntegerField(blank=True, null=True, verbose_name="Cupo Máximo de Unidades")
     esta_activa = models.BooleanField(default=True)
+    modalidad_cps = models.CharField(max_length=20, blank=True, null=True, verbose_name="Modalidad CPS")
     
     @property
     def total_vehiculos(self):

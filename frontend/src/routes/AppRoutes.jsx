@@ -20,6 +20,7 @@ import VisualSettings from '../pages/VisualSettings';
 import Alertas from '../pages/Alertas';
 import Asignaciones from '../pages/Asignaciones';
 import Gremios from '../pages/Gremios';
+import Consolidado from '../pages/Consolidado';
 
 const AppRoutes = () => {
   return (
@@ -49,6 +50,7 @@ const AppRoutes = () => {
         <Route path="/alertas" element={<Alertas />} />
         <Route path="/asignaciones" element={<Asignaciones />} />
         <Route path="/gremios" element={<Gremios />} />
+        <Route path="/consolidado" element={<Consolidado />} />
         
         {/* Mantengo Home por compatibilidad si se desea usar la anterior */}
         <Route path="/old-home" element={<Home />} />

@@ -4,7 +4,7 @@ import wellknown from 'wellknown';
 import api from '../services/api';
 import { GOOGLE_MAPS_API_KEY } from '../config';
 
-const LIBRARIES = ['places'];
+const LIBRARIES = ['places', 'geometry'];
 
 const mapContainerStyle = {
   width: '100%',
