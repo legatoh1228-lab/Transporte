@@ -19,6 +19,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   // Mapping labels to Permission Modules
   const moduleMap = {
     'Dashboard':       'Dashboard',
+    'Consolidado':     'Dashboard',
     'Organizaciones':  'Organizaciones',
     'Gremios':         'Gremios',
     'Terminales':      'Organizaciones',
@@ -38,6 +39,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const navItems = [
     { label: 'Dashboard',      icon: 'dashboard',        path: '/dashboard' },
+    { label: 'Consolidado',    icon: 'monitoring',       path: '/consolidado' },
     { label: 'Organizaciones', icon: 'corporate_fare',   path: '/organizaciones' },
     { label: 'Gremios',        icon: 'groups',           path: '/gremios' },
     { label: 'Terminales',     icon: 'store',            path: '/terminales' },

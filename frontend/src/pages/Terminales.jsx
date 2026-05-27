@@ -9,7 +9,7 @@ import { usePagination } from '../hooks/usePagination';
 import { PaginationControls } from '../components/common/PaginationControls';
 
 
-const LIBRARIES = ['places'];
+const LIBRARIES = ['places', 'geometry'];
 
 const mapContainerStyle = {
   width: '100%',
