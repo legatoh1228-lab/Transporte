@@ -176,6 +176,7 @@ const Organizaciones = () => {
   const [gremios, setGremios] = useState([]);
   const [municipios, setMunicipios] = useState([]);
   const [rutasCatalog, setRutasCatalog] = useState([]);
+  const [registeredVehiclesCount, setRegisteredVehiclesCount] = useState(0);
 
   const [formData, setFormData] = useState({
     rif: '',
@@ -221,10 +222,14 @@ const Organizaciones = () => {
   const fetchOrgs = async () => {
     try {
       setLoading(true);
-      const response = await api.get('organizations/organizations/');
-      setOrganizations(response.data);
+      const [responseOrgs, responseVehicles] = await Promise.all([
+        api.get('organizations/organizations/'),
+        api.get('fleet/vehicles/')
+      ]);
+      setOrganizations(responseOrgs.data);
+      setRegisteredVehiclesCount(responseVehicles.data.length);
     } catch (err) {
-      console.error('Error fetching organizations:', err);
+      console.error('Error fetching organizations or vehicles:', err);
       setError('No se pudo conectar con el servidor de organizaciones.');
     } finally {
       setLoading(false);
@@ -482,14 +487,15 @@ const Organizaciones = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
-          { label: 'Total Registros', value: organizations.length, icon: 'list_alt', color: 'primary' },
-          { label: 'Líneas Activas', value: organizations.filter(o => o.esta_activa).length, icon: 'check_circle', color: 'tertiary' },
-          { label: 'Total Unidades', value: organizations.reduce((acc, o) => acc + (o.cupo_unidades || 0), 0), icon: 'directions_bus', color: 'secondary' },
-          { label: 'Municipios', value: new Set(organizations.map(o => o.municipio)).size, icon: 'map', color: 'primary' }
+          { label: 'Total Registros', value: organizations.length, icon: 'list_alt', color: 'primary', tooltip: 'Cantidad total de organizaciones registradas' },
+          { label: 'Líneas Activas', value: organizations.filter(o => o.esta_activa).length, icon: 'check_circle', color: 'tertiary', tooltip: 'Organizaciones con estatus activo en el sistema' },
+          { label: 'Cupos de Flota', value: organizations.reduce((acc, o) => acc + (o.cupo_unidades || 0), 0), icon: 'toll', color: 'secondary', tooltip: 'Suma de los cupos máximos de unidades autorizados para todas las operadoras' },
+          { label: 'Vehículos Registrados', value: registeredVehiclesCount, icon: 'directions_bus', color: 'tertiary', tooltip: 'Total de vehículos físicos reales registrados y asignados en la base de datos' },
+          { label: 'Municipios', value: new Set(organizations.map(o => o.municipio)).size, icon: 'map', color: 'primary', tooltip: 'Cantidad de municipios sedes con presencia de operadoras' }
         ].map((stat, i) => (
-          <div key={i} className="bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3.5 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow">
+          <div key={i} className="bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-3.5 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow cursor-help" title={stat.tooltip}>
             <div className={`w-10 h-10 rounded-lg bg-${stat.color}/10 flex items-center justify-center text-${stat.color}`}>
               <span className="material-symbols-outlined text-[22px]">{stat.icon}</span>
             </div>
