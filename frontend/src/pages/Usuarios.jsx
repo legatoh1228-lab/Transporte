@@ -183,7 +183,8 @@ export default function Usuarios() {
           {loading ? (
             <div className="p-20 text-center text-on-surface-variant">Cargando usuarios...</div>
           ) : (
-            <table className="w-full text-left text-sm text-on-surface">
+            <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left text-sm text-on-surface">
               <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold">
                 <tr>
                   <th className="px-6 py-4 whitespace-nowrap">Usuario</th>
@@ -245,6 +246,7 @@ export default function Usuarios() {
                 ))}
               </tbody>
             </table>
+</div>
           )}
         </div>
         <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">

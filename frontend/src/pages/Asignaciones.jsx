@@ -291,7 +291,8 @@ const Asignaciones = () => {
 
             <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[36px] overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[900px]">
+                    <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left border-collapse min-w-[900px]">
                         <thead>
                             <tr className="bg-surface-container-high/60">
                                 <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-on-surface-variant">Operador Asignado</th>
@@ -366,6 +367,7 @@ const Asignaciones = () => {
                             ))}
                         </tbody>
                     </table>
+</div>
                 </div>
                 <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
                     <PaginationControls
@@ -394,7 +396,7 @@ const Asignaciones = () => {
             >
                 {selectedAsignacion && (
                     <div className="space-y-6 p-2">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="p-5 bg-surface-container rounded-[24px] border border-outline-variant/30">
                                 <span className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest block mb-2">Operador</span>
                                 <p className="font-black text-on-surface">{selectedAsignacion.operador_nombre} {selectedAsignacion.operador_apellido}</p>

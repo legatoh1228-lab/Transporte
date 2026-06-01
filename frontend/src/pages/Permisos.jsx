@@ -150,7 +150,8 @@ export default function Permisos() {
         )}
         
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-on-surface">
+          <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left text-sm text-on-surface">
             <thead className="bg-surface-container-high text-[11px] uppercase text-on-surface-variant font-bold tracking-wider border-b border-outline-variant">
               <tr>
                 <th className="px-6 py-4 w-[250px]">Módulo del Sistema</th>
@@ -211,6 +212,7 @@ export default function Permisos() {
               )}
             </tbody>
           </table>
+</div>
         </div>
       </div>
       

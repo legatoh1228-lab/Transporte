@@ -134,7 +134,7 @@ const Consolidado = () => {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           
           {/* Metrics Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { label: 'Vehículos', val: data.metrics.vehiculos, icon: 'directions_bus', color: 'text-primary', bg: 'bg-primary/10' },
               { label: 'Operadores', val: data.metrics.operadores, icon: 'badge', color: 'text-secondary', bg: 'bg-secondary/10' },
@@ -177,7 +177,8 @@ const Consolidado = () => {
 
             <div className="p-0 max-h-[500px] overflow-y-auto custom-scrollbar">
               {activeTab === 'vehiculos' && (
-                <table className="w-full text-left border-collapse">
+                <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left border-collapse">
                   <thead className="bg-surface-container sticky top-0 z-10">
                     <tr>
                       <th className="p-4 text-xs font-black text-on-surface-variant uppercase tracking-wider">Placa</th>
@@ -200,10 +201,12 @@ const Consolidado = () => {
                     )}
                   </tbody>
                 </table>
+</div>
               )}
 
               {activeTab === 'operadores' && (
-                <table className="w-full text-left border-collapse">
+                <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left border-collapse">
                   <thead className="bg-surface-container sticky top-0 z-10">
                     <tr>
                       <th className="p-4 text-xs font-black text-on-surface-variant uppercase tracking-wider">Cédula</th>
@@ -226,10 +229,12 @@ const Consolidado = () => {
                     )}
                   </tbody>
                 </table>
+</div>
               )}
 
               {activeTab === 'rutas' && (
-                <table className="w-full text-left border-collapse">
+                <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left border-collapse">
                   <thead className="bg-surface-container sticky top-0 z-10">
                     <tr>
                       <th className="p-4 text-xs font-black text-on-surface-variant uppercase tracking-wider">Nombre de Ruta</th>
@@ -252,10 +257,12 @@ const Consolidado = () => {
                     )}
                   </tbody>
                 </table>
+</div>
               )}
 
               {activeTab === 'organizaciones' && (
-                <table className="w-full text-left border-collapse">
+                <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left border-collapse">
                   <thead className="bg-surface-container sticky top-0 z-10">
                     <tr>
                       <th className="p-4 text-xs font-black text-on-surface-variant uppercase tracking-wider">RIF</th>
@@ -278,6 +285,7 @@ const Consolidado = () => {
                     )}
                   </tbody>
                 </table>
+</div>
               )}
             </div>
           </div>

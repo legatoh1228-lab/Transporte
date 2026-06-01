@@ -211,7 +211,8 @@ const Gremios = () => {
               <p className="font-bold text-on-surface">{error}</p>
             </div>
           ) : (
-            <table className="w-full text-left text-sm text-on-surface border-collapse">
+            <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left text-sm text-on-surface border-collapse">
               <thead className="bg-surface-container-high/50 text-[11px] uppercase text-on-surface-variant font-black tracking-widest border-b border-outline-variant">
                 <tr>
                   <th className="px-6 py-4">RIF / Razón Social</th>
@@ -308,6 +309,7 @@ const Gremios = () => {
                 )}
               </tbody>
             </table>
+</div>
           )}
         </div>
 

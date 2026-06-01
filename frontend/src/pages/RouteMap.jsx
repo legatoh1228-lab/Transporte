@@ -245,7 +245,7 @@ export default function RouteMap() {
                   </div>
 
                   <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/50">
                         <div className="flex items-center gap-1.5 mb-1 text-primary">
                           <span className="material-symbols-outlined text-[16px]">distance</span>

@@ -262,7 +262,8 @@ export default function Auditoria() {
 
         {/* Tabla Refinada */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-on-surface">
+          <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left text-sm text-on-surface">
             <thead className="bg-surface-container/50 text-[11px] uppercase text-on-surface-variant font-black tracking-wider border-b border-outline-variant/60">
               <tr>
                 <th className="px-6 py-4">Estampa de Tiempo</th>
@@ -327,6 +328,7 @@ export default function Auditoria() {
               ))}
             </tbody>
           </table>
+</div>
         </div>
         <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
           <PaginationControls

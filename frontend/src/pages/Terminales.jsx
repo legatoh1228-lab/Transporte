@@ -309,7 +309,8 @@ export default function Terminales() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-on-surface">
+          <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left text-sm text-on-surface">
             <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold">
               <tr>
                 <th className="px-6 py-4">Nombre del Terminal</th>
@@ -360,6 +361,7 @@ export default function Terminales() {
               ))}
             </tbody>
           </table>
+</div>
         </div>
         <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
           <PaginationControls
@@ -431,7 +433,7 @@ export default function Terminales() {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Tipo de Terminal</label>
                 <select 

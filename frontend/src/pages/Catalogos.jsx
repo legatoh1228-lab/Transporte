@@ -120,7 +120,8 @@ export default function Catalogos() {
         {loading ? (
           <div className="text-center py-10 text-on-surface-variant animate-pulse">Cargando diccionario...</div>
         ) : (
-          <table className="w-full text-left text-sm text-on-surface border border-outline-variant rounded-lg overflow-hidden">
+          <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left text-sm text-on-surface border border-outline-variant rounded-lg overflow-hidden">
             <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 w-16">ID</th>
@@ -169,6 +170,7 @@ export default function Catalogos() {
               )}
             </tbody>
           </table>
+</div>
         )}
       </div>
     );

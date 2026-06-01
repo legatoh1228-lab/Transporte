@@ -974,7 +974,7 @@ export default function Rutas() {
                   placeholder="Ej: Ruta Principal Centro" 
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1">Tipo</label>
                   <select 
@@ -1056,7 +1056,7 @@ export default function Rutas() {
                     Resetear
                   </button>
                </div>
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-surface-container-lowest rounded-xl p-3.5 border border-outline-variant shadow-sm flex flex-col items-center justify-center transition-transform hover:scale-105">
                     <span className="material-symbols-outlined text-primary mb-1.5">route</span>
                     <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider">Distancia</p>
