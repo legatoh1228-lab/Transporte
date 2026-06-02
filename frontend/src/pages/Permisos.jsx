@@ -3,7 +3,7 @@ import api from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 
-const MODULES = ['Organizaciones', 'Vehículos', 'Operadores', 'Rutas', 'Permisos', 'Usuarios', 'Configuración', 'Dashboard', 'Alertas'];
+const MODULES = ['Organizaciones', 'Vehículos', 'Operadores', 'Rutas', 'Mapa de Rutas', 'Permisos', 'Usuarios', 'Configuración', 'Dashboard', 'Alertas'];
 const ACTIONS = ['Leer', 'Crear', 'Actualizar', 'Eliminar'];
 
 export default function Permisos() {
@@ -177,6 +177,7 @@ export default function Permisos() {
                            module === 'Vehículos' ? 'directions_bus' : 
                            module === 'Operadores' ? 'person' : 
                            module === 'Rutas' ? 'alt_route' : 
+                           module === 'Mapa de Rutas' ? 'map' : 
                            module === 'Permisos' ? 'key' : 
                            module === 'Usuarios' ? 'manage_accounts' : 
                            module === 'Configuración' ? 'settings' : 

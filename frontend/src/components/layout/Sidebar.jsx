@@ -27,7 +27,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     'Operadores':      'Operadores',
     'Vinculación':     'Asignaciones',
     'Rutas':           'Rutas',
-    'Mapa de Rutas':   'Rutas',
+    'Mapa de Rutas':   'Mapa de Rutas',
     'Alertas':         'Alertas',
     'Admin Usuarios':  'Usuarios',
     'Permisos':        'Permisos',

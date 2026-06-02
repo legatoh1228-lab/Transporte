@@ -17,6 +17,8 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewUser, setViewUser] = useState(null);
   const [currentUser, setCurrentUser] = useState(null); // Para editar
   const [formData, setFormData] = useState({
     username: '',
@@ -78,6 +80,11 @@ export default function Usuarios() {
       });
     }
     setIsModalOpen(true);
+  };
+
+  const handleOpenViewModal = (user) => {
+    setViewUser(user);
+    setIsViewModalOpen(true);
   };
 
   const handleSave = async () => {
@@ -191,7 +198,7 @@ export default function Usuarios() {
                   <th className="px-6 py-4">Rol</th>
                   <th className="px-6 py-4">Organización</th>
                    <th className="px-6 py-4">Estado</th>
-                  {(canUpdate || canDelete) && <th className="px-6 py-4 text-right">Acciones</th>}
+                  <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
 
               </thead>
@@ -219,9 +226,14 @@ export default function Usuarios() {
                     <td className="px-6 py-4">
                       <StatusBadge status={row.is_active ? 'Activo' : 'Inactivo'} />
                     </td>
-                    {(canUpdate || canDelete) && (
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={() => handleOpenViewModal(row)}
+                            className="text-on-surface-variant hover:text-primary p-1 rounded-full hover:bg-surface-container-high transition-colors" title="Ver Detalles"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">visibility</span>
+                          </button>
                           {canUpdate && (
                             <button 
                               onClick={() => handleOpenModal(row)}
@@ -240,7 +252,6 @@ export default function Usuarios() {
                           )}
                         </div>
                       </td>
-                    )}
 
                   </tr>
                 ))}
@@ -277,7 +288,9 @@ export default function Usuarios() {
         actions={
           <>
             <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 border border-outline text-on-surface font-medium rounded-lg hover:bg-surface-container transition-colors">Cancelar</button>
-            <button onClick={handleSave} className="bg-primary hover:bg-primary-container text-white px-5 py-2.5 font-medium rounded-lg transition-colors shadow-sm">Guardar Cambios</button>
+            {((currentUser && canUpdate) || (!currentUser && canCreate)) && (
+              <button onClick={handleSave} className="bg-primary hover:bg-primary-container text-white px-5 py-2.5 font-medium rounded-lg transition-colors shadow-sm">Guardar Cambios</button>
+            )}
           </>
         }
       >
@@ -360,6 +373,57 @@ export default function Usuarios() {
           </div>
         </div>
       </Modal>
+
+      {/* Modal View */}
+      {viewUser && (
+        <Modal
+          isOpen={isViewModalOpen}
+          onClose={() => setIsViewModalOpen(false)}
+          title="Detalles del Usuario"
+          subtitle="Información completa y credenciales"
+          icon="visibility"
+          maxWidthClass="max-w-2xl"
+          actions={
+            <button onClick={() => setIsViewModalOpen(false)} className="px-5 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-primary-container transition-colors shadow-sm">Cerrar</button>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant">
+                <p className="text-xs text-outline font-bold uppercase mb-1">Nombre Completo</p>
+                <p className="text-sm text-on-surface font-medium">{viewUser.first_name} {viewUser.last_name}</p>
+              </div>
+              <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant">
+                <p className="text-xs text-outline font-bold uppercase mb-1">Usuario (Credencial)</p>
+                <p className="text-sm text-on-surface font-medium">@{viewUser.username}</p>
+              </div>
+              <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant">
+                <p className="text-xs text-outline font-bold uppercase mb-1">Correo Electrónico</p>
+                <p className="text-sm text-on-surface font-medium">{viewUser.email}</p>
+              </div>
+              <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant">
+                <p className="text-xs text-outline font-bold uppercase mb-1">Rol del Sistema</p>
+                <RoleBadge role={viewUser.rol_nombre || 'Sin Rol'} />
+              </div>
+              <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant">
+                <p className="text-xs text-outline font-bold uppercase mb-1">Organización</p>
+                <p className="text-sm text-on-surface font-medium">{viewUser.org_nombre || 'Ente Central'}</p>
+              </div>
+              <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant">
+                <p className="text-xs text-outline font-bold uppercase mb-1">Estado</p>
+                <StatusBadge status={viewUser.is_active ? 'Activo' : 'Inactivo'} />
+              </div>
+            </div>
+            
+            <div className="bg-tertiary-container/10 border border-tertiary-container/20 rounded-xl p-4 flex items-start gap-3 mt-4">
+               <span className="material-symbols-outlined text-tertiary-container">info</span>
+               <p className="text-sm text-on-surface-variant">
+                 Por razones de seguridad, las contraseñas están encriptadas y no pueden ser visualizadas. Si el usuario perdió su acceso, utilice la opción "Editar" para asignar una nueva contraseña temporal.
+               </p>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

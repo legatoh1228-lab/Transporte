@@ -1075,9 +1075,11 @@ const Vehicles = () => {
         actions={
           <div className="flex gap-4 w-full justify-end">
             <button onClick={() => setIsModalOpen(false)} className="px-8 py-3 text-sm font-black text-on-surface-variant hover:bg-surface-container-highest rounded-2xl transition-all uppercase tracking-widest">Cancelar</button>
-            <button onClick={handleSubmit} className="px-10 py-3 text-sm font-black text-on-primary bg-primary hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 transition-all uppercase tracking-widest active:scale-95">
-              {isEditing ? "Guardar Cambios" : "Completar Registro"}
-            </button>
+            {((isEditing && canUpdate) || (!isEditing && canCreate)) && (
+              <button onClick={handleSubmit} className="px-10 py-3 text-sm font-black text-on-primary bg-primary hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 transition-all uppercase tracking-widest active:scale-95">
+                {isEditing ? "Guardar Cambios" : "Completar Registro"}
+              </button>
+            )}
           </div>
         }
       >

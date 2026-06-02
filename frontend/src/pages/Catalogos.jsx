@@ -312,10 +312,12 @@ export default function Catalogos() {
                 <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-bold text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-container rounded-lg shadow transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]">save</span>
-                  Guardar
-                </button>
+                {((modalMode === 'edit' && canUpdate) || (modalMode === 'add' && canCreate)) && (
+                  <button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-container rounded-lg shadow transition-colors flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">save</span>
+                    Guardar
+                  </button>
+                )}
               </div>
             </form>
           </div>

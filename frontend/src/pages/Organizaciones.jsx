@@ -524,18 +524,20 @@ const Organizaciones = () => {
           </div>
 
           <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
-            <button 
-              onClick={() => {
-                setImportFile(null);
-                setImportResult(null);
-                setImportError(null);
-                setIsImportOpen(true);
-              }}
-              className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2 rounded-lg text-[13px] font-bold transition-colors flex items-center border border-outline-variant shadow-sm active:scale-[0.98] transform"
-            >
-              <span className="material-symbols-outlined mr-1.5 text-[18px]">upload_file</span>
-              Importar Excel
-            </button>
+            {canCreate && (
+              <button 
+                onClick={() => {
+                  setImportFile(null);
+                  setImportResult(null);
+                  setImportError(null);
+                  setIsImportOpen(true);
+                }}
+                className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2 rounded-lg text-[13px] font-bold transition-colors flex items-center border border-outline-variant shadow-sm active:scale-[0.98] transform"
+              >
+                <span className="material-symbols-outlined mr-1.5 text-[18px]">upload_file</span>
+                Importar Excel
+              </button>
+            )}
             <button 
               onClick={handleExport}
               className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 border border-outline-variant shadow-sm"
@@ -817,9 +819,11 @@ const Organizaciones = () => {
         actions={
           <>
             <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-variant rounded-lg transition-colors">Cancelar</button>
-            <button onClick={handleSubmit} className="px-6 py-2 text-sm font-bold text-on-primary bg-primary hover:bg-primary/90 rounded-lg shadow-sm transition-all">
-              {isEditing ? "Actualizar" : "Registrar Empresa"}
-            </button>
+            {((isEditing && canUpdate) || (!isEditing && canCreate)) && (
+              <button onClick={handleSubmit} className="px-6 py-2 text-sm font-bold text-on-primary bg-primary hover:bg-primary/90 rounded-lg shadow-sm transition-all">
+                {isEditing ? "Actualizar" : "Registrar Empresa"}
+              </button>
+            )}
           </>
         }
       >

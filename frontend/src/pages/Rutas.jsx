@@ -953,9 +953,11 @@ export default function Rutas() {
         actions={
           <>
             <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-variant rounded-lg">Cancelar</button>
-            <button onClick={handleSubmit} className="px-6 py-2 text-sm font-bold text-on-primary bg-primary hover:bg-primary/90 rounded-lg shadow-sm">
-              {isEditing ? "Actualizar" : "Guardar Ruta"}
-            </button>
+            {((isEditing && canUpdate) || (!isEditing && canCreate)) && (
+              <button onClick={handleSubmit} className="px-6 py-2 text-sm font-bold text-on-primary bg-primary hover:bg-primary/90 rounded-lg shadow-sm">
+                {isEditing ? "Actualizar" : "Guardar Ruta"}
+              </button>
+            )}
           </>
         }
       >
