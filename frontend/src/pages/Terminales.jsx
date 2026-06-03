@@ -43,6 +43,7 @@ export default function Terminales() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewModal, setViewModal] = useState({ isOpen: false, data: null });
   
   const [geocoderQuery, setGeocoderQuery] = useState('');
   const [geocoderResults, setGeocoderResults] = useState([]);
@@ -309,7 +310,8 @@ export default function Terminales() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-on-surface">
+          <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left text-sm text-on-surface">
             <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold">
               <tr>
                 <th className="px-6 py-4">Nombre del Terminal</th>
@@ -317,7 +319,7 @@ export default function Terminales() {
                 <th className="px-6 py-4">Tipo</th>
                 <th className="px-6 py-4 text-center">Andenes</th>
                 <th className="px-6 py-4">Estado</th>
-                {canUpdate && <th className="px-6 py-4 text-center">Acciones</th>}
+                <th className="px-6 py-4 text-center">Acciones</th>
               </tr>
 
             </thead>
@@ -344,22 +346,32 @@ export default function Terminales() {
                       {row.estatus}
                     </span>
                   </td>
-                   {canUpdate && (
-                    <td className="px-6 py-4 text-center">
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
                       <button 
-                        onClick={() => handleEdit(row)}
+                        onClick={() => setViewModal({ isOpen: true, data: row })}
                         className="text-on-surface-variant hover:text-primary p-2 rounded-lg hover:bg-primary/5 transition-all" 
-                        title="Configurar"
+                        title="Ver detalle"
                       >
-                        <span className="material-symbols-outlined text-[18px]">tune</span>
+                        <span className="material-symbols-outlined text-[18px]">visibility</span>
                       </button>
-                    </td>
-                  )}
+                      {canUpdate && (
+                        <button 
+                          onClick={() => handleEdit(row)}
+                          className="text-on-surface-variant hover:text-primary p-2 rounded-lg hover:bg-primary/5 transition-all" 
+                          title="Configurar"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">tune</span>
+                        </button>
+                      )}
+                    </div>
+                  </td>
 
                 </tr>
               ))}
             </tbody>
           </table>
+</div>
         </div>
         <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
           <PaginationControls
@@ -377,6 +389,110 @@ export default function Terminales() {
           />
         </div>
       </div>
+
+      {/* View Detail Modal */}
+      <Modal
+        isOpen={viewModal.isOpen}
+        onClose={() => setViewModal({ isOpen: false, data: null })}
+        title="Ficha del Terminal"
+        icon="store"
+        maxWidthClass="max-w-4xl"
+        actions={
+          <button onClick={() => setViewModal({ isOpen: false, data: null })} className="bg-surface-container-highest px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-primary hover:text-on-primary transition-all shadow-sm">
+            Cerrar
+          </button>
+        }
+      >
+        {viewModal.data && (() => {
+          let viewMapPoint = null;
+          if (viewModal.data.location) {
+            try {
+              const geojson = wellknown.parse(viewModal.data.location);
+              if (geojson && geojson.type === 'Point') {
+                viewMapPoint = { lng: geojson.coordinates[0], lat: geojson.coordinates[1] };
+              }
+            } catch(e) {}
+          }
+
+          return (
+            <div className="flex flex-col md:grid md:grid-cols-2 gap-6 h-auto md:h-[400px] py-2">
+              <div className="space-y-5 md:overflow-y-auto md:pr-2 custom-scrollbar">
+                <div className="flex items-center gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30">
+                  <div className="w-16 h-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-primary text-[32px]">store</span>
+                  </div>
+                  <div>
+                    <div className="inline-flex px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-black uppercase tracking-[0.2em] rounded-full mb-1">
+                      {viewModal.data.tipo}
+                    </div>
+                    <h2 className="text-xl font-black text-on-surface tracking-tight leading-tight">{viewModal.data.nombre}</h2>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="material-symbols-outlined text-[16px] text-primary">location_on</span>
+                      <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Municipio</span>
+                    </div>
+                    <p className="font-bold text-on-surface text-sm">{viewModal.data.municipio_nombre}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="material-symbols-outlined text-[16px] text-primary">airport_shuttle</span>
+                        <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Andenes</span>
+                      </div>
+                      <p className="font-bold text-on-surface text-sm">{viewModal.data.capacidad_andenes}</p>
+                    </div>
+                    
+                    <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/40">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="material-symbols-outlined text-[16px] text-primary">info</span>
+                        <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Estado</span>
+                      </div>
+                      <p className="font-bold text-on-surface text-sm">{viewModal.data.estatus}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-[300px] md:h-full rounded-xl overflow-hidden border border-outline-variant relative">
+                {!isLoaded ? (
+                  <div className="w-full h-full flex items-center justify-center bg-surface-container-low text-xs font-bold text-on-surface-variant">Cargando Mapa...</div>
+                ) : (
+                  <GoogleMap
+                    mapContainerStyle={mapContainerStyle}
+                    center={viewMapPoint || center}
+                    zoom={viewMapPoint ? 16 : 12}
+                    options={{
+                      disableDefaultUI: false,
+                      zoomControl: true,
+                      streetViewControl: false,
+                      mapTypeControl: false,
+                      fullscreenControl: true,
+                      draggable: true,
+                    }}
+                  >
+                    {viewMapPoint && (
+                      <Marker position={viewMapPoint} />
+                    )}
+                  </GoogleMap>
+                )}
+                {!viewMapPoint && isLoaded && (
+                  <div className="absolute inset-0 bg-surface-container-lowest/50 backdrop-blur-sm flex items-center justify-center z-10">
+                    <div className="bg-surface-container px-4 py-2 rounded-full shadow-sm border border-outline-variant text-xs font-bold text-on-surface-variant flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px]">location_off</span>
+                      Ubicación no registrada
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
       
       <Modal
         isOpen={isModalOpen}
@@ -393,12 +509,14 @@ export default function Terminales() {
             >
               Cancelar
             </button>
-            <button 
-              onClick={handleSubmit}
-              className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 text-sm font-bold rounded-lg shadow-md transition-all active:scale-95"
-            >
-              {isEditing ? "Actualizar" : "Guardar Terminal"}
-            </button>
+            {((isEditing && canUpdate) || (!isEditing && canCreate)) && (
+              <button 
+                onClick={handleSubmit}
+                className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 text-sm font-bold rounded-lg shadow-md transition-all active:scale-95"
+              >
+                {isEditing ? "Actualizar" : "Guardar Terminal"}
+              </button>
+            )}
           </>
         }
       >
@@ -431,7 +549,7 @@ export default function Terminales() {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-on-surface-variant uppercase ml-1">Tipo de Terminal</label>
                 <select 

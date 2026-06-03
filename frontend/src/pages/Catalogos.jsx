@@ -120,7 +120,8 @@ export default function Catalogos() {
         {loading ? (
           <div className="text-center py-10 text-on-surface-variant animate-pulse">Cargando diccionario...</div>
         ) : (
-          <table className="w-full text-left text-sm text-on-surface border border-outline-variant rounded-lg overflow-hidden">
+          <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left text-sm text-on-surface border border-outline-variant rounded-lg overflow-hidden">
             <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold border-b border-outline-variant">
               <tr>
                 <th className="px-4 py-3 w-16">ID</th>
@@ -169,6 +170,7 @@ export default function Catalogos() {
               )}
             </tbody>
           </table>
+</div>
         )}
       </div>
     );
@@ -310,10 +312,12 @@ export default function Catalogos() {
                 <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-bold text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors">
                   Cancelar
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-container rounded-lg shadow transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]">save</span>
-                  Guardar
-                </button>
+                {((modalMode === 'edit' && canUpdate) || (modalMode === 'add' && canCreate)) && (
+                  <button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-container rounded-lg shadow transition-colors flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">save</span>
+                    Guardar
+                  </button>
+                )}
               </div>
             </form>
           </div>

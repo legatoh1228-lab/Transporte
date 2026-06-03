@@ -3,6 +3,8 @@ import { GoogleMap, useJsApiLoader, Polyline, Marker } from '@react-google-maps/
 import wellknown from 'wellknown';
 import api from '../services/api';
 import { GOOGLE_MAPS_API_KEY } from '../config';
+import { usePermissions } from '../hooks/usePermissions';
+import { useNavigate } from 'react-router-dom';
 
 const LIBRARIES = ['places', 'geometry'];
 
@@ -42,6 +44,8 @@ const darkTheme = [
 ];
 
 export default function RouteMap() {
+  const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -152,6 +156,17 @@ export default function RouteMap() {
     setMap(null);
   }, []);
 
+  if (!hasPermission('Mapa de Rutas', 'Leer')) {
+      return (
+          <div className="flex flex-col items-center justify-center h-[60vh] text-center p-6 bg-surface-container-lowest rounded-[40px] border border-outline-variant/30">
+              <span className="material-symbols-outlined text-error text-7xl mb-4 animate-bounce">lock_person</span>
+              <h2 className="text-3xl font-black text-on-surface tracking-tighter">Acceso Restringido</h2>
+              <p className="text-on-surface-variant font-medium mt-2 max-w-sm">No posee las credenciales necesarias para acceder al mapa de rutas.</p>
+              <button onClick={() => navigate('/dashboard')} className="mt-8 bg-primary text-on-primary px-10 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:scale-105 transition-all">Volver al Panel</button>
+          </div>
+      );
+  }
+
   if (!isLoaded) return <div className="h-full flex items-center justify-center bg-surface-container-low text-on-surface">Cargando Google Maps...</div>;
 
   return (
@@ -245,7 +260,7 @@ export default function RouteMap() {
                   </div>
 
                   <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/50">
                         <div className="flex items-center gap-1.5 mb-1 text-primary">
                           <span className="material-symbols-outlined text-[16px]">distance</span>

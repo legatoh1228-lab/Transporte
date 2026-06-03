@@ -298,7 +298,8 @@ export default function Operadores() {
                <p className="text-on-surface-variant font-bold animate-pulse">Sincronizando base de datos...</p>
             </div>
           ) : (
-            <table className="w-full text-left text-sm text-on-surface border-collapse">
+            <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left text-sm text-on-surface border-collapse">
               <thead className="bg-surface-container-high/50 text-[11px] uppercase text-on-surface-variant font-black tracking-widest border-b border-outline-variant">
                 <tr>
                   <th className="px-8 py-5">Perfil</th>
@@ -386,6 +387,7 @@ export default function Operadores() {
                 )}
               </tbody>
             </table>
+</div>
           )}
         </div>
         <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -511,9 +513,11 @@ export default function Operadores() {
         actions={
           <div className="flex gap-4 w-full justify-end">
             <button onClick={() => setIsModalOpen(false)} className="px-8 py-3 text-sm font-black text-on-surface-variant hover:bg-surface-container-highest rounded-2xl transition-all uppercase tracking-widest">Cancelar</button>
-            <button onClick={handleSubmit} className="px-10 py-3 text-sm font-black text-on-primary bg-primary hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 transition-all uppercase tracking-widest active:scale-95">
-              {isEditing ? "Guardar Cambios" : "Finalizar Registro"}
-            </button>
+            {((isEditing && canUpdate) || (!isEditing && canCreate)) && (
+              <button onClick={handleSubmit} className="px-10 py-3 text-sm font-black text-on-primary bg-primary hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 transition-all uppercase tracking-widest active:scale-95">
+                {isEditing ? "Guardar Cambios" : "Finalizar Registro"}
+              </button>
+            )}
           </div>
         }
       >

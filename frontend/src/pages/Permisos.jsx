@@ -3,7 +3,7 @@ import api from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 
-const MODULES = ['Organizaciones', 'Vehículos', 'Operadores', 'Rutas', 'Permisos', 'Usuarios', 'Configuración', 'Dashboard', 'Alertas'];
+const MODULES = ['Organizaciones', 'Vehículos', 'Operadores', 'Rutas', 'Mapa de Rutas', 'Permisos', 'Usuarios', 'Configuración', 'Dashboard', 'Alertas'];
 const ACTIONS = ['Leer', 'Crear', 'Actualizar', 'Eliminar'];
 
 export default function Permisos() {
@@ -150,7 +150,8 @@ export default function Permisos() {
         )}
         
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-on-surface">
+          <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left text-sm text-on-surface">
             <thead className="bg-surface-container-high text-[11px] uppercase text-on-surface-variant font-bold tracking-wider border-b border-outline-variant">
               <tr>
                 <th className="px-6 py-4 w-[250px]">Módulo del Sistema</th>
@@ -176,6 +177,7 @@ export default function Permisos() {
                            module === 'Vehículos' ? 'directions_bus' : 
                            module === 'Operadores' ? 'person' : 
                            module === 'Rutas' ? 'alt_route' : 
+                           module === 'Mapa de Rutas' ? 'map' : 
                            module === 'Permisos' ? 'key' : 
                            module === 'Usuarios' ? 'manage_accounts' : 
                            module === 'Configuración' ? 'settings' : 
@@ -211,6 +213,7 @@ export default function Permisos() {
               )}
             </tbody>
           </table>
+</div>
         </div>
       </div>
       

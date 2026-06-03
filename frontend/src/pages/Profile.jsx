@@ -390,20 +390,7 @@ const Profile = () => {
                 </button>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-surface-container-low/50 rounded-xl border border-outline-variant/50 hover:bg-surface-container-low transition-colors">
-                <div className="flex items-center gap-4 mb-4 sm:mb-0">
-                  <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary shadow-sm shrink-0 border border-outline-variant/30">
-                    <span className="material-symbols-outlined">phonelink_setup</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-on-surface">Autenticación de 2 Factores</h4>
-                    <p className="text-xs text-on-surface-variant mt-0.5">Proteja su cuenta con un código adicional al iniciar sesión.</p>
-                  </div>
-                </div>
-                <button className="px-5 py-2.5 text-xs font-black text-outline bg-surface-container hover:bg-surface-container-high rounded-xl transition-colors uppercase tracking-widest border border-outline-variant shrink-0">
-                    Configurar
-                </button>
-              </div>
+
             </div>
           </div>
 

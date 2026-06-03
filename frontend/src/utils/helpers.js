@@ -6,7 +6,7 @@ export const getMediaUrl = (path) => {
   }
   // Si es una ruta relativa que empieza por /media/, le añadimos el servidor backend
   if (path.startsWith('/media/')) {
-    return `http://localhost:8000${path}`;
+    return `http://${window.location.hostname}:8000${path}`;
   }
   return path;
 };

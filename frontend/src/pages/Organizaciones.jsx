@@ -487,7 +487,7 @@ const Organizaciones = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
           { label: 'Total Registros', value: organizations.length, icon: 'list_alt', color: 'primary', tooltip: 'Cantidad total de organizaciones registradas' },
           { label: 'Líneas Activas', value: organizations.filter(o => o.esta_activa).length, icon: 'check_circle', color: 'tertiary', tooltip: 'Organizaciones con estatus activo en el sistema' },
@@ -524,18 +524,20 @@ const Organizaciones = () => {
           </div>
 
           <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
-            <button 
-              onClick={() => {
-                setImportFile(null);
-                setImportResult(null);
-                setImportError(null);
-                setIsImportOpen(true);
-              }}
-              className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2 rounded-lg text-[13px] font-bold transition-colors flex items-center border border-outline-variant shadow-sm active:scale-[0.98] transform"
-            >
-              <span className="material-symbols-outlined mr-1.5 text-[18px]">upload_file</span>
-              Importar Excel
-            </button>
+            {canCreate && (
+              <button 
+                onClick={() => {
+                  setImportFile(null);
+                  setImportResult(null);
+                  setImportError(null);
+                  setIsImportOpen(true);
+                }}
+                className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2 rounded-lg text-[13px] font-bold transition-colors flex items-center border border-outline-variant shadow-sm active:scale-[0.98] transform"
+              >
+                <span className="material-symbols-outlined mr-1.5 text-[18px]">upload_file</span>
+                Importar Excel
+              </button>
+            )}
             <button 
               onClick={handleExport}
               className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 border border-outline-variant shadow-sm"
@@ -608,7 +610,8 @@ const Organizaciones = () => {
           {loading ? (
              <div className="p-16 text-center text-on-surface-variant text-sm animate-pulse">Cargando organizaciones autorizadas...</div>
           ) : (
-            <table className="w-full text-left border-collapse">
+            <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left border-collapse">
               <thead className="bg-surface-container-low/80 border-b border-outline-variant">
                 <tr>
                   <th className="pl-4 pr-2 py-3 w-[44px] text-center">
@@ -784,6 +787,7 @@ const Organizaciones = () => {
                 )}
               </tbody>
             </table>
+</div>
           )}
         </div>
         {/* Table Footer */}
@@ -815,9 +819,11 @@ const Organizaciones = () => {
         actions={
           <>
             <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-bold text-on-surface hover:bg-surface-variant rounded-lg transition-colors">Cancelar</button>
-            <button onClick={handleSubmit} className="px-6 py-2 text-sm font-bold text-on-primary bg-primary hover:bg-primary/90 rounded-lg shadow-sm transition-all">
-              {isEditing ? "Actualizar" : "Registrar Empresa"}
-            </button>
+            {((isEditing && canUpdate) || (!isEditing && canCreate)) && (
+              <button onClick={handleSubmit} className="px-6 py-2 text-sm font-bold text-on-primary bg-primary hover:bg-primary/90 rounded-lg shadow-sm transition-all">
+                {isEditing ? "Actualizar" : "Registrar Empresa"}
+              </button>
+            )}
           </>
         }
       >
@@ -1046,7 +1052,7 @@ const Organizaciones = () => {
                       </h4>
                       <p className="text-[11px] text-on-surface-variant font-medium">Especifique el horario operativo en el que esta organización presta el servicio para la ruta.</p>
                       
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider block ml-0.5">Hora Inicio / Apertura *</label>
                           <div className="relative">
@@ -1209,7 +1215,7 @@ const Organizaciones = () => {
                 </h4>
                 
                 {/* Fleet Breakdown Grid */}
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <div className="bg-surface-container-low p-2 rounded-xl border border-outline-variant flex flex-col items-center">
                     <span className="text-[9px] font-black text-on-surface-variant uppercase">Minibús</span>
                     <span className="text-lg font-black text-primary">{viewModal.data.conteo_minibus}</span>
@@ -1271,7 +1277,7 @@ const Organizaciones = () => {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4 py-2 border-y border-outline-variant/30 mt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2 border-y border-outline-variant/30 mt-1">
                         <div className="flex flex-col">
                           <span className="text-[9px] font-bold text-on-surface-variant uppercase opacity-60">Origen / Destino</span>
                           <span className="text-[11px] font-black text-on-surface flex items-center gap-1">

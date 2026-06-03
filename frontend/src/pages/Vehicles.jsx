@@ -691,7 +691,8 @@ const Vehicles = () => {
                <p className="text-sm font-black text-on-surface-variant uppercase tracking-widest animate-pulse">Sincronizando Base de Datos...</p>
             </div>
           ) : (
-            <table className="w-full text-left border-separate border-spacing-0 min-w-[1000px]">
+            <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left border-separate border-spacing-0 min-w-[1000px]">
               <thead>
                 <tr className="bg-surface-container-high">
                   {canDelete && (
@@ -889,6 +890,7 @@ const Vehicles = () => {
                 )}
               </tbody>
             </table>
+</div>
           )}
         </div>
         <div className="p-4 border-t border-outline-variant bg-surface-container-low flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -959,7 +961,7 @@ const Vehicles = () => {
                       <span className="material-symbols-outlined text-[20px]">settings_suggest</span>
                       Configuración Técnica & Confort
                    </h4>
-                   <div className="grid grid-cols-2 gap-x-12 gap-y-6">
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
                       <div className="space-y-1 py-2 border-b border-outline-variant/10">
                          <span className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest block leading-none">Modalidad</span>
                          <span className="text-sm font-black text-on-surface uppercase">{selectedVehicle.modalidad_nombre}</span>
@@ -1073,9 +1075,11 @@ const Vehicles = () => {
         actions={
           <div className="flex gap-4 w-full justify-end">
             <button onClick={() => setIsModalOpen(false)} className="px-8 py-3 text-sm font-black text-on-surface-variant hover:bg-surface-container-highest rounded-2xl transition-all uppercase tracking-widest">Cancelar</button>
-            <button onClick={handleSubmit} className="px-10 py-3 text-sm font-black text-on-primary bg-primary hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 transition-all uppercase tracking-widest active:scale-95">
-              {isEditing ? "Guardar Cambios" : "Completar Registro"}
-            </button>
+            {((isEditing && canUpdate) || (!isEditing && canCreate)) && (
+              <button onClick={handleSubmit} className="px-10 py-3 text-sm font-black text-on-primary bg-primary hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 transition-all uppercase tracking-widest active:scale-95">
+                {isEditing ? "Guardar Cambios" : "Completar Registro"}
+              </button>
+            )}
           </div>
         }
       >
@@ -1176,7 +1180,7 @@ const Vehicles = () => {
                         <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Modelo</label>
                         <input name="modelo" value={formData.modelo} onChange={handleInputChange} placeholder="Ej: E-NT610" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" required />
                      </div>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                            <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Año</label>
                            <input type="number" name="anio" value={formData.anio} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-primary/20 transition-all" required />
@@ -1186,7 +1190,7 @@ const Vehicles = () => {
                            <input name="color" value={formData.color} onChange={handleInputChange} placeholder="Blanco" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
                         </div>
                      </div>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                            <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Transmisión</label>
                            <select name="transmision" value={formData.transmision} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-primary/20 transition-all" required>
@@ -1226,7 +1230,7 @@ const Vehicles = () => {
                            {subModalidades.filter(sm => sm.modalidad == formData.modalidad).map(sm => <option key={sm.id} value={sm.id}>{sm.nombre}</option>)}
                         </select>
                      </div>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                            <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">CPS Autorizado</label>
                            <select name="cps" value={formData.cps} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all" required>
@@ -1290,7 +1294,7 @@ const Vehicles = () => {
                               Vigencia de Documentos
                            </h5>
                            <div className="grid grid-cols-1 gap-4">
-                              <div className="grid grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                  <div className="space-y-1">
                                     <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Vence RCV</label>
                                     <input type="date" name="rcv_vence" value={formData.rcv_vence} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-2 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-error/20 transition-all" />
@@ -1300,7 +1304,7 @@ const Vehicles = () => {
                                     <input type="date" name="certificado_vence" value={formData.certificado_vence} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-2 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-error/20 transition-all" />
                                  </div>
                               </div>
-                              <div className="grid grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                  {formData.modalidad != '3' && (
                                     <div className="space-y-1">
                                        <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Seguro Casco</label>

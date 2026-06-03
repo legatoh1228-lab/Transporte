@@ -396,6 +396,22 @@ class ConsolidadoStatsView(APIView):
                 vinculos_organizacion__fecha_fin__isnull=True
             )
             rutas = rutas.filter(permisos__org__rif=item_id, permisos__estatus='ACT').distinct()
+        elif tipo == 'grado_licencia':
+            operadores = operadores.filter(licencia_grado=item_id)
+            orgs = orgs.filter(
+                operadores__operador__licencia_grado=item_id, 
+                operadores__fecha_fin__isnull=True
+            ).distinct()
+            vehiculos = vehiculos.filter(
+                organizaciones__organizacion__operadores__operador__licencia_grado=item_id,
+                organizaciones__fecha_fin__isnull=True,
+                organizaciones__organizacion__operadores__fecha_fin__isnull=True
+            ).distinct()
+            rutas = rutas.filter(
+                permisos__org__operadores__operador__licencia_grado=item_id, 
+                permisos__estatus='ACT',
+                permisos__org__operadores__fecha_fin__isnull=True
+            ).distinct()
         else:
             return Response({"error": "Tipo de filtro no válido"}, status=status.HTTP_400_BAD_REQUEST)
 
