@@ -6,13 +6,13 @@ import { usePagination } from '../hooks/usePagination';
 import { PaginationControls } from '../components/common/PaginationControls';
 import { buildPdfHeader, addTableAndSave } from '../utils/pdfExport';
 
-export default function Operadores() {
+export default function Colectores() {
   const { hasPermission } = usePermissions();
-  const canCreate = hasPermission('Operadores', 'Crear');
-  const canUpdate = hasPermission('Operadores', 'Actualizar');
-  const canDelete = hasPermission('Operadores', 'Eliminar');
+  const canCreate = hasPermission('Colectores', 'Crear');
+  const canUpdate = hasPermission('Colectores', 'Actualizar');
+  const canDelete = hasPermission('Colectores', 'Eliminar');
 
-  const [operators, setOperators] = useState([]);
+  const [collectors, setOperators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -26,7 +26,7 @@ export default function Operadores() {
     cedula: '',
     tipo_identificacion: 'V',
     numero_cedula: '',
-    codigo_op: '',
+    codigo_col: '',
     nombres: '',
     apellidos: '',
     telefono: '',
@@ -34,12 +34,6 @@ export default function Operadores() {
     numero_telefono: '',
     direccion: '',
     fecha_nacimiento: '',
-    licencia_grado: 5,
-    vence_lic: '',
-    certificado_medico_vence: '',
-    certificado_saberes: false,
-    fecha_emision_saberes: '',
-    fecha_vencimiento_saberes: '',
     estado_civil: '',
     numero_hijos: 0,
     grado_instruccion: '',
@@ -57,11 +51,11 @@ export default function Operadores() {
   const fetchOperators = async () => {
     try {
       setLoading(true);
-      const response = await api.get('personnel/operators/');
+      const response = await api.get('personnel/collectors/');
       setOperators(response.data);
     } catch (err) {
-      console.error("Error fetching operators:", err);
-      setError("Error al cargar operadores");
+      console.error("Error fetching collectors:", err);
+      setError("Error al cargar colectores");
     } finally {
       setLoading(false);
     }
@@ -72,8 +66,8 @@ export default function Operadores() {
   }, []);
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e) => {
@@ -93,7 +87,7 @@ export default function Operadores() {
       cedula: '',
       tipo_identificacion: 'V',
       numero_cedula: '',
-      codigo_op: '',
+      codigo_col: '',
       nombres: '',
       apellidos: '',
       telefono: '',
@@ -101,23 +95,14 @@ export default function Operadores() {
       numero_telefono: '',
       direccion: '',
       fecha_nacimiento: '',
-      licencia_grado: 5,
-      vence_lic: '',
-      certificado_medico_vence: '',
-    certificado_saberes: false,
-    fecha_emision_saberes: '',
-    fecha_vencimiento_saberes: '',
       estado_civil: '',
       numero_hijos: 0,
       grado_instruccion: '',
       talla_camisa: '',
-      talla_pantalon: '',
-      talla_calzado: '',
-      fecha_ingreso: '',
-      tipo_sangre: '',
-      correo_electronico: '',
-      contacto_emergencia_nombre: '',
-      contacto_emergencia_telefono: '',
+    talla_pantalon: '',
+    talla_calzado: '',
+    fecha_ingreso: '',
+    tipo_sangre: '',
       foto: null
     });
     setImagePreview(null);
@@ -130,40 +115,40 @@ export default function Operadores() {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (operator) => {
+  const handleEdit = (collector) => {
     let tipo_identificacion = 'V';
-    let numero_cedula = operator.cedula;
-    if (operator.cedula && operator.cedula.includes('-')) {
-      [tipo_identificacion, numero_cedula] = operator.cedula.split('-');
-    } else if (operator.cedula && /^[A-Z]/i.test(operator.cedula[0])) {
-      tipo_identificacion = operator.cedula[0].toUpperCase();
-      numero_cedula = operator.cedula.substring(1).replace(/^-/, '');
+    let numero_cedula = collector.cedula;
+    if (collector.cedula && collector.cedula.includes('-')) {
+      [tipo_identificacion, numero_cedula] = collector.cedula.split('-');
+    } else if (collector.cedula && /^[A-Z]/i.test(collector.cedula[0])) {
+      tipo_identificacion = collector.cedula[0].toUpperCase();
+      numero_cedula = collector.cedula.substring(1).replace(/^-/, '');
     }
 
     let prefijo_telefono = '0414';
-    let numero_telefono = operator.telefono || '';
-    if (operator.telefono && operator.telefono.includes('-')) {
-      [prefijo_telefono, numero_telefono] = operator.telefono.split('-');
-    } else if (operator.telefono && operator.telefono.length > 4) {
-      prefijo_telefono = operator.telefono.substring(0, 4);
-      numero_telefono = operator.telefono.substring(4);
+    let numero_telefono = collector.telefono || '';
+    if (collector.telefono && collector.telefono.includes('-')) {
+      [prefijo_telefono, numero_telefono] = collector.telefono.split('-');
+    } else if (collector.telefono && collector.telefono.length > 4) {
+      prefijo_telefono = collector.telefono.substring(0, 4);
+      numero_telefono = collector.telefono.substring(4);
     }
 
     setFormData({
-      ...operator,
+      ...collector,
       tipo_identificacion,
       numero_cedula,
       prefijo_telefono,
       numero_telefono,
-      foto: null // Don't reset to operator.foto as it's a URL string
+      foto: null // Don't reset to collector.foto as it's a URL string
     });
-    setImagePreview(operator.foto);
+    setImagePreview(collector.foto);
     setIsEditing(true);
     setIsModalOpen(true);
   };
 
-  const handleViewDetail = (operator) => {
-    setSelectedOperator(operator);
+  const handleViewDetail = (collector) => {
+    setSelectedOperator(collector);
     setIsDetailOpen(true);
   };
 
@@ -194,19 +179,15 @@ export default function Operadores() {
 
     // Ensure dates are null if empty
     if (!formData.fecha_nacimiento) data.delete('fecha_nacimiento');
-    if (!formData.vence_lic) data.delete('vence_lic');
-    if (!formData.certificado_medico_vence) data.delete('certificado_medico_vence');
-    if (!formData.fecha_emision_saberes) data.delete('fecha_emision_saberes');
-    if (!formData.fecha_vencimiento_saberes) data.delete('fecha_vencimiento_saberes');
     if (!formData.fecha_ingreso) data.delete('fecha_ingreso');
 
     try {
       if (isEditing) {
-        await api.put(`personnel/operators/${fullCedula}/`, data, {
+        await api.put(`personnel/collectors/${fullCedula}/`, data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       } else {
-        await api.post('personnel/operators/', data, {
+        await api.post('personnel/collectors/', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       }
@@ -214,7 +195,7 @@ export default function Operadores() {
       fetchOperators();
       resetForm();
     } catch (err) {
-      console.error("Error saving operator:", err);
+      console.error("Error saving collector:", err);
       if (err.response && err.response.data) {
         setError(JSON.stringify(err.response.data));
       } else {
@@ -224,18 +205,18 @@ export default function Operadores() {
   };
 
   const handleDelete = async (cedula) => {
-    if (window.confirm("¿Está seguro de eliminar este operador?")) {
+    if (window.confirm("¿Está seguro de eliminar este colector?")) {
       try {
-        await api.delete(`personnel/operators/${cedula}/`);
+        await api.delete(`personnel/collectors/${cedula}/`);
         fetchOperators();
       } catch (err) {
-        console.error("Error deleting operator:", err);
-        alert("No se pudo eliminar el operador.");
+        console.error("Error deleting collector:", err);
+        alert("No se pudo eliminar el colector.");
       }
     }
   };
 
-  const filteredOperators = operators.filter(op => 
+  const filteredOperators = collectors.filter(op => 
     op.cedula.toLowerCase().includes(searchTerm.toLowerCase()) ||
     `${op.nombres} ${op.apellidos}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -259,27 +240,27 @@ export default function Operadores() {
       'PERSONAL OPERADOR',
       'Registro de conductores y personal técnico del sistema de transporte',
       'Transporte Aragua Digital',
-      operators.length
+      collectors.length
     );
-    const head = ['Cédula', 'Nombres', 'Apellidos', 'Código', 'Grado Lic.', 'Vence Lic.', 'Cert. Médico', 'Teléfono'];
+    const head = ['Cédula', 'Nombres', 'Apellidos', 'Código', 'Est. Civil', 'Instrucción', 'Ingreso', 'Teléfono'];
     const body = filteredOperators.map(op => [
       op.cedula,
       op.nombres,
       op.apellidos,
-      op.codigo_op || '—',
-      `Grado ${op.licencia_grado}`,
-      op.vence_lic || '—',
-      op.certificado_medico_vence || '—',
+      op.codigo_col || '—',
+      op.estado_civil || '—',
+      op.grado_instruccion || '—',
+      op.fecha_ingreso || '—',
       op.telefono || '—',
     ]);
-    addTableAndSave(doc, startY, head, body, `Operadores_${Date.now()}.pdf`);
+    addTableAndSave(doc, startY, head, body, `Colectores_${Date.now()}.pdf`);
   };
 
   return (
     <div className="flex flex-col gap-6 font-public-sans pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-on-surface tracking-tight">Personal Operador</h1>
+          <h1 className="text-3xl font-black text-on-surface tracking-tight">Personal Colector</h1>
           <p className="text-sm text-on-surface-variant font-medium mt-1">Gestión integral de conductores y personal técnico</p>
         </div>
         <div className="flex items-center gap-3">
@@ -297,7 +278,7 @@ export default function Operadores() {
               className="bg-primary text-on-primary px-6 py-3 rounded-2xl text-sm font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-[20px]">person_add</span>
-              Añadir Operador
+              Añadir Colector
             </button>
           )}
         </div>
@@ -333,8 +314,8 @@ export default function Operadores() {
                 <tr>
                   <th className="px-8 py-5">Perfil</th>
                   <th className="px-6 py-5">Identificación</th>
-                  <th className="px-6 py-5">Grado / Estado</th>
-                  <th className="px-6 py-5">Vencimiento Lic.</th>
+                  <th className="px-6 py-5">Estado Civil</th>
+                  <th className="px-6 py-5">Ingreso</th>
                   <th className="px-6 py-5 text-center">Acciones</th>
                 </tr>
               </thead>
@@ -354,7 +335,7 @@ export default function Operadores() {
                          </div>
                          <div>
                             <div className="font-black text-on-surface text-[15px]">{row.nombres} {row.apellidos}</div>
-                            <div className="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider opacity-60">{row.codigo_op}</div>
+                            <div className="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider opacity-60">{row.codigo_col}</div>
                          </div>
                       </div>
                     </td>
@@ -364,14 +345,14 @@ export default function Operadores() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1.5">
                         <span className="inline-flex items-center w-fit px-2.5 py-1 rounded-lg text-[10px] font-black bg-secondary-container text-on-secondary-container uppercase tracking-tighter">
-                          Grado {row.licencia_grado}
+                          {row.estado_civil || 'N/A'}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                        <div className="flex items-center gap-2">
                           <span className="material-symbols-outlined text-[16px] text-on-surface-variant">calendar_today</span>
-                          <span className="font-bold text-on-surface-variant">{row.vence_lic}</span>
+                          <span className="font-bold text-on-surface-variant">{row.fecha_ingreso || 'N/A'}</span>
                        </div>
                     </td>
                     <td className="px-6 py-4">
@@ -426,7 +407,7 @@ export default function Operadores() {
             totalFiltered={totalFiltered}
             startIndex={startIndex}
             endIndex={endIndex}
-            totalItems={operators.length}
+            totalItems={collectors.length}
             hasNextPage={hasNextPage}
             hasPrevPage={hasPrevPage}
             onPageChange={goToPage}
@@ -436,11 +417,11 @@ export default function Operadores() {
         </div>
       </div>
 
-      {/* Detail Modal (Ficha de Operador) */}
+      {/* Detail Modal (Ficha de Colector) */}
       <Modal
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
-        title="Ficha del Operador"
+        title="Ficha del Colector"
         icon="badge"
         maxWidthClass="max-w-5xl"
         actions={
@@ -449,16 +430,6 @@ export default function Operadores() {
       >
         {selectedOperator && (
           <div className="space-y-10 font-public-sans py-2">
-             {/* Alerts */}
-             {(!selectedOperator.certificado_saberes || (selectedOperator.fecha_vencimiento_saberes && new Date(selectedOperator.fecha_vencimiento_saberes) < new Date())) && (
-               <div className="bg-error p-4 rounded-3xl border border-error/50 shadow-lg flex items-center justify-center gap-3 animate-pulse">
-                  <span className="material-symbols-outlined text-on-error text-[28px]">warning</span>
-                  <span className="font-black text-on-error uppercase tracking-widest text-sm">
-                    {selectedOperator.certificado_saberes ? "ALERTA: Certificado de Saberes Vencido" : "ALERTA CRÍTICA: Operador sin Certificado de Saberes"}
-                  </span>
-               </div>
-             )}
-
              {/* Header Section */}
              <div className="flex flex-col md:flex-row items-center gap-10 bg-surface-container-low p-10 rounded-[40px] border border-outline-variant/30 shadow-inner">
                 <div className="w-40 h-40 rounded-[48px] bg-white shadow-2xl overflow-hidden border-4 border-white flex-shrink-0 relative group">
@@ -472,7 +443,7 @@ export default function Operadores() {
                 </div>
                 <div className="text-center md:text-left space-y-3 flex-1">
                    <div className="inline-flex px-4 py-1.5 bg-primary/10 text-primary text-[11px] font-black uppercase tracking-[0.2em] rounded-full mb-2">
-                      ID Sistema: {selectedOperator.codigo_op}
+                      ID Sistema: {selectedOperator.codigo_col}
                    </div>
                    <h2 className="text-4xl font-black text-on-surface tracking-tighter leading-tight">
                       {selectedOperator.nombres} {selectedOperator.apellidos}
@@ -498,90 +469,40 @@ export default function Operadores() {
 
              {/* Grid Details Re-designed */}
              <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                {/* Main Content (7 cols) */}
-                <div className="md:col-span-7 flex flex-col gap-8">
-                   {/* Socio-Laboral */}
-                   <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 shadow-sm flex flex-col">
-                      <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.3em] flex items-center gap-3 mb-6">
-                         <span className="material-symbols-outlined text-[20px]">assignment_ind</span>
-                         Información Socio-Laboral
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4 flex-1">
-                         <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
-                            <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Estado Civil</span>
-                            <span className="font-black text-on-surface text-sm uppercase">{selectedOperator.estado_civil || 'N/A'}</span>
-                         </div>
-                         <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
-                            <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Instrucción</span>
-                            <span className="font-black text-on-surface text-sm">{selectedOperator.grado_instruccion || 'N/A'}</span>
-                         </div>
-                         <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
-                            <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">N° de Hijos</span>
-                            <span className="font-black text-on-surface text-lg">{selectedOperator.numero_hijos || 0}</span>
-                         </div>
-                         <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
-                            <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Fecha Ingreso</span>
-                            <span className="font-black text-on-surface text-sm">{selectedOperator.fecha_ingreso || 'N/A'}</span>
-                         </div>
-                         <div className="col-span-2 bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex items-center justify-between">
-                            <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest">Tallas de Uniforme</span>
-                            <div className="flex gap-3">
-                              <span className="px-2.5 py-1 bg-surface-container-high rounded-lg text-xs font-bold" title="Camisa"><span className="opacity-50 mr-1">C:</span>{selectedOperator.talla_camisa || '-'}</span>
-                              <span className="px-2.5 py-1 bg-surface-container-high rounded-lg text-xs font-bold" title="Pantalón"><span className="opacity-50 mr-1">P:</span>{selectedOperator.talla_pantalon || '-'}</span>
-                              <span className="px-2.5 py-1 bg-surface-container-high rounded-lg text-xs font-bold" title="Zapatos"><span className="opacity-50 mr-1">Z:</span>{selectedOperator.talla_calzado || '-'}</span>
-                            </div>
-                         </div>
+                {/* Socio-Laboral */}
+                <div className="md:col-span-7 bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 shadow-sm flex flex-col h-full">
+                   <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.3em] flex items-center gap-3 mb-6">
+                      <span className="material-symbols-outlined text-[20px]">assignment_ind</span>
+                      Información Socio-Laboral
+                   </h4>
+                   <div className="grid grid-cols-2 gap-4 flex-1">
+                      <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
+                         <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Estado Civil</span>
+                         <span className="font-black text-on-surface text-sm uppercase">{selectedOperator.estado_civil || 'N/A'}</span>
                       </div>
-                   </div>
-
-                   {/* Conduccion y Saberes */}
-                   <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 shadow-sm">
-                      <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3 mb-6">
-                         <span className="material-symbols-outlined text-[20px]">id_card</span>
-                         Licencia e Instrucción Vial
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4">
-                         <div className="col-span-2 flex justify-between items-center bg-primary/5 p-4 rounded-2xl border border-primary/10">
-                            <span className="text-sm font-semibold text-primary">Licencia de Conducir</span>
-                            <div className="flex items-center gap-3">
-                               <span className="px-3 py-1 bg-primary text-on-primary font-black rounded-lg text-xs uppercase">Grado {selectedOperator.licencia_grado}</span>
-                               <span className={`font-black text-sm ${new Date(selectedOperator.vence_lic) < new Date() ? 'text-error animate-pulse' : 'text-on-surface'}`}>
-                                 Vence: {selectedOperator.vence_lic}
-                               </span>
-                            </div>
-                         </div>
-                         <div className="col-span-2 flex justify-between items-center bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30">
-                            <span className="text-sm font-semibold text-on-surface-variant">Certificado Médico</span>
-                            <span className={`font-black text-sm ${new Date(selectedOperator.certificado_medico_vence) < new Date() ? 'text-error' : 'text-on-surface'}`}>{selectedOperator.certificado_medico_vence || 'N/A'}</span>
-                         </div>
-                         
-                         <div className="col-span-2 mt-4">
-                            <h5 className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-3 flex items-center gap-2 border-b border-outline-variant/20 pb-2">
-                               <span className="material-symbols-outlined text-[16px]">school</span> Certificado de Saberes
-                            </h5>
-                            {selectedOperator.certificado_saberes ? (
-                               <div className="grid grid-cols-2 gap-4">
-                                  <div className="bg-secondary/5 p-3 rounded-xl border border-secondary/10 flex flex-col">
-                                     <span className="text-[10px] font-black text-secondary/70 uppercase tracking-widest">Emisión</span>
-                                     <span className="font-bold text-secondary text-sm">{selectedOperator.fecha_emision_saberes || 'N/A'}</span>
-                                  </div>
-                                  <div className={`p-3 rounded-xl border flex flex-col ${selectedOperator.fecha_vencimiento_saberes && new Date(selectedOperator.fecha_vencimiento_saberes) < new Date() ? 'bg-error/10 border-error/50' : 'bg-secondary/5 border-secondary/10'}`}>
-                                     <span className={`text-[10px] font-black uppercase tracking-widest ${selectedOperator.fecha_vencimiento_saberes && new Date(selectedOperator.fecha_vencimiento_saberes) < new Date() ? 'text-error' : 'text-secondary/70'}`}>Vencimiento</span>
-                                     <span className={`font-bold text-sm ${selectedOperator.fecha_vencimiento_saberes && new Date(selectedOperator.fecha_vencimiento_saberes) < new Date() ? 'text-error animate-pulse' : 'text-secondary'}`}>{selectedOperator.fecha_vencimiento_saberes || 'N/A'}</span>
-                                  </div>
-                               </div>
-                            ) : (
-                               <div className="flex items-center justify-center gap-3 bg-error/10 border border-error/30 p-4 rounded-xl text-error">
-                                  <span className="material-symbols-outlined text-[24px]">gpp_bad</span>
-                                  <span className="text-sm font-black uppercase tracking-widest">Atención: No posee certificado de saberes</span>
-                               </div>
-                            )}
+                      <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
+                         <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Instrucción</span>
+                         <span className="font-black text-on-surface text-sm">{selectedOperator.grado_instruccion || 'N/A'}</span>
+                      </div>
+                      <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
+                         <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">N° de Hijos</span>
+                         <span className="font-black text-on-surface text-lg">{selectedOperator.numero_hijos || 0}</span>
+                      </div>
+                      <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
+                         <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Fecha Ingreso</span>
+                         <span className="font-black text-on-surface text-sm">{selectedOperator.fecha_ingreso || 'N/A'}</span>
+                      </div>
+                      <div className="col-span-2 bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex items-center justify-between">
+                         <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest">Tallas de Uniforme</span>
+                         <div className="flex gap-3">
+                           <span className="px-2.5 py-1 bg-surface-container-high rounded-lg text-xs font-bold" title="Camisa"><span className="opacity-50 mr-1">C:</span>{selectedOperator.talla_camisa || '-'}</span>
+                           <span className="px-2.5 py-1 bg-surface-container-high rounded-lg text-xs font-bold" title="Pantalón"><span className="opacity-50 mr-1">P:</span>{selectedOperator.talla_pantalon || '-'}</span>
+                           <span className="px-2.5 py-1 bg-surface-container-high rounded-lg text-xs font-bold" title="Zapatos"><span className="opacity-50 mr-1">Z:</span>{selectedOperator.talla_calzado || '-'}</span>
                          </div>
                       </div>
                    </div>
                 </div>
 
-                {/* Sidebar Content (5 cols) */}
                 <div className="md:col-span-5 flex flex-col gap-8">
                    {/* Health Profile */}
                    <div className="bg-surface-container-lowest p-6 rounded-[32px] border border-outline-variant/40 shadow-sm flex-1">
@@ -644,7 +565,7 @@ export default function Operadores() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={isEditing ? "Modificar Operador" : "Registrar Nuevo Operador"}
+        title={isEditing ? "Modificar Colector" : "Registrar Nuevo Colector"}
         icon={isEditing ? "edit_square" : "person_add"}
         maxWidthClass="max-w-5xl"
         actions={
@@ -753,16 +674,16 @@ export default function Operadores() {
                      </div>
                    </div>
                    <div className="space-y-1.5">
-                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Código Operador</label>
+                     <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Código Colector</label>
                      <div className="flex gap-2">
                        <input 
-                         name="codigo_op" value={formData.codigo_op || ''} onChange={handleInputChange}
-                         placeholder="Ej: OP-772" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase tracking-widest"
+                         name="codigo_col" value={formData.codigo_col || ''} onChange={handleInputChange}
+                         placeholder="Ej: COL-772" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase tracking-widest"
                          required
                        />
                        <button
                          type="button"
-                         onClick={() => setFormData(prev => ({...prev, codigo_op: `OP-${Math.floor(1000 + Math.random() * 9000)}`}))}
+                         onClick={() => setFormData(prev => ({...prev, codigo_col: `COL-${Math.floor(1000 + Math.random() * 9000)}`}))}
                          className="bg-primary/10 text-primary px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-primary/20 transition-all border border-primary/20 flex items-center justify-center"
                          title="Generar Código Automático"
                        >
@@ -789,81 +710,8 @@ export default function Operadores() {
                  </div>
               </div>
 
-              {/* Card 2: License Data */}
-              <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm space-y-8">
-                 <div>
-                   <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.3em] flex items-center gap-3 mb-6">
-                      <span className="material-symbols-outlined text-[20px]">id_card</span>
-                      Licencia y Salud Vial
-                   </h4>
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-6">
-                     <div className="space-y-1.5 md:col-span-1">
-                       <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Grado Licencia</label>
-                       <select 
-                         name="licencia_grado" value={formData.licencia_grado || 5} onChange={handleInputChange}
-                         className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-black outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                       >
-                         <option value={2}>Grado 2 (Moto)</option>
-                         <option value={3}>Grado 3 (Vehículos)</option>
-                         <option value={4}>Grado 4 (Público)</option>
-                         <option value={5}>Grado 5 (Carga pesada)</option>
-                       </select>
-                     </div>
-                     <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Vence Licencia</label>
-                       <input 
-                         type="date" name="vence_lic" value={formData.vence_lic || ''} onChange={handleInputChange}
-                         className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                         required
-                       />
-                     </div>
-                     <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Certificado Médico</label>
-                       <input 
-                         type="date" name="certificado_medico_vence" value={formData.certificado_medico_vence || ''} onChange={handleInputChange}
-                         className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                       />
-                     </div>
-                   </div>
-                 </div>
-
-                 <div className="pt-6 border-t border-outline-variant/30">
-                   <div className="flex items-center justify-between mb-6">
-                     <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.3em] flex items-center gap-3">
-                        <span className="material-symbols-outlined text-[20px]">school</span>
-                        Certificado de Saberes
-                     </h4>
-                     <label className="flex items-center gap-3 cursor-pointer">
-                        <span className="text-sm font-bold text-on-surface-variant">¿Posee Certificado?</span>
-                        <div className="relative inline-block w-12 h-6 rounded-full bg-surface-container-highest transition-colors">
-                          <input type="checkbox" name="certificado_saberes" checked={formData.certificado_saberes || false} onChange={handleInputChange} className="peer sr-only" />
-                          <div className="absolute inset-0 rounded-full peer-checked:bg-secondary transition-colors"></div>
-                          <div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform peer-checked:translate-x-6"></div>
-                        </div>
-                     </label>
-                   </div>
-                   
-                   <div className={`grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6 transition-all duration-300 ${formData.certificado_saberes ? 'opacity-100 max-h-40' : 'opacity-40 max-h-40 pointer-events-none'}`}>
-                     <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Fecha de Emisión</label>
-                       <input 
-                         type="date" name="fecha_emision_saberes" value={formData.fecha_emision_saberes || ''} onChange={handleInputChange} disabled={!formData.certificado_saberes}
-                         className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all disabled:bg-surface-container-low"
-                       />
-                     </div>
-                     <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Fecha de Vencimiento</label>
-                       <input 
-                         type="date" name="fecha_vencimiento_saberes" value={formData.fecha_vencimiento_saberes || ''} onChange={handleInputChange} disabled={!formData.certificado_saberes}
-                         className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all disabled:bg-surface-container-low"
-                       />
-                     </div>
-                   </div>
-                 </div>
-              </div>
-
-              {/* Card 3: Socio-Laboral Data */}
-              <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm mb-6">
+              {/* Card 2: Socio-Laboral Data */}
+              <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm">
                  <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
                     <span className="material-symbols-outlined text-[20px]">assignment_ind</span>
                     Información Socio-Laboral

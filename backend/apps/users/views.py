@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate, get_user_model
 from rest_framework.views import APIView
 from catalogs.models import Modalidad
 from organizations.models import EmpresaOrganizacion, Gremio, OrganizacionCps
-from personnel.models import PersonalOperador
+from personnel.models import PersonalOperador, PersonalColector
 from fleet.models import FlotaVehiculo, Terminal
 from routes.models import VialidadRuta
 from .models import UserActivity
@@ -77,6 +77,7 @@ class DashboardStatsView(APIView):
         total_orgs = EmpresaOrganizacion.objects.count()
         total_vehicles = FlotaVehiculo.objects.count()
         total_operators = PersonalOperador.objects.count()
+        total_colectores = PersonalColector.objects.count()
         total_routes = VialidadRuta.objects.count()
 
         # Fleet Distribution by Modality (Actual DB names)
@@ -160,6 +161,31 @@ def get_system_alerts(limit=None):
             "date": o.certificado_medico_vence
         })
 
+    # Saberes Certificate (Missing)
+    saberes_missing = PersonalOperador.objects.filter(certificado_saberes=False)
+    for o in saberes_missing:
+        alerts.append({
+            "type": "error",
+            "icon": "gpp_bad",
+            "title": "Certificado de Saberes Faltante",
+            "message": f"Operador {o.nombres} {o.apellidos} ({o.cedula}) no posee certificado registrado.",
+            "link": "/operadores",
+            "date": today
+        })
+
+    # Saberes Certificate (Expiring)
+    saberes_expiring = PersonalOperador.objects.filter(certificado_saberes=True, fecha_vencimiento_saberes__lte=soon)
+    for o in saberes_expiring:
+        status_label = "vencido" if o.fecha_vencimiento_saberes and o.fecha_vencimiento_saberes < today else "por vencer"
+        alerts.append({
+            "type": "error" if status_label == "vencido" else "warning",
+            "icon": "school",
+            "title": f"Certificado Saberes {status_label.capitalize()}",
+            "message": f"{o.nombres} {o.apellidos} ({o.cedula}). Vence: {o.fecha_vencimiento_saberes}",
+            "link": "/operadores",
+            "date": o.fecha_vencimiento_saberes
+        })
+
     # CPS (Permits) Expiration - NEW
     cps_expiring = OrganizacionCps.objects.filter(fecha_vencimiento__lte=soon)
     for c in cps_expiring:
@@ -172,6 +198,23 @@ def get_system_alerts(limit=None):
             "link": "/organizaciones",
             "date": c.fecha_vencimiento
         })
+
+    # Alertas de Stock Crítico (Inventario)
+    try:
+        from inventory.models import Insumo
+        from django.db.models import F
+        low_stock_insumos = Insumo.objects.filter(stock_actual__lte=F('stock_minimo'))
+        for i in low_stock_insumos:
+            alerts.append({
+                "type": "error",
+                "icon": "inventory_2",
+                "title": "Stock de Insumo Crítico",
+                "message": f"'{i.nombre}' ({i.categoria}) en nivel crítico. Quedan {i.stock_actual} {i.unidad_medida}.",
+                "link": "/insumos",
+                "date": today
+            })
+    except ImportError:
+        pass
 
     # Sort by date (oldest first or nearest to expire)
     alerts.sort(key=lambda x: x['date'] if x['date'] else today)
@@ -231,6 +274,7 @@ class DashboardStatsView(APIView):
         total_orgs = EmpresaOrganizacion.objects.count()
         total_vehicles = FlotaVehiculo.objects.count()
         total_operators = PersonalOperador.objects.count()
+        total_colectores = PersonalColector.objects.count()
         total_routes = VialidadRuta.objects.count()
 
         # Fleet Distribution by Modality (Actual DB names)
@@ -252,6 +296,18 @@ class DashboardStatsView(APIView):
             grado = item['licencia_grado']
             operator_distribution.append({
                 "name": f"Grado {grado}" if grado else 'Desconocido',
+                "count": item['count'],
+                "percentage": round(percentage, 1)
+            })
+
+        # Colector Distribution by Instruction Grade
+        col_dist_query = PersonalColector.objects.values('grado_instruccion').annotate(count=Count('cedula')).order_by('-count')
+        colector_distribution = []
+        for item in col_dist_query:
+            percentage = (item['count'] / total_colectores * 100) if total_colectores > 0 else 0
+            grado = item['grado_instruccion']
+            colector_distribution.append({
+                "name": f"{grado}" if grado else 'Desconocido',
                 "count": item['count'],
                 "percentage": round(percentage, 1)
             })
@@ -291,16 +347,36 @@ class DashboardStatsView(APIView):
                     "percentage": round((item['count'] / total_r) * 100, 1)
                 })
 
+        try:
+            from inventory.models import Insumo
+            total_insumos = Insumo.objects.count()
+            insumo_dist_query = Insumo.objects.values('categoria').annotate(count=Count('id')).order_by('-count')
+            insumos_distribution = []
+            for item in insumo_dist_query:
+                percentage = (item['count'] / total_insumos * 100) if total_insumos > 0 else 0
+                insumos_distribution.append({
+                    "name": item['categoria'] if item['categoria'] else 'Sin Categoría',
+                    "count": item['count'],
+                    "percentage": round(percentage, 1)
+                })
+        except ImportError:
+            total_insumos = 0
+            insumos_distribution = []
+
         stats = {
             "organizations": total_orgs,
             "vehicles": total_vehicles,
             "operators": total_operators,
+            "colectores": total_colectores,
             "routes": total_routes,
+            "insumos": total_insumos,
             "fleet_distribution": fleet_distribution,
             "operator_distribution": operator_distribution,
+            "colector_distribution": colector_distribution,
             "org_distribution": org_distribution,
             "route_distribution": route_distribution,
             "axis_distribution": axis_distribution,
+            "insumos_distribution": insumos_distribution,
             "alerts": get_system_alerts(limit=10)
         }
         return Response(stats)

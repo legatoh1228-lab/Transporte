@@ -41,7 +41,26 @@ class FlotaVehiculo(models.Model):
     certificado_vence = models.DateField(blank=True, null=True, verbose_name="Vencimiento Certificado de Circulación")
     revision_tecnica_vence = models.DateField(blank=True, null=True, verbose_name="Vencimiento Revisión Técnica")
     foto = models.ImageField(upload_to='vehicles/', blank=True, null=True, verbose_name="Foto del Vehículo")
-    # Nuevos campos - Rev. 1
+    # Especificaciones Mecánicas Adicionales
+    serial_motor = models.CharField(max_length=100, blank=True, null=True, verbose_name="Serial de Motor")
+    tipo_aceite = models.CharField(max_length=50, blank=True, null=True, verbose_name="Tipo de Aceite (Viscosidad)")
+    aceite_clasificacion = models.CharField(max_length=50, blank=True, null=True, verbose_name="Clasificación de Aceite")
+    aceite_marca = models.CharField(max_length=50, blank=True, null=True, verbose_name="Marca de Aceite")
+    tamano_caucho = models.CharField(max_length=50, blank=True, null=True, verbose_name="Tamaño de Caucho")
+
+    # Especificaciones exclusivas para Motos
+    tipo_rin = models.CharField(max_length=50, blank=True, null=True, verbose_name="Tipo de Rin")
+    medida_cadena = models.CharField(max_length=50, blank=True, null=True, verbose_name="Medida de Cadena")
+
+    # Mantenimiento
+    fecha_mantenimiento_general = models.DateField(blank=True, null=True, verbose_name="Último Mantenimiento General")
+    fecha_cambio_aceite = models.DateField(blank=True, null=True, verbose_name="Último Cambio de Aceite")
+    fecha_mantenimiento_motor = models.DateField(blank=True, null=True, verbose_name="Último Mantenimiento Motor")
+    detalles_mantenimiento_motor = models.TextField(blank=True, null=True, verbose_name="Detalles Mantenimiento Motor")
+    fecha_reemplazo_piezas = models.DateField(blank=True, null=True, verbose_name="Último Reemplazo Piezas")
+    reemplazo_piezas_detalles = models.TextField(blank=True, null=True, verbose_name="Detalles Reemplazo Piezas")
+
+    # Campos de Propietario y CPS
     propietario = models.CharField(max_length=150, blank=True, null=True, verbose_name="Propietario")
     propietario_identificacion = models.CharField(max_length=15, blank=True, null=True, verbose_name="Identificación Propietario")
     serial_carroceria = models.CharField(max_length=50, blank=True, null=True, verbose_name="Serial de Carrocería")

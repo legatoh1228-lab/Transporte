@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'personnel.apps.PersonnelConfig',
     'fleet.apps.FleetConfig',
     'routes.apps.RoutesConfig',
+    'inventory.apps.InventoryConfig',
 ]
 
 MIDDLEWARE = [

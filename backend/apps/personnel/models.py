@@ -12,8 +12,29 @@ class PersonalOperador(models.Model):
     licencia_grado = models.SmallIntegerField(choices=[(2, '2da'), (3, '3ra'), (4, '4ta'), (5, '5ta')], help_text="2, 3, 4, 5")
     vence_lic = models.DateField(verbose_name="Vencimiento Licencia")
     certificado_medico_vence = models.DateField(blank=True, null=True, verbose_name="Vencimiento Certificado Médico")
+    certificado_saberes = models.BooleanField(default=False, verbose_name="¿Posee Certificado de Saberes?")
+    fecha_emision_saberes = models.DateField(blank=True, null=True, verbose_name="Emisión Cert. Saberes")
+    fecha_vencimiento_saberes = models.DateField(blank=True, null=True, verbose_name="Vencimiento Cert. Saberes")
     tipo_sangre = models.CharField(max_length=5, blank=True, null=True)
     foto = models.ImageField(upload_to='operators/', blank=True, null=True, verbose_name="Foto de Perfil")
+
+    estado_civil = models.CharField(max_length=20, choices=[
+        ('Soltero(a)', 'Soltero(a)'), ('Casado(a)', 'Casado(a)'),
+        ('Divorciado(a)', 'Divorciado(a)'), ('Viudo(a)', 'Viudo(a)'), ('Concubinato', 'Concubinato')
+    ], blank=True, null=True)
+    numero_hijos = models.PositiveIntegerField(default=0)
+    grado_instruccion = models.CharField(max_length=20, choices=[
+        ('Primaria', 'Primaria'), ('Bachiller', 'Bachiller'), ('TSU', 'TSU'),
+        ('Universitario', 'Universitario'), ('Postgrado', 'Postgrado'), ('Ninguno', 'Ninguno')
+    ], blank=True, null=True)
+    talla_camisa = models.CharField(max_length=10, blank=True, null=True)
+    talla_pantalon = models.CharField(max_length=10, blank=True, null=True)
+    talla_calzado = models.CharField(max_length=10, blank=True, null=True)
+    fecha_ingreso = models.DateField(blank=True, null=True)
+
+    correo_electronico = models.EmailField(blank=True, null=True)
+    contacto_emergencia_nombre = models.CharField(max_length=100, blank=True, null=True)
+    contacto_emergencia_telefono = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self): return f"{self.cedula} - {self.nombres} {self.apellidos}"
     class Meta:
@@ -30,3 +51,59 @@ class OperadorOrganizacion(models.Model):
     class Meta:
         verbose_name_plural = "Relaciones Operador-Organización"
         db_table = 'operador_organizacion'
+
+class PersonalColector(models.Model):
+    ESTADO_CIVIL_CHOICES = [
+        ('Soltero(a)', 'Soltero(a)'),
+        ('Casado(a)', 'Casado(a)'),
+        ('Divorciado(a)', 'Divorciado(a)'),
+        ('Viudo(a)', 'Viudo(a)'),
+        ('Concubinato', 'Concubinato'),
+    ]
+
+    GRADO_INSTRUCCION_CHOICES = [
+        ('Primaria', 'Primaria'),
+        ('Bachiller', 'Bachiller'),
+        ('TSU', 'TSU'),
+        ('Universitario', 'Universitario'),
+        ('Postgrado', 'Postgrado'),
+        ('Ninguno', 'Ninguno'),
+    ]
+
+    cedula = models.CharField(max_length=15, primary_key=True)
+    codigo_col = models.CharField(max_length=20, unique=True, verbose_name="Código Colector")
+    nombres = models.CharField(max_length=100)
+    apellidos = models.CharField(max_length=100)
+    telefono = models.CharField(max_length=20, blank=True, null=True)
+    direccion = models.TextField(blank=True, null=True)
+    fecha_nacimiento = models.DateField(blank=True, null=True)
+    tipo_sangre = models.CharField(max_length=5, blank=True, null=True)
+    foto = models.ImageField(upload_to='collectors/', blank=True, null=True, verbose_name="Foto de Perfil")
+    
+    estado_civil = models.CharField(max_length=20, choices=ESTADO_CIVIL_CHOICES, blank=True, null=True)
+    numero_hijos = models.PositiveIntegerField(default=0)
+    grado_instruccion = models.CharField(max_length=20, choices=GRADO_INSTRUCCION_CHOICES, blank=True, null=True)
+    talla_camisa = models.CharField(max_length=10, blank=True, null=True)
+    talla_pantalon = models.CharField(max_length=10, blank=True, null=True)
+    talla_calzado = models.CharField(max_length=10, blank=True, null=True)
+    fecha_ingreso = models.DateField(blank=True, null=True)
+
+    correo_electronico = models.EmailField(blank=True, null=True)
+    contacto_emergencia_nombre = models.CharField(max_length=100, blank=True, null=True)
+    contacto_emergencia_telefono = models.CharField(max_length=20, blank=True, null=True)
+
+    def __str__(self): return f"{self.cedula} - {self.nombres} {self.apellidos}"
+    class Meta:
+        verbose_name_plural = "Personal Colector"
+        db_table = 'personal_colector'
+
+class ColectorOrganizacion(models.Model):
+    colector = models.ForeignKey(PersonalColector, on_delete=models.CASCADE, related_name='vinculos_organizacion')
+    organizacion = models.ForeignKey(EmpresaOrganizacion, on_delete=models.CASCADE, related_name='colectores')
+    fecha_inicio = models.DateField()
+    fecha_fin = models.DateField(blank=True, null=True)
+
+    def __str__(self): return f"{self.colector} @ {self.organizacion}"
+    class Meta:
+        verbose_name_plural = "Relaciones Colector-Organización"
+        db_table = 'colector_organizacion'

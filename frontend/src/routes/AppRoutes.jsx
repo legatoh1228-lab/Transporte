@@ -7,6 +7,7 @@ import Dashboard from '../pages/Dashboard';
 import Vehicles from '../pages/Vehicles';
 import RouteMap from '../pages/RouteMap';
 import Operadores from '../pages/Operadores';
+import Colectores from '../pages/Colectores';
 import Organizaciones from '../pages/Organizaciones';
 import Rutas from '../pages/Rutas';
 import Auditoria from '../pages/Auditoria';
@@ -21,6 +22,7 @@ import Alertas from '../pages/Alertas';
 import Asignaciones from '../pages/Asignaciones';
 import Gremios from '../pages/Gremios';
 import Consolidado from '../pages/Consolidado';
+import Insumos from '../pages/Insumos';
 
 const AppRoutes = () => {
   return (
@@ -38,6 +40,7 @@ const AppRoutes = () => {
         <Route path="/rutas" element={<Rutas />} />
         <Route path="/mapa-rutas" element={<RouteMap />} />
         <Route path="/operadores" element={<Operadores />} />
+        <Route path="/colectores" element={<Colectores />} />
         <Route path="/organizaciones" element={<Organizaciones />} />
         <Route path="/auditoria" element={<Auditoria />} />
         <Route path="/catalogos" element={<Catalogos />} />
@@ -51,6 +54,7 @@ const AppRoutes = () => {
         <Route path="/asignaciones" element={<Asignaciones />} />
         <Route path="/gremios" element={<Gremios />} />
         <Route path="/consolidado" element={<Consolidado />} />
+        <Route path="/insumos" element={<Insumos />} />
         
         {/* Mantengo Home por compatibilidad si se desea usar la anterior */}
         <Route path="/old-home" element={<Home />} />

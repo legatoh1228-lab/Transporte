@@ -18,11 +18,15 @@ const Dashboard = () => {
     organizations: 0,
     vehicles: 0,
     operators: 0,
+    colectores: 0,
     routes: 0,
+    insumos: 0,
     fleet_distribution: [],
     operator_distribution: [],
+    colector_distribution: [],
     org_distribution: [],
     route_distribution: [],
+    insumos_distribution: [],
     alerts: []
   });
   const [systemName, setSystemName] = useState('Transporte Aragua Digital');
@@ -68,6 +72,14 @@ const Dashboard = () => {
       data: stats.operator_distribution || [],
       iconGetter: () => 'badge'
     },
+    colectores: {
+      title: "Clasificación de Colectores",
+      subtitle: "Distribución por instrucción",
+      label: "Colectores",
+      total: stats.colectores,
+      data: stats.colector_distribution || [],
+      iconGetter: () => 'groups'
+    },
     organizaciones: {
       title: "Tipos de Organizaciones",
       subtitle: "Clasificación de gremios y asociaciones",
@@ -83,6 +95,14 @@ const Dashboard = () => {
       total: stats.routes,
       data: stats.route_distribution || [],
       iconGetter: () => 'alt_route'
+    },
+    insumos: {
+      title: "Inventario General",
+      subtitle: "Distribución por categoría de insumos",
+      label: "Insumos",
+      total: stats.insumos || 0,
+      data: stats.insumos_distribution || [],
+      iconGetter: () => 'category'
     }
   };
 
@@ -193,11 +213,12 @@ const Dashboard = () => {
       </div>
 
       {/* Hero Stats: Top 4 Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         {[
           { label: 'Organizaciones', value: stats.organizations, icon: 'corporate_fare', bgClass: 'bg-primary/10', textClass: 'text-primary', path: '/organizaciones' },
           { label: 'Unidades Activas', value: stats.vehicles, icon: 'directions_bus', bgClass: 'bg-secondary/10', textClass: 'text-secondary', path: '/vehiculos' },
           { label: 'Operadores', value: stats.operators, icon: 'person_pin', bgClass: 'bg-tertiary/10', textClass: 'text-tertiary', path: '/operadores' },
+          { label: 'Colectores', value: stats.colectores, icon: 'groups', bgClass: 'bg-primary/10', textClass: 'text-primary', path: '/colectores' },
           { label: 'Rutas Digitales', value: stats.routes, icon: 'alt_route', bgClass: 'bg-error/10', textClass: 'text-error', path: '/rutas' }
         ].map((card, i) => (
           <div 
@@ -251,8 +272,10 @@ const Dashboard = () => {
                   {[
                     { id: 'vehiculos', icon: 'directions_bus', label: 'Flota' },
                     { id: 'operadores', icon: 'badge', label: 'Operadores' },
+                    { id: 'colectores', icon: 'groups', label: 'Colectores' },
                     { id: 'organizaciones', icon: 'corporate_fare', label: 'Gremios' },
-                    { id: 'rutas', icon: 'alt_route', label: 'Rutas' }
+                    { id: 'rutas', icon: 'alt_route', label: 'Rutas' },
+                    { id: 'insumos', icon: 'inventory_2', label: 'Insumos' }
                   ].map(tab => (
                     <button
                       key={tab.id}

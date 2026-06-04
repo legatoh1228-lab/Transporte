@@ -5,6 +5,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { usePagination } from '../hooks/usePagination';
 import { PaginationControls } from '../components/common/PaginationControls';
 import { buildPdfHeader, addTableAndSave } from '../utils/pdfExport';
+import { QRCodeSVG } from 'qrcode.react';
 
 const Vehicles = () => {
   const { hasPermission } = usePermissions();
@@ -207,6 +208,19 @@ const Vehicles = () => {
     rcv_vence: '',
     certificado_vence: '',
     revision_tecnica_vence: '',
+    serial_motor: '',
+    tipo_aceite: '',
+    aceite_clasificacion: '',
+    aceite_marca: '',
+    tamano_caucho: '',
+    tipo_rin: '',
+    medida_cadena: '',
+    fecha_mantenimiento_general: '',
+    fecha_cambio_aceite: '',
+    fecha_mantenimiento_motor: '',
+    detalles_mantenimiento_motor: '',
+    fecha_reemplazo_piezas: '',
+    reemplazo_piezas_detalles: '',
     foto: null
   });
 
@@ -952,11 +966,28 @@ const Vehicles = () => {
                       </div>
                    </div>
                 </div>
+                <div className="flex flex-col items-center gap-2 mt-6 md:mt-0 md:ml-auto">
+                   <div className="bg-white p-2.5 rounded-2xl shadow-md border border-outline-variant/30 flex items-center justify-center hover:scale-105 transition-transform duration-300">
+                     <QRCodeSVG 
+                        value={`${window.location.origin}/vehiculos?placa=${selectedVehicle.placa}`} 
+                        size={100} 
+                        level="H" 
+                        includeMargin={false} 
+                        fgColor="#032448" 
+                     />
+                   </div>
+                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant/60 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">qr_code_scanner</span>
+                      Ficha Digital
+                   </span>
+                </div>
              </div>
 
              {/* Grid Details */}
              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2 bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 space-y-6 shadow-sm">
+                {/* Left Column */}
+                <div className="md:col-span-2 flex flex-col gap-8">
+                  <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 space-y-6 shadow-sm">
                    <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">settings_suggest</span>
                       Configuración Técnica & Confort
@@ -1003,7 +1034,94 @@ const Vehicles = () => {
                    </div>
                 </div>
 
-                <div className="space-y-8">
+                {/* Especificaciones Mecánicas Detail */}
+                <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 space-y-6 shadow-sm mt-0">
+                   <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.3em] flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[20px]">build_circle</span>
+                      Perfil Mecánico
+                   </h4>
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
+                         <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Serial de Motor</span>
+                         <span className="font-mono font-black text-on-surface text-sm">{selectedVehicle.serial_motor || 'No especificado'}</span>
+                      </div>
+                      <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
+                         <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Aceite de Motor</span>
+                         <span className="font-black text-on-surface text-sm">
+                            {selectedVehicle.tipo_aceite || 'S/N Viscosidad'} • {selectedVehicle.aceite_clasificacion || 'S/N Tipo'}
+                            <span className="block text-xs font-bold text-primary/70 mt-0.5">{selectedVehicle.aceite_marca || 'Marca no especificada'}</span>
+                         </span>
+                      </div>
+                      <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
+                         <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Cauchos / Neumáticos</span>
+                         <span className="font-black text-on-surface text-sm">{selectedVehicle.tamano_caucho || 'No especificado'}</span>
+                      </div>
+                      {selectedVehicle.modalidad == 3 && (
+                         <div className="bg-secondary/5 p-4 rounded-2xl border border-secondary/20 flex flex-col justify-center col-span-2 sm:col-span-1">
+                            <span className="text-[10px] font-black text-secondary/70 uppercase tracking-widest mb-1">Kit de Arrastre / Rin</span>
+                            <span className="font-black text-secondary text-sm">
+                               {selectedVehicle.tipo_rin || 'Rin N/A'} • {selectedVehicle.medida_cadena || 'Cadena N/A'}
+                            </span>
+                          </div>
+                       )}
+                    </div>
+                 </div>
+
+                 {/* Historial de Mantenimiento Detail */}
+                 <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 space-y-6 shadow-sm mt-0">
+                    <h4 className="text-[11px] font-black text-warning uppercase tracking-[0.3em] flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[20px]">engineering</span>
+                      Historial de Mantenimiento
+                   </h4>
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="flex items-center gap-4 p-4 bg-surface-container-low/30 rounded-2xl border border-outline-variant/20">
+                         <div className="w-12 h-12 rounded-full bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
+                            <span className="material-symbols-outlined text-[24px]">handyman</span>
+                         </div>
+                         <div>
+                            <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest block mb-1">Mantenimiento General</span>
+                            <span className="text-sm font-black text-on-surface uppercase">{selectedVehicle.fecha_mantenimiento_general || 'Sin registro'}</span>
+                         </div>
+                      </div>
+                      <div className="flex items-center gap-4 p-4 bg-surface-container-low/30 rounded-2xl border border-outline-variant/20">
+                         <div className="w-12 h-12 rounded-full bg-warning/10 text-warning flex items-center justify-center flex-shrink-0">
+                            <span className="material-symbols-outlined text-[24px]">oil_barrel</span>
+                         </div>
+                         <div>
+                            <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest block mb-1">Cambio de Aceite</span>
+                            <span className="text-sm font-black text-on-surface uppercase">{selectedVehicle.fecha_cambio_aceite || 'Sin registro'}</span>
+                         </div>
+                      </div>
+                   </div>
+                   
+                   <div className="space-y-4 pt-2">
+                      <div className="p-5 bg-surface-container-low/20 rounded-2xl border border-outline-variant/20">
+                         <div className="flex justify-between items-start mb-2">
+                            <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest flex items-center gap-2">
+                               <span className="material-symbols-outlined text-[16px]">car_repair</span>
+                               Reemplazo de Piezas
+                            </span>
+                            <span className="text-xs font-bold text-on-surface-variant">{selectedVehicle.fecha_reemplazo_piezas || '--/--/----'}</span>
+                         </div>
+                         <p className="text-sm font-bold text-on-surface">{selectedVehicle.reemplazo_piezas_detalles || 'No se han registrado detalles de piezas reemplazadas.'}</p>
+                      </div>
+                      
+                      <div className="p-5 bg-surface-container-low/20 rounded-2xl border border-outline-variant/20">
+                         <div className="flex justify-between items-start mb-2">
+                            <span className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest flex items-center gap-2">
+                               <span className="material-symbols-outlined text-[16px]">car_engine</span>
+                               Mantenimiento de Motor
+                            </span>
+                            <span className="text-xs font-bold text-on-surface-variant">{selectedVehicle.fecha_mantenimiento_motor || '--/--/----'}</span>
+                         </div>
+                         <p className="text-sm font-bold text-on-surface">{selectedVehicle.detalles_mantenimiento_motor || 'No se han registrado detalles del motor.'}</p>
+                      </div>
+                   </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-8">
                   <div className="bg-surface-container-lowest p-8 rounded-[32px] border border-outline-variant/40 space-y-6 shadow-sm">
                     <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3">
                        <span className="material-symbols-outlined text-[20px]">person</span>
@@ -1204,6 +1322,108 @@ const Vehicles = () => {
                               <option value="">Seleccione...</option>
                               {combustibles.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                            </select>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Card 1.5: Especificaciones Mecánicas */}
+               <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm">
+                  <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
+                     <span className="material-symbols-outlined text-[20px]">build_circle</span>
+                     Especificaciones Mecánicas
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-6">
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Serial de Motor</label>
+                        <input name="serial_motor" value={formData.serial_motor || ''} onChange={handleInputChange} placeholder="Serial..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-mono font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase" />
+                     </div>
+                     <div className="col-span-1 md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-10">
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Viscosidad del Aceite</label>
+                           <input name="tipo_aceite" value={formData.tipo_aceite || ''} onChange={handleInputChange} placeholder="Ej: 15W-40" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase" />
+                        </div>
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Tipo / Clasificación</label>
+                           <select name="aceite_clasificacion" value={formData.aceite_clasificacion || ''} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase">
+                              <option value="">Seleccione...</option>
+                              <option value="Mineral">Mineral</option>
+                              <option value="Semi-Sintético">Semi-Sintético</option>
+                              <option value="Sintético">Sintético</option>
+                              <option value="Alto Kilometraje">Alto Kilometraje</option>
+                           </select>
+                        </div>
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Marca de Aceite</label>
+                           <input name="aceite_marca" value={formData.aceite_marca || ''} onChange={handleInputChange} placeholder="Ej: Castrol, Motul..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase" />
+                        </div>
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Tamaño de Caucho</label>
+                        <input name="tamano_caucho" value={formData.tamano_caucho || ''} onChange={handleInputChange} placeholder="Ej: 175/70 R13" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase" />
+                     </div>
+                  </div>
+                  {formData.modalidad == '3' && (
+                     <div className="mt-8 pt-8 border-t border-outline-variant/30 animate-in fade-in slide-in-from-top-4">
+                        <h5 className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] flex items-center gap-2 mb-4">
+                           <span className="material-symbols-outlined text-[16px]">two_wheeler</span>
+                           Especificaciones de Motocicleta
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                           <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Tipo de Rin</label>
+                              <select name="tipo_rin" value={formData.tipo_rin || ''} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all uppercase">
+                                 <option value="">Seleccione...</option>
+                                 <option value="Rin">Rin (Rayos)</option>
+                                 <option value="Paletas">Paletas (Aleación)</option>
+                              </select>
+                           </div>
+                           <div className="space-y-1.5">
+                              <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Medida de Cadena</label>
+                              <input name="medida_cadena" value={formData.medida_cadena || ''} onChange={handleInputChange} placeholder="Ej: Paso 428, 520" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all uppercase" />
+                           </div>
+                        </div>
+                     </div>
+                  )}
+               </div>
+
+               {/* Card 1.8: Historial de Mantenimiento */}
+               <div className="bg-surface-container-low p-8 rounded-[40px] border border-outline-variant/30 shadow-sm">
+                  <h4 className="text-[11px] font-black text-warning uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
+                     <span className="material-symbols-outlined text-[20px]">engineering</span>
+                     Registro de Mantenimiento Preventivo / Correctivo
+                  </h4>
+                  <div className="space-y-8">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Último Mantenimiento General</label>
+                           <input type="date" name="fecha_mantenimiento_general" value={formData.fecha_mantenimiento_general || ''} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-warning/20 transition-all" />
+                        </div>
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Último Cambio de Aceite</label>
+                           <input type="date" name="fecha_cambio_aceite" value={formData.fecha_cambio_aceite || ''} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-warning/20 transition-all" />
+                        </div>
+                     </div>
+                     
+                     <div className="pt-4 border-t border-outline-variant/30 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Reemplazo de Piezas (Fecha)</label>
+                           <input type="date" name="fecha_reemplazo_piezas" value={formData.fecha_reemplazo_piezas || ''} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-warning/20 transition-all" />
+                        </div>
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Piezas Reemplazadas (Detalles)</label>
+                           <input name="reemplazo_piezas_detalles" value={formData.reemplazo_piezas_detalles || ''} onChange={handleInputChange} placeholder="Ej: Pastillas de freno, empacaduras..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-warning/20 transition-all" />
+                        </div>
+                     </div>
+
+                     <div className="pt-4 border-t border-outline-variant/30 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Mantenimiento de Motor (Fecha)</label>
+                           <input type="date" name="fecha_mantenimiento_motor" value={formData.fecha_mantenimiento_motor || ''} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-warning/20 transition-all" />
+                        </div>
+                        <div className="space-y-1.5">
+                           <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Mantenimiento de Motor (Detalles)</label>
+                           <input name="detalles_mantenimiento_motor" value={formData.detalles_mantenimiento_motor || ''} onChange={handleInputChange} placeholder="Ej: Anillado, rectificación..." className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-warning/20 transition-all" />
                         </div>
                      </div>
                   </div>
