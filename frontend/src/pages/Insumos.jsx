@@ -31,7 +31,9 @@ const Insumos = () => {
   });
 
   const { hasPermission } = usePermissions();
-  const canEdit = hasPermission('Vehículos', 'Escribir');
+  const canCreate = hasPermission('Insumos', 'Crear');
+  const canUpdate = hasPermission('Insumos', 'Actualizar');
+  const canDelete = hasPermission('Insumos', 'Eliminar');
 
   const fetchData = async () => {
     try {
@@ -181,6 +183,20 @@ const Insumos = () => {
 
   if (loading) return <div className="flex justify-center items-center h-screen"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div></div>;
 
+  const categoriasDB = [...new Set(insumos.map(i => i.categoria))].filter(Boolean);
+  const categoriasPredefinidas = [
+    "Lubricantes y Aceites", "Neumáticos y Cauchos", "Filtros", 
+    "Frenos (Pastillas / Bandas)", "Baterías", "Kits de Arrastre", 
+    "Piezas de Motor", "Sistemas Eléctricos", "Limpieza y Mantenimiento", "Herramientas"
+  ];
+  const categoriasFinales = [...new Set([...categoriasPredefinidas, ...categoriasDB])];
+
+  const unidadesDB = [...new Set(insumos.map(i => i.unidad_medida))].filter(Boolean);
+  const unidadesPredefinidas = [
+    "Unidad", "Litro", "Paila", "Kilo", "Bulto", "Par", "Galon", "Tambor", "Kit"
+  ];
+  const unidadesFinales = [...new Set([...unidadesPredefinidas, ...unidadesDB])];
+
   return (
     <div className="min-h-screen bg-surface font-public-sans text-on-surface">
       {/* HEADER PREMIUM */}
@@ -201,7 +217,7 @@ const Insumos = () => {
                 Gestione el stock de aceites, cauchos y repuestos de la flota vehicular. Registre entradas y asigne repuestos a vehículos específicos.
               </p>
             </div>
-            {canEdit && (
+            {canCreate && (
               <button onClick={openNewInsumo} className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-on-primary font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-3 transition-all hover:-translate-y-1 active:translate-y-0 group whitespace-nowrap">
                 <span className="material-symbols-outlined transition-transform group-hover:scale-110">add_circle</span>
                 Nuevo Insumo
@@ -227,15 +243,15 @@ const Insumos = () => {
                     <button onClick={() => openHistorial(insumo)} className="w-8 h-8 rounded-lg hover:bg-surface-variant flex items-center justify-center text-on-surface-variant/50 hover:text-primary transition-colors" title="Ver Ficha y Historial">
                       <span className="material-symbols-outlined text-[18px]">visibility</span>
                     </button>
-                    {canEdit && (
-                      <>
-                        <button onClick={() => openEditInsumo(insumo)} className="w-8 h-8 rounded-lg hover:bg-surface-variant flex items-center justify-center text-on-surface-variant/50 hover:text-primary transition-colors" title="Editar">
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
-                        <button onClick={() => handleDeleteInsumo(insumo.id)} className="w-8 h-8 rounded-lg hover:bg-error/10 flex items-center justify-center text-on-surface-variant/50 hover:text-error transition-colors" title="Eliminar">
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </>
+                    {canUpdate && (
+                      <button onClick={() => openEditInsumo(insumo)} className="w-8 h-8 rounded-lg hover:bg-surface-variant flex items-center justify-center text-on-surface-variant/50 hover:text-primary transition-colors" title="Editar">
+                        <span className="material-symbols-outlined text-[18px]">edit</span>
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button onClick={() => handleDeleteInsumo(insumo.id)} className="w-8 h-8 rounded-lg hover:bg-error/10 flex items-center justify-center text-on-surface-variant/50 hover:text-error transition-colors" title="Eliminar">
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -270,7 +286,7 @@ const Insumos = () => {
                   )}
                 </div>
 
-                {canEdit && (
+                {canUpdate && (
                   <div className="flex gap-3 pt-4 border-t border-outline-variant/20">
                     <button onClick={() => openMovimiento(insumo, 'ENTRADA')} className="flex-1 py-2.5 bg-success/10 hover:bg-success/20 text-success rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors">
                       <span className="material-symbols-outlined text-[18px]">add_circle</span>
@@ -336,16 +352,9 @@ const Insumos = () => {
                   <input required list="categorias-list" name="categoria" value={formData.categoria} onChange={handleInputChange} placeholder="Selecciona o escribe..." className="w-full bg-surface-container hover:bg-surface-container-high border-2 border-transparent focus:border-primary/30 rounded-[20px] py-4 pl-14 pr-5 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all uppercase shadow-inner" />
                   <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-on-surface-variant/40 pointer-events-none text-[20px]">arrow_drop_down</span>
                   <datalist id="categorias-list">
-                    <option value="Lubricantes y Aceites" />
-                    <option value="Neumáticos y Cauchos" />
-                    <option value="Filtros" />
-                    <option value="Frenos (Pastillas / Bandas)" />
-                    <option value="Baterías" />
-                    <option value="Kits de Arrastre" />
-                    <option value="Piezas de Motor" />
-                    <option value="Sistemas Eléctricos" />
-                    <option value="Limpieza y Mantenimiento" />
-                    <option value="Herramientas" />
+                    {categoriasFinales.map((cat, idx) => (
+                      <option key={idx} value={cat} />
+                    ))}
                   </datalist>
                 </div>
               </div>
@@ -354,18 +363,13 @@ const Insumos = () => {
                 <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-2">Unidad de Medida Base</label>
                 <div className="relative group">
                   <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-primary transition-colors text-[22px]">straighten</span>
-                  <select name="unidad_medida" value={formData.unidad_medida} onChange={handleInputChange} className="w-full bg-surface-container hover:bg-surface-container-high border-2 border-transparent focus:border-primary/30 rounded-[20px] py-4 pl-14 pr-5 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all uppercase appearance-none shadow-inner cursor-pointer">
-                    <option value="Unidad">Unidad(es)</option>
-                    <option value="Litro">Litro(s)</option>
-                    <option value="Paila">Paila(s)</option>
-                    <option value="Kilo">Kilo(s)</option>
-                    <option value="Bulto">Bulto(s)</option>
-                    <option value="Par">Par(es)</option>
-                    <option value="Galon">Galón / Galones</option>
-                    <option value="Tambor">Tambor(es)</option>
-                    <option value="Kit">Kit(s)</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-on-surface-variant/40 pointer-events-none text-[20px]">expand_more</span>
+                  <input required list="unidades-list" name="unidad_medida" value={formData.unidad_medida} onChange={handleInputChange} placeholder="Escribe o selecciona..." className="w-full bg-surface-container hover:bg-surface-container-high border-2 border-transparent focus:border-primary/30 rounded-[20px] py-4 pl-14 pr-5 text-sm font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all uppercase shadow-inner" />
+                  <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-on-surface-variant/40 pointer-events-none text-[20px]">arrow_drop_down</span>
+                  <datalist id="unidades-list">
+                    {unidadesFinales.map((uni, idx) => (
+                      <option key={idx} value={uni} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
             </div>
@@ -404,10 +408,12 @@ const Insumos = () => {
 
           <div className="flex flex-col-reverse md:flex-row gap-4 pt-6 border-t border-outline-variant/30">
             <button type="button" onClick={() => setIsModalOpen(false)} className="md:w-1/3 py-4.5 bg-surface-container hover:bg-surface-variant text-on-surface rounded-[20px] font-black uppercase tracking-wider transition-all text-xs">Cancelar</button>
-            <button type="submit" className="md:w-2/3 py-4.5 bg-primary hover:bg-primary/90 text-on-primary rounded-[20px] font-black shadow-xl shadow-primary/30 transition-all uppercase tracking-wider flex items-center justify-center gap-3 text-xs">
-              <span className="material-symbols-outlined text-[20px]">{selectedInsumo ? 'save' : 'add_circle'}</span>
-              {selectedInsumo ? 'Actualizar Insumo' : 'Registrar Nuevo Insumo'}
-            </button>
+            {((selectedInsumo && canUpdate) || (!selectedInsumo && canCreate)) && (
+              <button type="submit" className="md:w-2/3 py-4.5 bg-primary hover:bg-primary/90 text-on-primary rounded-[20px] font-black shadow-xl shadow-primary/30 transition-all uppercase tracking-wider flex items-center justify-center gap-3 text-xs">
+                <span className="material-symbols-outlined text-[20px]">{selectedInsumo ? 'save' : 'add_circle'}</span>
+                {selectedInsumo ? 'Actualizar Insumo' : 'Registrar Nuevo Insumo'}
+              </button>
+            )}
           </div>
         </form>
       </Modal>

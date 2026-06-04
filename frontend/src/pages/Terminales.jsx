@@ -24,9 +24,9 @@ const center = {
 
 export default function Terminales() {
   const { hasPermission } = usePermissions();
-  const canCreate = hasPermission('Organizaciones', 'Crear');
-  const canUpdate = hasPermission('Organizaciones', 'Actualizar');
-  const canDelete = hasPermission('Organizaciones', 'Eliminar');
+  const canCreate = hasPermission('Terminales', 'Crear');
+  const canUpdate = hasPermission('Terminales', 'Actualizar');
+  const canDelete = hasPermission('Terminales', 'Eliminar');
 
   const { isLoaded } = useJsApiLoader({
 

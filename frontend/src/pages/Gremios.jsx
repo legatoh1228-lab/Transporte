@@ -8,9 +8,9 @@ import { buildPdfHeader, addTableAndSave } from '../utils/pdfExport';
 
 const Gremios = () => {
   const { hasPermission } = usePermissions();
-  const canCreate = hasPermission('Organizaciones', 'Crear');
-  const canUpdate = hasPermission('Organizaciones', 'Actualizar');
-  const canDelete = hasPermission('Organizaciones', 'Eliminar');
+  const canCreate = hasPermission('Gremios', 'Crear');
+  const canUpdate = hasPermission('Gremios', 'Actualizar');
+  const canDelete = hasPermission('Gremios', 'Eliminar');
 
   const [gremios, setGremios] = useState([]);
   const [loading, setLoading] = useState(true);

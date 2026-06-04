@@ -3,7 +3,23 @@ import api from '../services/api';
 import { usePermissions } from '../hooks/usePermissions';
 
 
-const MODULES = ['Organizaciones', 'Vehículos', 'Operadores', 'Rutas', 'Mapa de Rutas', 'Permisos', 'Usuarios', 'Configuración', 'Dashboard', 'Alertas'];
+const MODULES = [
+  'Dashboard',
+  'Organizaciones',
+  'Gremios',
+  'Terminales',
+  'Vehículos',
+  'Insumos',
+  'Operadores',
+  'Colectores',
+  'Asignaciones',
+  'Rutas',
+  'Mapa de Rutas',
+  'Alertas',
+  'Usuarios',
+  'Permisos',
+  'Configuración'
+];
 const ACTIONS = ['Leer', 'Crear', 'Actualizar', 'Eliminar'];
 
 export default function Permisos() {
@@ -174,8 +190,13 @@ export default function Permisos() {
                       <div className="flex items-center gap-3">
                         <span className={`material-symbols-outlined text-[20px] ${isSuper ? 'text-primary' : 'text-primary/70'}`}>
                           {module === 'Organizaciones' ? 'business' : 
+                           module === 'Gremios' ? 'groups' :
+                           module === 'Terminales' ? 'store' :
                            module === 'Vehículos' ? 'directions_bus' : 
+                           module === 'Insumos' ? 'inventory' :
                            module === 'Operadores' ? 'person' : 
+                           module === 'Colectores' ? 'badge' :
+                           module === 'Asignaciones' ? 'assignment_ind' :
                            module === 'Rutas' ? 'alt_route' : 
                            module === 'Mapa de Rutas' ? 'map' : 
                            module === 'Permisos' ? 'key' : 

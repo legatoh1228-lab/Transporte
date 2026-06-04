@@ -2,20 +2,9 @@ from django.db import models
 from fleet.models import FlotaVehiculo
 
 class Insumo(models.Model):
-    UNIDAD_MEDIDA_CHOICES = [
-        ('Unidad', 'Unidad(es)'),
-        ('Litro', 'Litro(s)'),
-        ('Paila', 'Paila(s)'),
-        ('Kilo', 'Kilo(s)'),
-        ('Bulto', 'Bulto(s)'),
-        ('Par', 'Par(es)'),
-        ('Galon', 'Galón/Galones'),
-        ('Tambor', 'Tambor(es)'),
-    ]
-
     nombre = models.CharField(max_length=255, verbose_name="Nombre del Insumo / Repuesto")
     categoria = models.CharField(max_length=100, verbose_name="Categoría", help_text="Ej: Aceites, Neumáticos, Filtros, Limpieza")
-    unidad_medida = models.CharField(max_length=50, choices=UNIDAD_MEDIDA_CHOICES, default='Unidad', verbose_name="Unidad de Medida")
+    unidad_medida = models.CharField(max_length=50, default='Unidad', verbose_name="Unidad de Medida")
     stock_actual = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Stock Actual")
     stock_minimo = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Stock Mínimo Alerta")
     descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción o Detalles")
