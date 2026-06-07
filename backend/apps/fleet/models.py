@@ -143,9 +143,16 @@ class VehiculoOperador(models.Model):
 
 class AsignacionRuta(models.Model):
     operador = models.ForeignKey('personnel.PersonalOperador', on_delete=models.CASCADE, related_name='asignaciones_ruta')
+    colector = models.ForeignKey('personnel.PersonalColector', on_delete=models.CASCADE, related_name='asignaciones_ruta', null=True, blank=True)
     vehiculo = models.ForeignKey(FlotaVehiculo, on_delete=models.CASCADE, related_name='asignaciones_ruta')
-    # Reemplazamos 'ruta' por 'horario' para enlazar con la organización, la ruta y las horas
-    horario = models.ForeignKey('routes.HorarioRuta', on_delete=models.CASCADE, related_name='asignaciones_operativas', null=True, blank=True)
+    horario = models.ForeignKey('routes.HorarioRuta', on_delete=models.SET_NULL, related_name='asignaciones_operativas', null=True, blank=True)
+    
+    # Campos directos para cuando no hay GestionPermiso/HorarioRuta configurados
+    ruta = models.ForeignKey('routes.VialidadRuta', on_delete=models.SET_NULL, related_name='asignaciones_directas', null=True, blank=True)
+    organizacion = models.ForeignKey('organizations.EmpresaOrganizacion', on_delete=models.SET_NULL, related_name='asignaciones_operativas', null=True, blank=True)
+    
+    hora_inicio = models.TimeField(null=True, blank=True, verbose_name="Hora de Inicio")
+    hora_fin = models.TimeField(null=True, blank=True, verbose_name="Hora de Fin")
     
     fecha_inicio = models.DateField(auto_now_add=True)
     fecha_fin = models.DateField(blank=True, null=True)
@@ -154,59 +161,48 @@ class AsignacionRuta(models.Model):
 
     def clean(self):
         from django.core.exceptions import ValidationError
-        from organizations.models import EmpresaOrganizacion
-        from personnel.models import OperadorOrganizacion
-        from fleet.models import VehiculoOrganizacion
-
-        if not self.horario:
-            raise ValidationError({'horario': 'Debe especificar un horario (que incluye la ruta y la organización).'})
-
-        if self.estatus == 'Activo':
-            organizacion_horario = self.horario.permiso.org
-
-            # 1. Validar Pertenencia del Vehículo a la Organización
-            vehiculo_org = VehiculoOrganizacion.objects.filter(
-                vehiculo=self.vehiculo,
-                organizacion=organizacion_horario,
-                fecha_fin__isnull=True
-            ).exists()
-            if not vehiculo_org:
-                raise ValidationError({'vehiculo': f'El vehículo {self.vehiculo.placa} no está asignado activamente a la organización {organizacion_horario.razon_social}.'})
-
-            # 2. Validar Pertenencia del Operador a la Organización
-            operador_org = OperadorOrganizacion.objects.filter(
-                operador=self.operador,
-                organizacion=organizacion_horario,
-                fecha_fin__isnull=True
-            ).exists()
-            if not operador_org:
-                raise ValidationError({'operador': f'El operador {self.operador.cedula} no está vinculado activamente a la organización {organizacion_horario.razon_social}.'})
-
-            # 3. Validar Colisiones de Horarios para el Vehículo y el Operador
-            asignaciones_activas = AsignacionRuta.objects.filter(estatus='Activo').exclude(pk=self.pk)
-            
-            for asignacion in asignaciones_activas:
-                if asignacion.horario and (asignacion.vehiculo == self.vehiculo or asignacion.operador == self.operador):
-                    # Check time overlap
-                    # Overlap happens if (A.inicio < B.fin) and (A.fin > B.inicio)
-                    if (self.horario.hora_inicio < asignacion.horario.hora_fin) and (self.horario.hora_fin > asignacion.horario.hora_inicio):
-                        if asignacion.vehiculo == self.vehiculo:
-                            raise ValidationError({'vehiculo': f'El vehículo ya tiene una asignación activa en un horario que choca con este ({asignacion.horario}).'})
-                        if asignacion.operador == self.operador:
-                            raise ValidationError({'operador': f'El operador ya tiene una asignación activa en un horario que choca con este ({asignacion.horario}).'})
+        # Require either a horario OR a direct ruta
+        if not self.horario and not self.ruta:
+            raise ValidationError({'ruta': 'Debe especificar una ruta o un horario para la asignación.'})
 
     def save(self, *args, **kwargs):
+        from django.utils import timezone
         self.full_clean()
+        
+        # Auto-create VehiculoOrganizacion link if organizacion is set
+        if self.organizacion and self.vehiculo:
+            VehiculoOrganizacion.objects.get_or_create(
+                vehiculo=self.vehiculo,
+                organizacion=self.organizacion,
+                defaults={'fecha_inicio': timezone.now().date()}
+            )
+        
+        # Auto-create OperadorOrganizacion link if organizacion is set
+        if self.organizacion and self.operador:
+            from personnel.models import OperadorOrganizacion
+            OperadorOrganizacion.objects.get_or_create(
+                operador=self.operador,
+                organizacion=self.organizacion,
+                defaults={'fecha_inicio': timezone.now().date()}
+            )
+        
+        # Auto-create ColectorOrganizacion link if colector and organizacion are set
+        if self.organizacion and self.colector:
+            from personnel.models import ColectorOrganizacion
+            ColectorOrganizacion.objects.get_or_create(
+                colector=self.colector,
+                organizacion=self.organizacion,
+                defaults={'fecha_inicio': timezone.now().date()}
+            )
+        
         super().save(*args, **kwargs)
 
     def __str__(self): 
-        if self.horario:
-            return f"{self.operador} | {self.vehiculo} | {self.horario.permiso.ruta} ({self.horario.hora_inicio}-{self.horario.hora_fin})"
-        return f"{self.operador} | {self.vehiculo} | Sin Horario"
+        ruta_str = self.ruta.nombre if self.ruta else (self.horario.permiso.ruta.nombre if self.horario else 'Sin Ruta')
+        return f"{self.operador} | {self.vehiculo} | {ruta_str}"
     
     class Meta:
         verbose_name = "Asignación de Ruta"
         verbose_name_plural = "Asignaciones de Rutas"
         db_table = 'asignacion_ruta'
-
 

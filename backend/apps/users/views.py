@@ -433,6 +433,7 @@ class ConsolidadoStatsView(APIView):
         orgs = EmpresaOrganizacion.objects.all()
         vehiculos = FlotaVehiculo.objects.all()
         operadores = PersonalOperador.objects.all()
+        colectores = PersonalColector.objects.all()
         rutas = VialidadRuta.objects.all()
 
         if tipo == 'municipio':
@@ -442,6 +443,10 @@ class ConsolidadoStatsView(APIView):
                 organizaciones__fecha_fin__isnull=True
             )
             operadores = operadores.filter(
+                vinculos_organizacion__organizacion__municipio_id=item_id,
+                vinculos_organizacion__fecha_fin__isnull=True
+            )
+            colectores = colectores.filter(
                 vinculos_organizacion__organizacion__municipio_id=item_id,
                 vinculos_organizacion__fecha_fin__isnull=True
             )
@@ -460,6 +465,10 @@ class ConsolidadoStatsView(APIView):
                 vinculos_organizacion__organizacion__gremio_id=item_id,
                 vinculos_organizacion__fecha_fin__isnull=True
             )
+            colectores = colectores.filter(
+                vinculos_organizacion__organizacion__gremio_id=item_id,
+                vinculos_organizacion__fecha_fin__isnull=True
+            )
             rutas = rutas.filter(permisos__org__gremio_id=item_id, permisos__estatus='ACT').distinct()
         elif tipo == 'organizacion':
             orgs = orgs.filter(rif=item_id)
@@ -468,6 +477,10 @@ class ConsolidadoStatsView(APIView):
                 organizaciones__fecha_fin__isnull=True
             )
             operadores = operadores.filter(
+                vinculos_organizacion__organizacion__rif=item_id,
+                vinculos_organizacion__fecha_fin__isnull=True
+            )
+            colectores = colectores.filter(
                 vinculos_organizacion__organizacion__rif=item_id,
                 vinculos_organizacion__fecha_fin__isnull=True
             )
@@ -482,6 +495,11 @@ class ConsolidadoStatsView(APIView):
                 organizaciones__organizacion__operadores__operador__licencia_grado=item_id,
                 organizaciones__fecha_fin__isnull=True,
                 organizaciones__organizacion__operadores__fecha_fin__isnull=True
+            ).distinct()
+            colectores = colectores.filter(
+                vinculos_organizacion__organizacion__operadores__operador__licencia_grado=item_id,
+                vinculos_organizacion__fecha_fin__isnull=True,
+                vinculos_organizacion__organizacion__operadores__fecha_fin__isnull=True
             ).distinct()
             rutas = rutas.filter(
                 permisos__org__operadores__operador__licencia_grado=item_id, 
@@ -515,6 +533,16 @@ class ConsolidadoStatsView(APIView):
             } for o in op_qs
         ]
         
+        col_qs = colectores.filter(vinculos_organizacion__fecha_fin__isnull=True).values('cedula', 'nombres', 'apellidos', 'vinculos_organizacion__organizacion__razon_social').distinct()
+        colectores_data = [
+            {
+                "cedula": c['cedula'],
+                "nombres": c['nombres'],
+                "apellidos": c['apellidos'],
+                "org__razon_social": c['vinculos_organizacion__organizacion__razon_social']
+            } for c in col_qs
+        ]
+        
         rutas_data = list(rutas.values('id', 'nombre', 'tipo__nombre', 'municipio_or__nombre', 'municipio_des__nombre', 'distancia_km').distinct())
 
         data = {
@@ -522,12 +550,14 @@ class ConsolidadoStatsView(APIView):
                 "organizaciones": orgs.distinct().count(),
                 "vehiculos": vehiculos.distinct().count(),
                 "operadores": operadores.distinct().count(),
+                "colectores": colectores.distinct().count(),
                 "rutas": rutas.distinct().count()
             },
             "lists": {
                 "organizaciones": orgs_data,
                 "vehiculos": vehiculos_data,
                 "operadores": operadores_data,
+                "colectores": colectores_data,
                 "rutas": rutas_data
             }
         }

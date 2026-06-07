@@ -44,8 +44,8 @@ const Consolidado = () => {
   const [loadingOptions, setLoadingOptions] = useState(false);
   
   const [data, setData] = useState({
-    metrics: { organizaciones: 0, vehiculos: 0, operadores: 0, rutas: 0 },
-    lists: { organizaciones: [], vehiculos: [], operadores: [], rutas: [] }
+    metrics: { organizaciones: 0, vehiculos: 0, operadores: 0, colectores: 0, rutas: 0 },
+    lists: { organizaciones: [], vehiculos: [], operadores: [], colectores: [], rutas: [] }
   });
   const [loadingData, setLoadingData] = useState(false);
   const [activeTab, setActiveTab] = useState('vehiculos'); // vehiculos, operadores, organizaciones, rutas
@@ -122,6 +122,7 @@ const Consolidado = () => {
       let endpoint = '';
       if (type === 'vehiculos') endpoint = `fleet/vehicles/${id}/`;
       else if (type === 'operadores') endpoint = `personnel/operators/${id}/`;
+      else if (type === 'colectores') endpoint = `personnel/collectors/${id}/`;
       else if (type === 'rutas') endpoint = `routes/rutas/${id}/`;
       else if (type === 'organizaciones') endpoint = `organizations/organizations/${id}/`;
 
@@ -137,6 +138,7 @@ const Consolidado = () => {
   const tabs = [
     { id: 'vehiculos', label: 'Flota / Vehículos', icon: 'directions_bus' },
     { id: 'operadores', label: 'Operadores', icon: 'badge' },
+    { id: 'colectores', label: 'Colectores', icon: 'person' },
     { id: 'rutas', label: 'Rutas', icon: 'alt_route' },
     { id: 'organizaciones', label: 'Organizaciones', icon: 'corporate_fare' }
   ];
@@ -210,10 +212,11 @@ const Consolidado = () => {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           
           {/* Metrics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {[
               { label: 'Vehículos', val: data.metrics.vehiculos, icon: 'directions_bus', color: 'text-primary', bg: 'bg-primary/10' },
               { label: 'Operadores', val: data.metrics.operadores, icon: 'badge', color: 'text-secondary', bg: 'bg-secondary/10' },
+              { label: 'Colectores', val: data.metrics.colectores, icon: 'person', color: 'text-success', bg: 'bg-success/10' },
               { label: 'Rutas', val: data.metrics.rutas, icon: 'alt_route', color: 'text-error', bg: 'bg-error/10' },
               { label: 'Organizaciones', val: data.metrics.organizaciones, icon: 'corporate_fare', color: 'text-tertiary', bg: 'bg-tertiary/10' }
             ].map((card, idx) => (
@@ -314,6 +317,38 @@ const Consolidado = () => {
                     ))}
                     {data.lists.operadores.length === 0 && (
                       <tr><td colSpan="5" className="p-8 text-center text-on-surface-variant">No hay operadores registrados en este filtro.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+</div>
+              )}
+
+              {activeTab === 'colectores' && (
+                <div className="w-full overflow-x-auto pb-4">
+<table className="w-full text-left border-collapse">
+                  <thead className="bg-surface-container sticky top-0 z-10">
+                    <tr>
+                      <th className="p-4 text-xs font-black text-on-surface-variant uppercase tracking-wider">Cédula</th>
+                      <th className="p-4 text-xs font-black text-on-surface-variant uppercase tracking-wider">Nombre Completo</th>
+                      <th className="p-4 text-xs font-black text-on-surface-variant uppercase tracking-wider">Organización</th>
+                      <th className="p-4 text-xs font-black text-on-surface-variant uppercase tracking-wider w-[50px]">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/50">
+                    {data.lists.colectores?.map((c, i) => (
+                      <tr key={i} className="hover:bg-surface-container-low/50">
+                        <td className="p-4 font-bold text-on-surface">{c.cedula}</td>
+                        <td className="p-4 text-sm text-on-surface-variant">{c.nombres} {c.apellidos}</td>
+                        <td className="p-4 text-sm text-on-surface-variant truncate max-w-[200px]">{c.org__razon_social}</td>
+                        <td className="p-4 text-center">
+                          <button onClick={() => handleViewDetails('colectores', c.cedula, `Colector ${c.nombres} ${c.apellidos}`)} className="text-primary hover:text-secondary transition-colors p-2 rounded-full hover:bg-primary/10" title="Ver Detalles">
+                            <span className="material-symbols-outlined text-[20px]">visibility</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {(!data.lists.colectores || data.lists.colectores.length === 0) && (
+                      <tr><td colSpan="4" className="p-8 text-center text-on-surface-variant">No hay colectores registrados en este filtro.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -430,7 +465,7 @@ const Consolidado = () => {
                           src={modalData.foto} 
                           alt="Foto principal" 
                           className={`relative z-20 object-cover shadow-2xl border-4 border-surface-container-lowest ${
-                            activeTab === 'operadores' ? 'w-32 h-32 rounded-full' : 'w-48 h-32 rounded-2xl'
+                            (activeTab === 'operadores' || activeTab === 'colectores') ? 'w-32 h-32 rounded-full' : 'w-48 h-32 rounded-2xl'
                           }`}
                        />
                     </div>

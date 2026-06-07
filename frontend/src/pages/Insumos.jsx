@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Modal } from '../components/common/Modal';
 import { usePermissions } from '../hooks/usePermissions';
+import { buildPdfHeader, addTableAndSave } from '../utils/pdfExport';
 
 const Insumos = () => {
   const [insumos, setInsumos] = useState([]);
@@ -13,6 +14,10 @@ const Insumos = () => {
   const [selectedInsumo, setSelectedInsumo] = useState(null);
   const [movimientos, setMovimientos] = useState([]);
   const [isHistorialOpen, setIsHistorialOpen] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterStock, setFilterStock] = useState('ALL');
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -151,6 +156,95 @@ const Insumos = () => {
     setIsModalOpen(true);
   };
 
+  const generatePDF = async () => {
+    try {
+      const { doc, startY } = buildPdfHeader(
+        'INVENTARIO DE INSUMOS Y REPUESTOS',
+        'Reporte detallado de stock actual, entradas y salidas.',
+        'Transporte Aragua Digital',
+        filteredInsumos.length
+      );
+
+      const head = ['Foto', 'Insumo / Categoría', 'Stock Mínimo', 'Entradas', 'Salidas', 'Stock Actual', 'Estado'];
+      const body = [];
+      const imagePromises = [];
+
+      filteredInsumos.forEach((insumo, index) => {
+        // Calculate entradas and salidas
+        const entradas = movimientos
+          .filter(m => m.insumo === insumo.id && m.tipo === 'ENTRADA')
+          .reduce((sum, m) => sum + parseFloat(m.cantidad), 0);
+        const salidas = movimientos
+          .filter(m => m.insumo === insumo.id && m.tipo === 'SALIDA')
+          .reduce((sum, m) => sum + parseFloat(m.cantidad), 0);
+
+        const isLowStock = parseFloat(insumo.stock_actual) <= parseFloat(insumo.stock_minimo);
+        
+        body.push([
+          '', // placeholder for image
+          `${insumo.nombre}\nCat: ${insumo.categoria}\nRef: ${insumo.descripcion ? insumo.descripcion.substring(0, 30) + '...' : 'N/A'}`,
+          `${insumo.stock_minimo} ${insumo.unidad_medida}`,
+          `+${entradas}`,
+          `-${salidas}`,
+          `${insumo.stock_actual} ${insumo.unidad_medida}`,
+          isLowStock ? 'CRÍTICO' : 'NORMAL'
+        ]);
+
+        if (insumo.foto) {
+          const p = new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+              resolve({ index, dataUrl: canvas.toDataURL('image/jpeg', 0.8) });
+            };
+            img.onerror = () => resolve(null);
+            img.src = insumo.foto;
+          });
+          imagePromises.push(p);
+        }
+      });
+
+      const loadedImages = (await Promise.all(imagePromises)).filter(Boolean);
+      const imagesMap = loadedImages.reduce((acc, curr) => {
+        acc[curr.index] = curr.dataUrl;
+        return acc;
+      }, {});
+
+      addTableAndSave(doc, startY, head, body, `Inventario_${Date.now()}.pdf`, {
+        bodyStyles: { minCellHeight: 20 },
+        columnStyles: {
+          0: { cellWidth: 20 },
+          3: { textColor: [30, 130, 76] },
+          4: { textColor: [214, 48, 49] },
+          5: { fontStyle: 'bold' }
+        },
+        didDrawCell: (data) => {
+          if (data.section === 'body' && data.column.index === 0) {
+            const imgData = imagesMap[data.row.index];
+            if (imgData) {
+              const dim = 16;
+              const x = data.cell.x + (data.cell.width - dim) / 2;
+              const y = data.cell.y + (data.cell.height - dim) / 2;
+              doc.addImage(imgData, 'JPEG', x, y, dim, dim);
+            } else {
+              doc.setFontSize(8);
+              doc.setTextColor(150);
+              doc.text("S/F", data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2, { align: 'center', baseline: 'middle' });
+            }
+          }
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Ocurrió un error al generar el PDF.");
+    }
+  };
+
   const openEditInsumo = (insumo) => {
     setSelectedInsumo(insumo);
     setFormData({
@@ -197,6 +291,15 @@ const Insumos = () => {
   ];
   const unidadesFinales = [...new Set([...unidadesPredefinidas, ...unidadesDB])];
 
+  const filteredInsumos = insumos.filter(insumo => {
+    const isLowStock = parseFloat(insumo.stock_actual) <= parseFloat(insumo.stock_minimo);
+    const matchesSearch = insumo.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (insumo.descripcion || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === '' || insumo.categoria === filterCategory;
+    const matchesStock = filterStock === 'ALL' ? true : filterStock === 'LOW' ? isLowStock : !isLowStock;
+    return matchesSearch && matchesCategory && matchesStock;
+  });
+
   return (
     <div className="min-h-screen bg-surface font-public-sans text-on-surface">
       {/* HEADER PREMIUM */}
@@ -228,8 +331,72 @@ const Insumos = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-8 pb-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {insumos.map((insumo) => {
+        {/* FILTERS & SEARCH */}
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 mb-8 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full md:w-96">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50">search</span>
+            <input 
+              type="text"
+              placeholder="Buscar insumo o repuesto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-surface hover:bg-surface-container-low border border-outline-variant/50 hover:border-primary/50 focus:border-primary rounded-xl outline-none transition-all text-[13px] font-bold text-on-surface"
+            />
+          </div>
+          <div className="flex w-full md:w-auto gap-3">
+            <button 
+              onClick={generatePDF}
+              className="px-5 py-3 bg-error/10 hover:bg-error/20 text-error rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border border-error/20"
+              title="Exportar Reporte PDF"
+            >
+              <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+              Exportar
+            </button>
+            <div className="relative flex-1 md:w-48">
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="w-full px-4 py-3 bg-surface hover:bg-surface-container-low border border-outline-variant/50 hover:border-primary/50 focus:border-primary rounded-xl outline-none transition-all text-[13px] font-bold text-on-surface appearance-none cursor-pointer"
+              >
+                <option value="">Todas las Categorías</option>
+                {categoriasFinales.map((cat, idx) => (
+                  <option key={idx} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 pointer-events-none">expand_more</span>
+            </div>
+            <div className="relative flex-1 md:w-48">
+              <select
+                value={filterStock}
+                onChange={(e) => setFilterStock(e.target.value)}
+                className="w-full px-4 py-3 bg-surface hover:bg-surface-container-low border border-outline-variant/50 hover:border-primary/50 focus:border-primary rounded-xl outline-none transition-all text-[13px] font-bold text-on-surface appearance-none cursor-pointer"
+              >
+                <option value="ALL">Todo el Stock</option>
+                <option value="OK">Stock Normal</option>
+                <option value="LOW">Stock Bajo / Crítico</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 pointer-events-none">expand_more</span>
+            </div>
+          </div>
+        </div>
+
+        {filteredInsumos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-surface-container-lowest rounded-3xl border border-outline-variant/30 text-center">
+            <span className="material-symbols-outlined text-6xl text-on-surface-variant/20 mb-4">inventory_2</span>
+            <h3 className="text-xl font-bold text-on-surface">No se encontraron insumos</h3>
+            <p className="text-sm text-on-surface-variant mt-2 max-w-sm">No hay resultados que coincidan con los filtros aplicados. Intenta cambiar los criterios de búsqueda.</p>
+            {(searchTerm || filterCategory || filterStock !== 'ALL') && (
+              <button 
+                onClick={() => { setSearchTerm(''); setFilterCategory(''); setFilterStock('ALL'); }}
+                className="mt-6 px-6 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl font-bold transition-colors text-sm"
+              >
+                Limpiar Filtros
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredInsumos.map((insumo) => {
             const isLowStock = parseFloat(insumo.stock_actual) <= parseFloat(insumo.stock_minimo);
             return (
               <div key={insumo.id} className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
@@ -302,12 +469,6 @@ const Insumos = () => {
             );
           })}
         </div>
-        {insumos.length === 0 && (
-          <div className="text-center py-20 bg-surface-container-lowest rounded-3xl border border-dashed border-outline-variant">
-            <span className="material-symbols-outlined text-[60px] text-on-surface-variant/30 mb-4">inventory_2</span>
-            <h3 className="text-xl font-bold text-on-surface mb-2">No hay insumos registrados</h3>
-            <p className="text-on-surface-variant">Comience añadiendo un nuevo insumo al sistema.</p>
-          </div>
         )}
       </div>
 

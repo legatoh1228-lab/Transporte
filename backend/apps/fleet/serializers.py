@@ -69,9 +69,15 @@ class VehiculoOrganizacionSerializer(serializers.ModelSerializer):
 
 class AsignacionRutaSerializer(serializers.ModelSerializer):
     operador_nombre = serializers.SerializerMethodField()
+    colector_nombre = serializers.SerializerMethodField()
     vehiculo_placa = serializers.ReadOnlyField(source='vehiculo.placa')
-    ruta_nombre = serializers.ReadOnlyField(source='horario.permiso.ruta.nombre')
-    organizacion_nombre = serializers.ReadOnlyField(source='horario.permiso.org.razon_social')
+    vehiculo_marca = serializers.ReadOnlyField(source='vehiculo.marca')
+    vehiculo_modelo = serializers.ReadOnlyField(source='vehiculo.modelo')
+    vehiculo_capacidad = serializers.ReadOnlyField(source='vehiculo.capacidad')
+    
+    # Computed from horario if available, otherwise from direct fields
+    ruta_nombre = serializers.SerializerMethodField()
+    organizacion_nombre = serializers.SerializerMethodField()
     horario_detalle = serializers.SerializerMethodField()
 
     class Meta:
@@ -81,6 +87,25 @@ class AsignacionRutaSerializer(serializers.ModelSerializer):
     def get_operador_nombre(self, obj):
         return f"{obj.operador.nombres} {obj.operador.apellidos}"
 
+    def get_colector_nombre(self, obj):
+        if obj.colector:
+            return f"{obj.colector.nombres} {obj.colector.apellidos}"
+        return None
+
+    def get_ruta_nombre(self, obj):
+        if obj.ruta:
+            return obj.ruta.nombre
+        if obj.horario:
+            return obj.horario.permiso.ruta.nombre
+        return None
+
+    def get_organizacion_nombre(self, obj):
+        if obj.organizacion:
+            return obj.organizacion.razon_social
+        if obj.horario:
+            return obj.horario.permiso.org.razon_social
+        return None
+
     def get_horario_detalle(self, obj):
         if obj.horario:
             inicio = obj.horario.hora_inicio.strftime('%I:%M %p') if obj.horario.hora_inicio else '--:--'
@@ -88,4 +113,9 @@ class AsignacionRutaSerializer(serializers.ModelSerializer):
             if obj.horario.sentido == 'SERVICIO' or obj.horario.frecuencia_minutos == 0:
                 return f"{obj.horario.get_sentido_display()}: {inicio} - {fin}"
             return f"{obj.horario.get_sentido_display()}: {inicio} - {fin} ({obj.horario.frecuencia_minutos} min)"
+        if obj.hora_inicio or obj.hora_fin:
+            inicio = obj.hora_inicio.strftime('%I:%M %p') if obj.hora_inicio else '--:--'
+            fin = obj.hora_fin.strftime('%I:%M %p') if obj.hora_fin else '--:--'
+            return f"{inicio} - {fin}"
         return "Sin Horario"
+

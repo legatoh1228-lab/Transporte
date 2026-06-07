@@ -74,7 +74,7 @@ export function buildPdfHeader(title, subtitle, systemName = 'TRANSPORTE ARAGUA 
  * @param {string[][]} body  - Array of row data arrays
  * @param {string} filename  - Output filename without path
  */
-export function addTableAndSave(doc, startY, head, body, filename) {
+export function addTableAndSave(doc, startY, head, body, filename, extraOptions = {}) {
   autoTable(doc, {
     head: [head],
     body,
@@ -109,7 +109,8 @@ export function addTableAndSave(doc, startY, head, body, filename) {
       doc.setFontSize(6.5);
       doc.setFont('helvetica', 'normal');
       doc.text('Secretaría de Transporte – Gobernación del Estado Aragua · Documento generado automáticamente · Confidencial', pWidth / 2, pHeight - 3.5, { align: 'center' });
-    }
+    },
+    ...extraOptions
   });
 
   doc.save(filename);

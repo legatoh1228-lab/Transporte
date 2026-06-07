@@ -21,9 +21,11 @@ const Asignaciones = () => {
         setTimeout(() => setToastMessage(null), 5000);
     };
     const [organizations, setOrganizations] = useState([]);
-    const [orgPermisos, setOrgPermisos] = useState([]);
-    const [permisoHorarios, setPermisoHorarios] = useState([]);
-    const [orgOperators, setOrgOperators] = useState([]);
+    const [allOperators, setAllOperators] = useState([]);
+    const [allColectores, setAllColectores] = useState([]);
+    const [allVehicles, setAllVehicles] = useState([]);
+    const [allRoutes, setAllRoutes] = useState([]);
+    // Filtered by org (if already linked)
     const [orgVehicles, setOrgVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -34,9 +36,11 @@ const Asignaciones = () => {
     // Form state
     const [formData, setFormData] = useState({
         organizacion: '',
-        permiso: '',
-        horario: '',
+        ruta: '',
+        hora_inicio: '',
+        hora_fin: '',
         operador: '',
+        colector: '',
         vehiculo: '',
         estatus: 'Activo',
         observaciones: ''
@@ -50,13 +54,21 @@ const Asignaciones = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [asignRes, orgRes, brandingRes] = await Promise.all([
+            const [asignRes, orgRes, opRes, colRes, vehRes, rutaRes, brandingRes] = await Promise.all([
                 api.get('fleet/asignaciones-operativas/'),
                 api.get('organizations/organizations/'),
+                api.get('personnel/operators/'),
+                api.get('personnel/collectors/'),
+                api.get('fleet/vehicles/'),
+                api.get('routes/rutas/'),
                 api.get('catalogs/configuracion-visual/')
             ]);
             setAsignaciones(asignRes.data);
             setOrganizations(orgRes.data);
+            setAllOperators(opRes.data);
+            setAllColectores(colRes.data);
+            setAllVehicles(vehRes.data);
+            setAllRoutes(rutaRes.data);
             if (brandingRes.data) {
                 setBranding({
                     nombre_sistema: brandingRes.data.nombre_sistema || 'Transporte Aragua Digital',
@@ -78,37 +90,25 @@ const Asignaciones = () => {
         }
     }, []);
 
-    // Effect for cascading dropdowns
+    // When org changes, filter vehicles by org if links exist, otherwise show all
     useEffect(() => {
         if (formData.organizacion) {
-            Promise.all([
-                api.get(`routes/permissions/?org=${formData.organizacion}&estatus=ACT`),
-                api.get(`personnel/operator-organizations/?organizacion=${formData.organizacion}`),
-                api.get(`fleet/vehicle-organizations/?organizacion=${formData.organizacion}`)
-            ]).then(([permRes, opRes, vehRes]) => {
-                setOrgPermisos(permRes.data);
-                // Extraemos la información real de los M2M
-                setOrgOperators(opRes.data.map(o => ({
-                    cedula: o.operador, 
-                    nombres: o.operador_nombre.split(' ')[0] || '', 
-                    apellidos: o.operador_nombre.split(' ').slice(1).join(' ') || ''
-                })));
-                setOrgVehicles(vehRes.data.map(v => ({ placa: v.vehiculo_placa })));
-            });
-            setFormData(prev => ({...prev, permiso: '', horario: '', operador: '', vehiculo: ''}));
+            api.get(`fleet/vehicle-organizations/?organizacion=${formData.organizacion}`)
+                .then(res => {
+                    const linked = res.data.filter(v => !v.fecha_fin).map(v => v.vehiculo_placa);
+                    // If org has linked vehicles, show only those; otherwise show all
+                    if (linked.length > 0) {
+                        setOrgVehicles(allVehicles.filter(v => linked.includes(v.placa)));
+                    } else {
+                        setOrgVehicles(allVehicles);
+                    }
+                })
+                .catch(() => setOrgVehicles(allVehicles));
+            setFormData(prev => ({...prev, operador: '', colector: '', vehiculo: '', ruta: ''}));
         } else {
-            setOrgPermisos([]); setOrgOperators([]); setOrgVehicles([]);
+            setOrgVehicles(allVehicles);
         }
-    }, [formData.organizacion]);
-
-    useEffect(() => {
-        if (formData.permiso) {
-            api.get(`routes/horarios/?permiso=${formData.permiso}`).then(res => setPermisoHorarios(res.data));
-            setFormData(prev => ({...prev, horario: ''}));
-        } else {
-            setPermisoHorarios([]);
-        }
-    }, [formData.permiso]);
+    }, [formData.organizacion, allVehicles]);
 
     const generatePDF = () => {
         const doc = new jsPDF();
@@ -135,9 +135,9 @@ const Asignaciones = () => {
         doc.text(`Total asignaciones: ${asignaciones.length}`, 20, 50);
 
         const tableData = asignaciones.map(a => [
-            `${a.operador_nombre}\n(${a.operador})`,
+            `${a.operador_nombre}\n(${a.operador})${a.colector_nombre ? '\nCol: ' + a.colector_nombre : ''}`,
             a.vehiculo_placa,
-            `${a.ruta_nombre}\n${a.organizacion_nombre}`,
+            `${a.ruta_nombre || 'Sin ruta'}\n${a.organizacion_nombre || ''}`,
             a.horario_detalle,
             a.estatus.toUpperCase()
         ]);
@@ -156,34 +156,43 @@ const Asignaciones = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!formData.operador) { showToast('Debe seleccionar un operador.', true); return; }
+        if (!formData.vehiculo) { showToast('Debe seleccionar una unidad.', true); return; }
+        if (!formData.ruta) { showToast('Debe seleccionar una ruta.', true); return; }
+        
         try {
             const payload = {
                 operador: formData.operador,
+                colector: formData.colector || null,
                 vehiculo: formData.vehiculo,
-                horario: formData.horario,
+                ruta: formData.ruta,
+                organizacion: formData.organizacion || null,
+                hora_inicio: formData.hora_inicio || null,
+                hora_fin: formData.hora_fin || null,
                 estatus: formData.estatus,
                 observaciones: formData.observaciones
             };
             await api.post('fleet/asignaciones-operativas/', payload);
             setShowModal(false);
-            setFormData({ organizacion: '', permiso: '', horario: '', operador: '', vehiculo: '', estatus: 'Activo', observaciones: '' });
+            setFormData({ organizacion: '', ruta: '', hora_inicio: '', hora_fin: '', operador: '', colector: '', vehiculo: '', estatus: 'Activo', observaciones: '' });
             fetchData();
             showToast('Vinculación creada exitosamente.');
         } catch (error) {
             console.error(error);
-            let msg = 'Error desconocido al crear la vinculación.';
-            if (error.response?.data) {
-                if (typeof error.response.data === 'object') {
-                    msg = Object.entries(error.response.data)
-                        .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`)
-                        .join(' | ');
-                } else if (typeof error.response.data === 'string') {
-                    msg = error.response.data;
-                }
+            const data = error.response?.data;
+            let errorMsg = 'Error al crear vinculación.';
+            if (data) {
+                if (data.operador) errorMsg = data.operador[0] || data.operador;
+                else if (data.colector) errorMsg = data.colector[0] || data.colector;
+                else if (data.vehiculo) errorMsg = data.vehiculo[0] || data.vehiculo;
+                else if (data.ruta) errorMsg = data.ruta[0] || data.ruta;
+                else if (data.non_field_errors) errorMsg = data.non_field_errors[0] || data.non_field_errors;
+                else if (typeof data === 'object') errorMsg = Object.values(data)[0]?.[0] || Object.values(data)[0] || errorMsg;
             }
-            showToast(msg, true);
+            showToast(typeof errorMsg === 'string' ? errorMsg : 'Error de validación al crear vinculación', 'error');
         }
     };
+
 
     const handleDelete = async (id) => {
         if (window.confirm("¿Desea eliminar esta vinculación?")) {
@@ -236,7 +245,7 @@ const Asignaciones = () => {
         );
     }
 
-    const selectedOperatorObj = formData.operador ? orgOperators.find(op => op.cedula === formData.operador) : null;
+    const selectedOperatorObj = formData.operador ? allOperators.find(op => op.cedula === formData.operador) : null;
     const selectedVehicleObj = formData.vehiculo ? orgVehicles.find(v => v.placa === formData.vehiculo) : null;
 
     return (
@@ -313,6 +322,7 @@ const Asignaciones = () => {
                                             <div>
                                                 <div className="font-black text-on-surface text-base leading-none">{asig.operador_nombre}</div>
                                                 <div className="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider mt-1.5 opacity-60">ID: {asig.operador}</div>
+                                                {asig.colector && <div className="text-[10px] text-success font-bold mt-1">Col: {asig.colector_nombre}</div>}
                                             </div>
                                         </div>
                                     </td>
@@ -396,11 +406,16 @@ const Asignaciones = () => {
             >
                 {selectedAsignacion && (
                     <div className="space-y-6 p-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div className="p-5 bg-surface-container rounded-[24px] border border-outline-variant/30">
                                 <span className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest block mb-2">Operador</span>
-                                <p className="font-black text-on-surface">{selectedAsignacion.operador_nombre} {selectedAsignacion.operador_apellido}</p>
+                                <p className="font-black text-on-surface">{selectedAsignacion.operador_nombre}</p>
                                 <p className="text-xs font-bold text-primary mt-1">{selectedAsignacion.operador}</p>
+                            </div>
+                            <div className="p-5 bg-surface-container rounded-[24px] border border-outline-variant/30">
+                                <span className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest block mb-2">Colector</span>
+                                <p className="font-black text-on-surface">{selectedAsignacion.colector_nombre || 'N/A'}</p>
+                                {selectedAsignacion.colector && <p className="text-xs font-bold text-success mt-1">{selectedAsignacion.colector}</p>}
                             </div>
                             <div className="p-5 bg-surface-container rounded-[24px] border border-outline-variant/30">
                                 <span className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-widest block mb-2">Unidad</span>
@@ -438,97 +453,138 @@ const Asignaciones = () => {
                 <div className="py-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Left: Form Fields */}
                     <form className="lg:col-span-7 grid grid-cols-1 md:grid-cols-12 gap-6">
+                        {/* Organización */}
                         <div className="md:col-span-12 space-y-1.5">
                             <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-[16px] text-primary">domain</span>
-                                Organización <span className="text-error">*</span>
+                                Organización (Opcional)
                             </label>
                             <select 
-                                required 
                                 className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
                                 value={formData.organizacion} onChange={(e) => setFormData({...formData, organizacion: e.target.value})}
                             >
-                                <option value="">Seleccione una organización...</option>
+                                <option value="">Sin organización específica...</option>
                                 {organizations.map(org => <option key={org.rif} value={org.rif}>{org.razon_social} ({org.rif})</option>)}
                             </select>
                         </div>
 
-                        <div className="md:col-span-6 space-y-1.5">
+                        {/* Ruta */}
+                        <div className="md:col-span-8 space-y-1.5">
                             <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-[16px] text-tertiary">alt_route</span>
-                                Ruta Permitida <span className="text-error">*</span>
+                                Ruta <span className="text-error">*</span>
                             </label>
                             <select 
                                 required 
-                                disabled={!formData.organizacion}
-                                className="w-full disabled:opacity-50 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
-                                value={formData.permiso} onChange={(e) => setFormData({...formData, permiso: e.target.value})}
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
+                                value={formData.ruta} onChange={(e) => setFormData({...formData, ruta: e.target.value})}
                             >
                                 <option value="">Seleccione ruta...</option>
-                                {orgPermisos.map(p => <option key={p.id} value={p.id}>{p.ruta_nombre}</option>)}
+                                {allRoutes.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
                             </select>
                         </div>
 
+                        {/* Estatus */}
+                        <div className="md:col-span-4 space-y-1.5">
+                            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[16px] text-on-surface">toggle_on</span>
+                                Estatus
+                            </label>
+                            <select 
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
+                                value={formData.estatus} onChange={(e) => setFormData({...formData, estatus: e.target.value})}
+                            >
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo</option>
+                                <option value="Finalizado">Finalizado</option>
+                            </select>
+                        </div>
+
+                        {/* Hora Inicio / Fin */}
                         <div className="md:col-span-6 space-y-1.5">
                             <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-[16px] text-on-surface">schedule</span>
-                                Horario <span className="text-error">*</span>
+                                Hora Inicio
                             </label>
-                            <select 
-                                required 
-                                disabled={!formData.permiso}
-                                className="w-full disabled:opacity-50 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
-                                value={formData.horario} onChange={(e) => setFormData({...formData, horario: e.target.value})}
-                            >
-                                <option value="">Seleccione horario...</option>
-                                {permisoHorarios.map(h => <option key={h.id} value={h.id}>{h.sentido} {h.hora_inicio?.slice(0,5)}-{h.hora_fin?.slice(0,5)}</option>)}
-                            </select>
+                            <input 
+                                type="time"
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
+                                value={formData.hora_inicio} onChange={(e) => setFormData({...formData, hora_inicio: e.target.value})}
+                            />
+                        </div>
+                        <div className="md:col-span-6 space-y-1.5">
+                            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[16px] text-on-surface">schedule</span>
+                                Hora Fin
+                            </label>
+                            <input 
+                                type="time"
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
+                                value={formData.hora_fin} onChange={(e) => setFormData({...formData, hora_fin: e.target.value})}
+                            />
                         </div>
 
-                        <div className="md:col-span-6 space-y-1.5">
+                        {/* Operador */}
+                        <div className="md:col-span-4 space-y-1.5">
                             <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-[16px] text-primary">person</span>
                                 Operador <span className="text-error">*</span>
                             </label>
                             <select 
                                 required 
-                                disabled={!formData.organizacion}
-                                className="w-full disabled:opacity-50 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
                                 value={formData.operador} onChange={(e) => setFormData({...formData, operador: e.target.value})}
                             >
                                 <option value="">Seleccione operador...</option>
-                                {orgOperators.map(op => <option key={op.cedula} value={op.cedula}>{op.nombres} {op.apellidos} ({op.cedula})</option>)}
+                                {allOperators.map(op => <option key={op.cedula} value={op.cedula}>{op.nombres} {op.apellidos} ({op.cedula})</option>)}
                             </select>
                         </div>
 
-                        <div className="md:col-span-6 space-y-1.5">
+                        {/* Colector */}
+                        <div className="md:col-span-4 space-y-1.5">
+                            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-[16px] text-success">group</span>
+                                Colector (Opc.)
+                            </label>
+                            <select 
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-success focus:ring-2 focus:ring-success/50 transition-all shadow-sm"
+                                value={formData.colector} onChange={(e) => setFormData({...formData, colector: e.target.value})}
+                            >
+                                <option value="">Sin colector...</option>
+                                {allColectores.map(c => <option key={c.cedula} value={c.cedula}>{c.nombres} {c.apellidos} ({c.cedula})</option>)}
+                            </select>
+                        </div>
+
+                        {/* Unidad */}
+                        <div className="md:col-span-4 space-y-1.5">
                             <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-[16px] text-secondary">directions_bus</span>
                                 Unidad <span className="text-error">*</span>
                             </label>
                             <select 
                                 required 
-                                disabled={!formData.organizacion}
-                                className="w-full disabled:opacity-50 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
                                 value={formData.vehiculo} onChange={(e) => setFormData({...formData, vehiculo: e.target.value})}
                             >
                                 <option value="">Seleccione unidad...</option>
-                                {orgVehicles.map(v => <option key={v.placa} value={v.placa}>{v.placa}</option>)}
+                                {orgVehicles.map(v => <option key={v.placa} value={v.placa}>{v.placa}{v.marca ? ` - ${v.marca} ${v.modelo || ''}` : ''}</option>)}
                             </select>
                         </div>
 
+                        {/* Observaciones */}
                         <div className="md:col-span-12 space-y-1.5">
                             <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide ml-1 flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-[16px]">notes</span>
                                 Observaciones / Notas
                             </label>
                             <textarea 
-                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all h-28 resize-none shadow-sm"
+                                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-xl py-3 px-4 text-sm text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 transition-all h-24 resize-none shadow-sm"
                                 placeholder="Ingrese notas adicionales o instrucciones especiales para esta asignación..."
                                 value={formData.observaciones} onChange={(e) => setFormData({...formData, observaciones: e.target.value})}
                             />
                         </div>
                     </form>
+
 
                     {/* Right: Previews */}
                     <div className="lg:col-span-5 flex flex-col gap-5 lg:border-l border-outline-variant/30 lg:pl-6 pt-4 lg:pt-0 border-t lg:border-t-0">
