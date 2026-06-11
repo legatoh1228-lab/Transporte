@@ -329,4 +329,20 @@
   .animate-shimmer {
     animation: shimmer 2s infinite linear;
   }
+
+  /* Custom scrollbar para tablas fluidas */
+  .custom-scrollbar::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--color-outline-variant);
+    border-radius: 20px;
+  }
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: var(--color-outline);
+  }
 }

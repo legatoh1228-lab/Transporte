@@ -201,6 +201,10 @@ const Vehicles = () => {
     propietario: '',
     propietario_identificacion: '',
     cps: '',
+    bateria_marca: '',
+    bateria_amperaje: '',
+    bateria_voltaje: '',
+    bateria_fecha_instalacion: '',
     combustible: '',
     aire_acondicionado: false,
     accesibilidad: false,
@@ -293,6 +297,10 @@ const Vehicles = () => {
       propietario: '',
       propietario_identificacion: '',
       cps: '',
+      bateria_marca: '',
+      bateria_amperaje: '',
+      bateria_voltaje: '',
+      bateria_fecha_instalacion: '',
       combustible: '',
       aire_acondicionado: false,
       accesibilidad: false,
@@ -535,7 +543,7 @@ const Vehicles = () => {
           <h1 className="text-4xl font-black text-on-surface tracking-tighter leading-none">Gestión de Flota</h1>
           <p className="text-sm font-bold text-on-surface-variant mt-2 max-w-2xl opacity-70">Monitoreo técnico y registro de unidades operativas del sistema de transporte institucional.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
            <div className="bg-surface-container-high px-4 py-2 rounded-2xl border border-outline-variant/50 flex items-center gap-3 shadow-sm">
               <span className="material-symbols-outlined text-primary text-[20px]">directions_bus</span>
               <div className="flex flex-col">
@@ -604,7 +612,7 @@ const Vehicles = () => {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-start md:justify-end">
           <button
             onClick={generatePDF}
             className="px-6 py-3.5 bg-surface-container-high text-on-surface-variant rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-surface-container-highest transition-all border border-outline-variant shadow-sm"
@@ -698,14 +706,14 @@ const Vehicles = () => {
 
       {/* Data Table Container */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-[32px] overflow-hidden flex flex-col shadow-sm border-b-4 border-b-primary/10">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           {loading ? (
             <div className="p-32 text-center">
                <div className="inline-block w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
                <p className="text-sm font-black text-on-surface-variant uppercase tracking-widest animate-pulse">Sincronizando Base de Datos...</p>
             </div>
           ) : (
-            <div className="w-full overflow-x-auto pb-4">
+            <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left border-separate border-spacing-0 min-w-[1000px]">
               <thead>
                 <tr className="bg-surface-container-high">
@@ -1056,6 +1064,13 @@ const Vehicles = () => {
                          <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Cauchos / Neumáticos</span>
                          <span className="font-black text-on-surface text-sm">{selectedVehicle.tamano_caucho || 'No especificado'}</span>
                       </div>
+                      <div className="bg-surface-container-low/50 p-4 rounded-2xl border border-outline-variant/30 flex flex-col justify-center">
+                         <span className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest mb-1">Batería (Sistema Eléctrico)</span>
+                         <span className="font-black text-on-surface text-sm">
+                            {selectedVehicle.bateria_voltaje || 'S/N Voltios'} • {selectedVehicle.bateria_amperaje || 'S/N Amp'}
+                            <span className="block text-xs font-bold text-primary/70 mt-0.5">{selectedVehicle.bateria_marca || 'Marca no especificada'}</span>
+                         </span>
+                      </div>
                       {selectedVehicle.modalidad == 3 && (
                          <div className="bg-secondary/5 p-4 rounded-2xl border border-secondary/20 flex flex-col justify-center col-span-2 sm:col-span-1">
                             <span className="text-[10px] font-black text-secondary/70 uppercase tracking-widest mb-1">Kit de Arrastre / Rin</span>
@@ -1251,7 +1266,7 @@ const Vehicles = () => {
                   {formData.modalidad != '3' ? (
                      <div className="space-y-3">
                         <label className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/20 cursor-pointer hover:border-primary/30 transition-all group">
-                           <div className="flex items-center gap-3">
+                           <div className="flex flex-wrap items-center gap-3">
                               <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">ac_unit</span>
                               <span className="text-[11px] font-black text-on-surface-variant uppercase tracking-widest">Aire Acondicionado</span>
                            </div>
@@ -1262,7 +1277,7 @@ const Vehicles = () => {
                            </div>
                         </label>
                         <label className="flex items-center justify-between p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/20 cursor-pointer hover:border-primary/30 transition-all group">
-                           <div className="flex items-center gap-3">
+                           <div className="flex flex-wrap items-center gap-3">
                               <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">accessible</span>
                               <span className="text-[11px] font-black text-on-surface-variant uppercase tracking-widest">Accesibilidad</span>
                            </div>
@@ -1361,6 +1376,26 @@ const Vehicles = () => {
                      <div className="space-y-1.5">
                         <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Tamaño de Caucho</label>
                         <input name="tamano_caucho" value={formData.tamano_caucho || ''} onChange={handleInputChange} placeholder="Ej: 175/70 R13" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase" />
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Marca de Batería</label>
+                        <input name="bateria_marca" value={formData.bateria_marca || ''} onChange={handleInputChange} placeholder="Ej: Duncan" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase" />
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Amperaje de Batería</label>
+                        <input name="bateria_amperaje" value={formData.bateria_amperaje || ''} onChange={handleInputChange} placeholder="Ej: 800 AMP" className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase" />
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Voltaje Batería</label>
+                        <select name="bateria_voltaje" value={formData.bateria_voltaje || ''} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase">
+                           <option value="">Seleccione...</option>
+                           <option value="12V">12V</option>
+                           <option value="24V">24V</option>
+                        </select>
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant/70 uppercase tracking-widest ml-1">Instalación Batería</label>
+                        <input type="date" name="bateria_fecha_instalacion" value={formData.bateria_fecha_instalacion || ''} onChange={handleInputChange} className="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl py-3.5 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase" />
                      </div>
                   </div>
                   {formData.modalidad == '3' && (
@@ -1909,7 +1944,7 @@ const Vehicles = () => {
       {/* Bulk Actions Floating Bar */}
       {selectedPlacas.length > 0 && (
         <div className="fixed bottom-6 right-6 z-[1000] bg-slate-900/95 text-white backdrop-blur-md px-6 py-4 rounded-2xl flex items-center gap-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-slate-800/80 animate-in slide-in-from-bottom-8 duration-300">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="material-symbols-outlined text-[20px] text-sky-400">check_box</span>
             <span className="text-xs font-black uppercase tracking-wider text-slate-100">
               {selectedPlacas.length} {selectedPlacas.length === 1 ? 'unidad seleccionada' : 'unidades seleccionadas'}

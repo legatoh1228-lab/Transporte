@@ -186,11 +186,11 @@ export default function Usuarios() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           {loading ? (
             <div className="p-20 text-center text-on-surface-variant">Cargando usuarios...</div>
           ) : (
-            <div className="w-full overflow-x-auto pb-4">
+            <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left text-sm text-on-surface">
               <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold">
                 <tr>
@@ -206,7 +206,7 @@ export default function Usuarios() {
                 {paginatedData.map((row) => (
                   <tr key={row.id} className="hover:bg-surface-container-low transition-colors group">
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary-fixed-dim text-on-primary-fixed-variant flex items-center justify-center font-bold text-xs shrink-0">
                           {row.username.substring(0,2).toUpperCase()}
                         </div>

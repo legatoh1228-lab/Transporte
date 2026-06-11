@@ -256,7 +256,7 @@ const Consolidado = () => {
 
             <div className="p-0 max-h-[500px] overflow-y-auto custom-scrollbar">
               {activeTab === 'vehiculos' && (
-                <div className="w-full overflow-x-auto pb-4">
+                <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left border-collapse">
                   <thead className="bg-surface-container sticky top-0 z-10">
                     <tr>
@@ -290,7 +290,7 @@ const Consolidado = () => {
               )}
 
               {activeTab === 'operadores' && (
-                <div className="w-full overflow-x-auto pb-4">
+                <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left border-collapse">
                   <thead className="bg-surface-container sticky top-0 z-10">
                     <tr>
@@ -324,7 +324,7 @@ const Consolidado = () => {
               )}
 
               {activeTab === 'colectores' && (
-                <div className="w-full overflow-x-auto pb-4">
+                <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left border-collapse">
                   <thead className="bg-surface-container sticky top-0 z-10">
                     <tr>
@@ -356,7 +356,7 @@ const Consolidado = () => {
               )}
 
               {activeTab === 'rutas' && (
-                <div className="w-full overflow-x-auto pb-4">
+                <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left border-collapse">
                   <thead className="bg-surface-container sticky top-0 z-10">
                     <tr>
@@ -390,7 +390,7 @@ const Consolidado = () => {
               )}
 
               {activeTab === 'organizaciones' && (
-                <div className="w-full overflow-x-auto pb-4">
+                <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left border-collapse">
                   <thead className="bg-surface-container sticky top-0 z-10">
                     <tr>

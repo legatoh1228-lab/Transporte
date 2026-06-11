@@ -240,7 +240,7 @@ export default function Auditoria() {
               )}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button 
                 onClick={fetchActivities}
                 className="bg-surface-container-highest/50 border border-outline-variant/50 hover:bg-primary/10 hover:text-primary hover:border-primary/30 text-on-surface-variant px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center group shadow-sm"
@@ -261,8 +261,8 @@ export default function Auditoria() {
         </div>
 
         {/* Tabla Refinada */}
-        <div className="overflow-x-auto">
-          <div className="w-full overflow-x-auto pb-4">
+        <div className="overflow-x-auto custom-scrollbar">
+          <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left text-sm text-on-surface">
             <thead className="bg-surface-container/50 text-[11px] uppercase text-on-surface-variant font-black tracking-wider border-b border-outline-variant/60">
               <tr>

@@ -150,7 +150,7 @@ const Gremios = () => {
             Administración de gremios, federaciones y asociaciones de transporte a los que pertenecen las organizaciones operadoras.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-2xl border border-outline-variant/50">
             <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>groups</span>
             <div className="flex flex-col">
@@ -199,7 +199,7 @@ const Gremios = () => {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           {loading ? (
             <div className="p-20 text-center flex flex-col items-center gap-4">
               <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -211,7 +211,7 @@ const Gremios = () => {
               <p className="font-bold text-on-surface">{error}</p>
             </div>
           ) : (
-            <div className="w-full overflow-x-auto pb-4">
+            <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left text-sm text-on-surface border-collapse">
               <thead className="bg-surface-container-high/50 text-[11px] uppercase text-on-surface-variant font-black tracking-widest border-b border-outline-variant">
                 <tr>

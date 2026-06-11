@@ -227,7 +227,7 @@ export default function RouteMap() {
                       className={`group p-3 rounded-xl cursor-pointer transition-all border ${isSelected ? 'bg-primary/5 border-primary/20 shadow-sm' : 'bg-transparent hover:bg-surface-container-low border-transparent'}`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'}`}>
                             <span className="material-symbols-outlined text-[18px]">route</span>
                           </div>

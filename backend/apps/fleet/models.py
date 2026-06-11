@@ -60,6 +60,12 @@ class FlotaVehiculo(models.Model):
     fecha_reemplazo_piezas = models.DateField(blank=True, null=True, verbose_name="Último Reemplazo Piezas")
     reemplazo_piezas_detalles = models.TextField(blank=True, null=True, verbose_name="Detalles Reemplazo Piezas")
 
+    # Sistema Eléctrico / Batería
+    bateria_marca = models.CharField(max_length=50, blank=True, null=True, verbose_name="Marca de Batería")
+    bateria_amperaje = models.CharField(max_length=50, blank=True, null=True, verbose_name="Amperaje de Batería")
+    bateria_voltaje = models.CharField(max_length=20, blank=True, null=True, verbose_name="Voltaje de Batería")
+    bateria_fecha_instalacion = models.DateField(blank=True, null=True, verbose_name="Fecha de Instalación Batería")
+
     # Campos de Propietario y CPS
     propietario = models.CharField(max_length=150, blank=True, null=True, verbose_name="Propietario")
     propietario_identificacion = models.CharField(max_length=15, blank=True, null=True, verbose_name="Identificación Propietario")

@@ -123,7 +123,7 @@ export default function VisualSettings() {
       {/* Branding Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <section className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 flex flex-col gap-8 shadow-sm">
-           <div className="flex items-center gap-3">
+           <div className="flex flex-wrap items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                  <span className="material-symbols-outlined text-primary">branding_watermark</span>
               </div>
@@ -167,7 +167,7 @@ export default function VisualSettings() {
 
         {/* Login Background Section */}
         <section className="bg-surface-container-lowest border border-outline-variant/60 rounded-[32px] p-8 flex flex-col gap-8 shadow-sm">
-           <div className="flex items-center gap-3">
+           <div className="flex flex-wrap items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
                  <span className="material-symbols-outlined text-secondary">wallpaper</span>
               </div>

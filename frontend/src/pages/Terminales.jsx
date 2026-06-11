@@ -272,7 +272,7 @@ export default function Terminales() {
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">Registro de Terminales</h1>
           <p className="text-sm text-on-surface-variant font-medium mt-1">Gestión y control de la infraestructura de terminales de pasajeros.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={generatePDF}
             className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 border border-outline-variant shadow-sm"
@@ -309,8 +309,8 @@ export default function Terminales() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <div className="w-full overflow-x-auto pb-4">
+        <div className="overflow-x-auto custom-scrollbar">
+          <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left text-sm text-on-surface">
             <thead className="bg-surface-container text-xs uppercase text-on-surface-variant font-bold">
               <tr>

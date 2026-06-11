@@ -606,11 +606,11 @@ const Organizaciones = () => {
 
       {/* Data Table */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm flex flex-col">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           {loading ? (
              <div className="p-16 text-center text-on-surface-variant text-sm animate-pulse">Cargando organizaciones autorizadas...</div>
           ) : (
-            <div className="w-full overflow-x-auto pb-4">
+            <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left border-collapse">
               <thead className="bg-surface-container-low/80 border-b border-outline-variant">
                 <tr>
@@ -1168,7 +1168,7 @@ const Organizaciones = () => {
                 <span className="material-symbols-outlined text-[32px]">apartment</span>
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <h3 className="text-xl font-black text-on-surface">{viewModal.data.razon_social}</h3>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border ${viewModal.data.esta_activa ? 'bg-tertiary-fixed text-on-tertiary-fixed border-tertiary-fixed-dim/50' : 'bg-error-container text-on-error-container border-error/20'}`}>
                     {viewModal.data.esta_activa ? 'Activa' : 'Inactiva'}
@@ -1262,7 +1262,7 @@ const Organizaciones = () => {
                   {viewModal.data.rutas.map((r, i) => (
                     <div key={i} className="flex flex-col gap-2 p-4 bg-surface-container rounded-xl border border-outline-variant hover:border-primary/30 transition-colors">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                             <span className="material-symbols-outlined text-[20px]">route</span>
                           </div>
@@ -1658,7 +1658,7 @@ const Organizaciones = () => {
       {/* Bulk Actions Floating Bar */}
       {selectedRifs.length > 0 && (
         <div className="fixed bottom-6 right-6 z-[1000] bg-slate-900/95 text-white backdrop-blur-md px-6 py-4 rounded-2xl flex items-center gap-6 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-slate-800/80 animate-in slide-in-from-bottom-8 duration-300">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="material-symbols-outlined text-[20px] text-sky-400">check_box</span>
             <span className="text-xs font-black uppercase tracking-wider text-slate-100">
               {selectedRifs.length} {selectedRifs.length === 1 ? 'organización seleccionada' : 'organizaciones seleccionadas'}

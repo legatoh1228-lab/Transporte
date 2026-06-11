@@ -290,7 +290,7 @@ const Alertas = () => {
 
         {/* Quick Filters and Stats Row */}
         <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-outline-variant/30">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-40">Filtros Rápidos:</span>
             <div className="flex flex-wrap gap-2">
               {[

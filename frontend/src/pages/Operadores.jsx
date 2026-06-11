@@ -282,7 +282,7 @@ export default function Operadores() {
           <h1 className="text-3xl font-black text-on-surface tracking-tight">Personal Operador</h1>
           <p className="text-sm text-on-surface-variant font-medium mt-1">Gestión integral de conductores y personal técnico</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={generatePDF}
             className="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant px-4 py-2.5 rounded-2xl text-sm font-bold transition-colors flex items-center gap-2 border border-outline-variant shadow-sm"
@@ -320,14 +320,14 @@ export default function Operadores() {
         </div>
 
         {/* Operators Grid/Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           {loading ? (
             <div className="p-20 text-center flex flex-col items-center gap-4">
                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                <p className="text-on-surface-variant font-bold animate-pulse">Sincronizando base de datos...</p>
             </div>
           ) : (
-            <div className="w-full overflow-x-auto pb-4">
+            <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left text-sm text-on-surface border-collapse">
               <thead className="bg-surface-container-high/50 text-[11px] uppercase text-on-surface-variant font-black tracking-widest border-b border-outline-variant">
                 <tr>
@@ -497,7 +497,7 @@ export default function Operadores() {
              </div>
 
              {/* Grid Details Re-designed */}
-             <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Main Content (7 cols) */}
                 <div className="md:col-span-7 flex flex-col gap-8">
                    {/* Socio-Laboral */}
@@ -543,7 +543,7 @@ export default function Operadores() {
                       <div className="grid grid-cols-2 gap-4">
                          <div className="col-span-2 flex justify-between items-center bg-primary/5 p-4 rounded-2xl border border-primary/10">
                             <span className="text-sm font-semibold text-primary">Licencia de Conducir</span>
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-3">
                                <span className="px-3 py-1 bg-primary text-on-primary font-black rounded-lg text-xs uppercase">Grado {selectedOperator.licencia_grado}</span>
                                <span className={`font-black text-sm ${new Date(selectedOperator.vence_lic) < new Date() ? 'text-error animate-pulse' : 'text-on-surface'}`}>
                                  Vence: {selectedOperator.vence_lic}

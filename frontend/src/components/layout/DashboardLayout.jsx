@@ -27,7 +27,7 @@ const DashboardLayout = () => {
         <TopBar onMenuToggle={toggleSidebar} />
         
         {/* Contenido Dinámico */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto" style={{ backgroundColor: 'var(--color-background)' }}>
+        <main className="flex-1 p-3 md:p-8 overflow-y-auto w-full max-w-[100vw] md:max-w-none overflow-x-hidden" style={{ backgroundColor: 'var(--color-background)' }}>
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>

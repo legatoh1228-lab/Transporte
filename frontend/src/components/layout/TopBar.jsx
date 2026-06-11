@@ -127,7 +127,7 @@ const TopBar = ({ onMenuToggle }) => {
         >
           <span className="material-symbols-outlined">menu</span>
         </button>
-        <div className="text-base md:text-lg font-black" style={{ color: 'var(--color-primary-container)' }}>
+        <div className="text-base md:text-lg font-black truncate max-w-[150px] sm:max-w-none" style={{ color: 'var(--color-primary-container)' }}>
           {systemName}
         </div>
       </div>

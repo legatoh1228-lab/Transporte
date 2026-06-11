@@ -121,7 +121,7 @@ export default function Permisos() {
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">Matriz de Permisos</h1>
           <p className="text-sm text-on-surface-variant font-medium mt-1">Configure el acceso granular por módulo y acción para cada rol del sistema.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {hasDirty && !isSuper && canUpdate && (
             <button 
               onClick={handleSaveAll}
@@ -143,7 +143,7 @@ export default function Permisos() {
       </div>
 
       {/* Role Selection Tabs */}
-      <div className="flex overflow-x-auto gap-2 pb-2 border-b border-outline-variant">
+      <div className="flex overflow-x-auto custom-scrollbar gap-2 pb-2 border-b border-outline-variant">
         {roles.map(role => (
           <button
             key={role.id}
@@ -165,8 +165,8 @@ export default function Permisos() {
           </div>
         )}
         
-        <div className="overflow-x-auto">
-          <div className="w-full overflow-x-auto pb-4">
+        <div className="overflow-x-auto custom-scrollbar">
+          <div className="w-full overflow-x-auto custom-scrollbar pb-4">
 <table className="w-full text-left text-sm text-on-surface">
             <thead className="bg-surface-container-high text-[11px] uppercase text-on-surface-variant font-bold tracking-wider border-b border-outline-variant">
               <tr>
@@ -187,7 +187,7 @@ export default function Permisos() {
                 MODULES.map((module) => (
                   <tr key={module} className={`hover:bg-surface-container-low/40 transition-colors group ${isSuper ? 'bg-surface-container/10' : ''}`}>
                     <td className="px-6 py-4 border-r border-outline-variant/30">
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <span className={`material-symbols-outlined text-[20px] ${isSuper ? 'text-primary' : 'text-primary/70'}`}>
                           {module === 'Organizaciones' ? 'business' : 
                            module === 'Gremios' ? 'groups' :

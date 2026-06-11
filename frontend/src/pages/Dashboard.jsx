@@ -570,17 +570,17 @@ const Dashboard = () => {
         {canViewAlerts && (
           <div className="lg:col-span-4 h-full">
              <div className="bg-surface-container-lowest border border-outline-variant/60 rounded-[40px] p-6 xl:p-8 flex flex-col shadow-sm relative overflow-hidden h-full">
-                <div className="flex items-center justify-between mb-8 flex-shrink-0">
-                   <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 flex-shrink-0">
+                   <div className="flex flex-wrap items-center gap-3">
                       <div className="w-12 h-12 rounded-2xl bg-error/10 flex items-center justify-center">
                          <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>notifications_active</span>
                       </div>
                       <h3 className="text-xl font-black text-on-surface">Notificaciones</h3>
                    </div>
-                   <div className="flex items-center gap-2">
+                   <div className="flex items-center gap-2 self-start sm:self-auto">
                       {stats.alerts.length > 0 && (
                         <span className="bg-error text-on-error text-[12px] font-black px-3 py-1 rounded-full animate-pulse shadow-sm">
-                           {stats.alerts.length}
+                           {stats.alerts.length} nuevas
                         </span>
                       )}
                    </div>
